@@ -1,0 +1,58 @@
+@import "tailwindcss";
+
+@variant dark (&:where(.dark, .dark *));
+
+/* Efek transisi smooth saat ganti tema */
+html,
+body {
+  @apply transition-colors duration-300;
+}
+
+/* Hide scrollbar tapi tetap bisa scroll */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;     /* Firefox */
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;             /* Chrome, Safari, Opera */
+}
+
+@theme {
+  --color-primary: var(--primary);
+  --color-btn-primary: var(--btn-primary);
+  --color-btn-secondary: var(--btn-secondary);
+  --color-light-dark: var(--light-dark);
+  --color-primary-txt: var(--primary-txt);
+  --color-secondary-txt: var(--secondary-txt);
+  --color-theme-primary: var(--theme-primary);
+  --color-theme-secondary: var(--theme-secondary);
+  --color-hover-secondary: var(--hover-secondary);
+  --color-header: var(--header);
+}
+
+:root,
+.light-theme {
+  --primary: #2563eb;        /* Diubah dari merah (#ef4444) ke Blue 600 */
+  --btn-primary: #2563eb;    /* Diubah dari merah (#ef4444) ke Blue 600 */
+  --btn-secondary: #f4f4f5;
+  --light-dark: #e4e4e7;
+  --primary-txt: #09090b;
+  --secondary-txt: #71717a;
+  --theme-primary: #ffffff;
+  --theme-secondary: #f4f4f5;
+  --hover-secondary: #e4e4e7;
+  --header: #09090b;
+}
+
+.dark-theme {
+  --primary: #3b82f6;       
+  --btn-primary: #2563eb;    
+  --btn-secondary: #27272a;
+  --light-dark: #18181b;
+  --primary-txt: #fafafa;
+  --secondary-txt: #a1a1aa;
+  --theme-primary: #09090b;
+  --theme-secondary: #141416;
+  --hover-secondary: #27272a;
+  --header: #fafafa;
+}

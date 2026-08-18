@@ -1,0 +1,14 @@
+{
+  "colors": {
+    "primary": "var(--primary)",
+    "btn-primary": "var(--btn-primary)",
+    "btn-secondary": "var(--btn-secondary)",
+    "light-dark": "var(--light-dark)",
+    "primary-txt": "var(--primary-txt)",
+    "secondary-txt": "var(--secondary-txt)",
+    "theme-primary": "var(--theme-primary)",
+    "theme-secondary": "var(--theme-secondary)",
+    "hover-secondary": "var(--hover-secondary)",
+    "header": "var(--header)"
+  }
+}
