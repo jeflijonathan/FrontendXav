@@ -33,7 +33,7 @@ const UpdateSubjectFormCardDialog = ({ id, isOpen, onClose }: { id: string, isOp
             const service = new CategorySubjectService();
             service.getCategorySubjectOptionsRequest({
                 onSuccess: (data) => setOptions(data),
-                onError: (err) => console.error("Failed to load options", err)
+                onError: (err: any) => console.error("Failed to load options", err)
             });
             
             const currentData = state.data.find(d => d.id === id);

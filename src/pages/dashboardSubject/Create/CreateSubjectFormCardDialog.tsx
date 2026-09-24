@@ -32,7 +32,7 @@ const CreateSubjectFormCardDialog = ({ isOpen, onClose }: { isOpen: boolean; onC
             const service = new CategorySubjectService();
             service.getCategorySubjectOptionsRequest({
                 onSuccess: (data) => setOptions(data),
-                onError: (err) => console.error("Failed to load options", err)
+                onError: (err: any) => console.error("Failed to load options", err)
             });
         }
     }, [isOpen, reset]);

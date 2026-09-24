@@ -14,7 +14,7 @@ const useUpdateEmployee = () => {
                 enqueueSnackbar("Employee updated successfully!", { variant: "success" });
                 if(onSuccessCallback) onSuccessCallback();
             },
-            onError: (err) => {
+            onError: (err: any) => {
                 enqueueSnackbar("Failed to update Employee.", { variant: "error" });
                 console.error(err);
             },

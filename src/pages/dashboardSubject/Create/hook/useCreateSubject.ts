@@ -14,7 +14,7 @@ const useCreateSubject = () => {
                 addNotification("Subject created successfully!", "success");
                 if(onSuccessCallback) onSuccessCallback();
             },
-            onError: (err) => {
+            onError: (err: any) => {
                 addNotification("Failed to create Subject.", "error");
                 console.error(err);
             },

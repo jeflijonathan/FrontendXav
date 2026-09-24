@@ -41,7 +41,7 @@ const UpdateCategorySubjectFormCardDialog = ({ id, isOpen, onClose, onSuccess }:
     const onSubmit = (data: FormData) => {
         const payload = {
             ...data,
-            status: data.status === "true"
+            status: data.status === "true" || data.status === "active"
         };
         handleUpdate(id, payload, () => {
             if (onSuccess) onSuccess();

@@ -14,7 +14,7 @@ const useUpdateCategorySubject = () => {
                 enqueueSnackbar("Category Subject updated successfully!", { variant: "success" });
                 if(onSuccessCallback) onSuccessCallback();
             },
-            onError: (err) => {
+            onError: (err: any) => {
                 enqueueSnackbar(err || "Failed to update Category Subject.", { variant: "error" });
                 console.error(err);
             },

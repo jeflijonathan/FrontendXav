@@ -33,7 +33,7 @@ const CreateCategorySubjectFormCardDialog = ({ isOpen, onClose, onSuccess }: { i
     const onSubmit = (data: FormData) => {
         const payload = {
             ...data,
-            status: data.status === "true"
+            status: data.status === "true" || data.status === "active"
         };
         handleCreate(payload, () => {
             if (onSuccess) onSuccess();

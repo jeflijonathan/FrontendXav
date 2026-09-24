@@ -23,7 +23,7 @@ const useCategorySubjectList = () => {
 
         await service.getCategorySubjectRequest({
             onSuccess: (response) => setState({ data: response.data, pagination: response.pagination, isLoading: false }),
-            onError: (err) => { console.error(err); setState({ isLoading: false }); },
+            onError: (err: any) => { console.error(err); setState({ isLoading: false }); },
         }, filterParams);
     };
 

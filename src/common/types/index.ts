@@ -26,7 +26,7 @@ export interface MenuItemType {
 export type PaginationType = {
   page: number;
   limit: number;
-  total_items: number;
+  total: number;
   total_pages: number;
 };
 
@@ -52,12 +52,12 @@ export type FetchCallback<T> = {
 export type FilterParams = {
   params: {
     [key: string]:
-      | string
-      | number
-      | undefined
-      | string[]
-      | number[]
-      | boolean
-      | null;
+    | string
+    | number
+    | undefined
+    | string[]
+    | number[]
+    | boolean
+    | null;
   };
 };

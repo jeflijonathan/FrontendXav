@@ -5,6 +5,9 @@ import PeopleIcon from "@mui/icons-material/People";
 import SettingsIcon from "@mui/icons-material/Settings";
 import HelpIcon from "@mui/icons-material/Help";
 import LogoutIcon from "@mui/icons-material/Logout";
+import SchoolIcon from "@mui/icons-material/School";
+import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
+import BusinessIcon from "@mui/icons-material/Business";
 import useSidebarStore from "../../store/useSidebarStore";
 import ItemMenu from "./ItemMenu";
 import type { MenuItemType } from "../../types";
@@ -20,11 +23,38 @@ const SidebarApp = () => {
       href: "/",
     },
     {
+      icon: <SchoolIcon fontSize="small" />,
+      label: "Akademik",
+      subItems: [
+        { label: "Major (Jurusan)", href: "/majors" },
+        { label: "Class (Kelas)", href: "/classes" },
+        { label: "Classroom", href: "/classrooms" },
+      ],
+    },
+    {
       icon: <MenuBookIcon fontSize="small" />,
       label: "Kurikulum",
       subItems: [
         { label: "Category Subjects", href: "/category-subjects" },
         { label: "Subjects", href: "/subjects" },
+        { label: "Teacher Subjects", href: "/teacher-subjects" },
+        { label: "Effective Weeks", href: "/effective-weeks" },
+      ],
+    },
+    {
+      icon: <CalendarMonthIcon fontSize="small" />,
+      label: "Jadwal",
+      subItems: [
+        { label: "Category Schedule Time", href: "/category-schedule-times" },
+        { label: "Schedule Time Slots", href: "/schedule-times" },
+        { label: "Schedules (Jadwal)", href: "/schedules" },
+      ],
+    },
+    {
+      icon: <BusinessIcon fontSize="small" />,
+      label: "Sekolah",
+      subItems: [
+        { label: "School Information", href: "/school-informations" },
       ],
     },
     {

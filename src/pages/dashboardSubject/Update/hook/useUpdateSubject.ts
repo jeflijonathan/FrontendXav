@@ -14,7 +14,7 @@ const useUpdateSubject = () => {
                 addNotification("Subject updated successfully!", "success");
                 if(onSuccessCallback) onSuccessCallback();
             },
-            onError: (err) => {
+            onError: (err: any) => {
                 addNotification("Failed to update Subject.", "error");
                 console.error(err);
             },

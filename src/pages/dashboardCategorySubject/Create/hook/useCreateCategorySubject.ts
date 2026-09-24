@@ -14,7 +14,7 @@ const useCreateCategorySubject = () => {
                 enqueueSnackbar("Category Subject created successfully!", { variant: "success" });
                 if(onSuccessCallback) onSuccessCallback();
             },
-            onError: (err) => {
+            onError: (err: any) => {
                 enqueueSnackbar(err || "Failed to create Category Subject.", { variant: "error" });
                 console.error(err);
             },

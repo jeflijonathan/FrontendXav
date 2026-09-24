@@ -15,7 +15,7 @@ const useDeleteCategorySubject = () => {
                 enqueueSnackbar("Category Subject deleted successfully!", { variant: "success" });
                 if(onSuccessCallback) onSuccessCallback();
             },
-            onError: (err) => {
+            onError: (err: any) => {
                 enqueueSnackbar("Failed to delete Category Subject.", { variant: "error" });
                 console.error(err);
             },

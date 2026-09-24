@@ -16,7 +16,7 @@ const useDeleteSubject = () => {
                 addNotification("Subject deleted successfully!", "success");
                 if(onSuccessCallback) onSuccessCallback();
             },
-            onError: (err) => {
+            onError: (err: any) => {
                 addNotification("Failed to delete Subject.", "error");
                 console.error(err);
             },

@@ -1,5 +1,5 @@
 import type { StudentResponseModel } from "@api/student/model";
-import type { PaginationType } from "@types";
+import type { PaginationType } from "@common/types";
 import { create } from "zustand";
 
 export type StateType = {

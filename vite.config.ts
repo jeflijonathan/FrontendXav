@@ -7,6 +7,7 @@ import path from "path";
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   resolve: {
+    tsconfigPaths: true,
     alias: {
       "@components": path.resolve(__dirname, "src/common/components"),
       "@hooks": path.resolve(__dirname, "src/common/hooks"),

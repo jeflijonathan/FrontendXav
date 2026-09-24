@@ -16,7 +16,7 @@ const useDeleteStudent = () => {
                 addNotification("Student deleted successfully!", "success");
                 if(onSuccessCallback) onSuccessCallback();
             },
-            onError: (err) => {
+            onError: (err: any) => {
                 addNotification("Failed to delete Student.", "error");
                 console.error(err);
             },

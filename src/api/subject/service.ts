@@ -1,4 +1,4 @@
-import type { DataWithPagination, FetchCallback, FilterParams } from "@types";
+import type { DataWithPagination, FetchCallback, FilterParams } from "@common/types";
 import type { SubjectResponseModel, CreateSubjectRequestModel, UpdateSubjectRequestModel } from "./model";
 import { API } from "../index";
 

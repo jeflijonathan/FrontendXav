@@ -94,7 +94,8 @@ export class API {
         type: response.headers["content-type"],
       });
 
-      const url = window.URL.createObjectURL(blob);
+      const
+        url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
 
@@ -131,7 +132,7 @@ export class API {
           const text = await error.response.data.text();
           const json = JSON.parse(text);
           message = json.message || message;
-        } catch (e) {}
+        } catch (e) { }
       } else if (error.response?.data?.message) {
         message = error.response.data.message;
       } else if (error.message) {

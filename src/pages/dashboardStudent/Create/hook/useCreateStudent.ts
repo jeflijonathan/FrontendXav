@@ -14,7 +14,7 @@ const useCreateStudent = () => {
                 addNotification("Student created successfully!", "success");
                 if(onSuccessCallback) onSuccessCallback();
             },
-            onError: (err) => {
+            onError: (err: any) => {
                 addNotification("Failed to create Student.", "error");
                 console.error(err);
             },

@@ -20,8 +20,7 @@ const useCategorySubjectDetail = (id: string | null) => {
             await service.getCategorySubjectByIdRequest(id, {
                 onSuccess: (data) => {
                     setDetail(data);
-                },
-                onError: (err) => {
+                }, onError: (err: any) => {
                     enqueueSnackbar(err || "Failed to fetch category subject details", { variant: "error" });
                 },
                 onFullfilled: () => setIsLoading(false)

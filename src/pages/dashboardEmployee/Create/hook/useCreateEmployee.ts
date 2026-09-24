@@ -14,7 +14,7 @@ const useCreateEmployee = () => {
                 enqueueSnackbar("Employee created successfully!", { variant: "success" });
                 if(onSuccessCallback) onSuccessCallback();
             },
-            onError: (err) => {
+            onError: (err: any) => {
                 enqueueSnackbar("Failed to create Employee.", { variant: "error" });
                 console.error(err);
             },

@@ -1,4 +1,4 @@
-import type { FilterParams } from "@types";
+import type { FilterParams } from "@common/types";
 export const filterMapper = (state: any): FilterParams => ({
     params: {
         page: state.page ?? 1,

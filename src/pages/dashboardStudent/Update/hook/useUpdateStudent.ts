@@ -14,7 +14,7 @@ const useUpdateStudent = () => {
                 addNotification("Student updated successfully!", "success");
                 if(onSuccessCallback) onSuccessCallback();
             },
-            onError: (err) => {
+            onError: (err: any) => {
                 addNotification("Failed to update Student.", "error");
                 console.error(err);
             },

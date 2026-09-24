@@ -30,7 +30,7 @@ const useSubjectList = () => {
                 onSuccess: (response) => {
                     setState({ data: response.data, pagination: response.pagination, isLoading: false });
                 },
-                onError: (err) => {
+                onError: (err: any) => {
                     console.error(err);
                     setState({ isLoading: false });
                 },
