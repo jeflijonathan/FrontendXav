@@ -1,6 +1,7 @@
-import { Box, TextField, MenuItem, IconButton, Tooltip } from "@mui/material";
-import { Search, Sort, ArrowUpward, ArrowDownward } from "@mui/icons-material";
+import { Box, TextField, MenuItem, IconButton, Tooltip, debounce } from "@mui/material";
+import { Search, Sort, ArrowUpward, ArrowDownward, HandymanOutlined } from "@mui/icons-material";
 import { useEffect, useState } from "react";
+import useDebouncer from "@utils/useDebouncer";
 
 export interface SortOption {
     label: string;
@@ -26,23 +27,13 @@ const TableToolbar = ({
     sortDir,
     onSortDirChange
 }: TableToolbarProps) => {
-    const [localSearch, setLocalSearch] = useState(search);
-
-    // Debounce search
-    useEffect(() => {
-        const handler = setTimeout(() => {
-            onSearchChange(localSearch);
-        }, 500);
-        return () => clearTimeout(handler);
-    }, [localSearch, onSearchChange]);
-
     return (
         <Box sx={{ display: "flex", gap: 2, mb: 2, alignItems: "center", flexWrap: "wrap" }}>
             <TextField
                 size="small"
                 placeholder="Search..."
-                value={localSearch}
-                onChange={(e) => setLocalSearch(e.target.value)}
+                value={search}
+                onChange={(e) => onSearchChange(e.target.value)}
                 slotProps={{
                     input: {
                         startAdornment: <Search sx={{ color: "text.secondary", mr: 1, fontSize: 20 }} />
@@ -68,9 +59,9 @@ const TableToolbar = ({
                         <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
                     ))}
                 </TextField>
-                
+
                 <Tooltip title={sortDir === "asc" ? "Ascending" : "Descending"}>
-                    <IconButton 
+                    <IconButton
                         onClick={() => onSortDirChange(sortDir === "asc" ? "desc" : "asc")}
                         size="small"
                         sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1, p: "7px" }}

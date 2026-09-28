@@ -11,14 +11,14 @@ export default class SchoolInformationService {
         params: FilterParams
     ) {
         try {
-            const res = await this.service.GET<SchoolInformationResponseModel[]>(this.basePath, params?.params);
-            const dataList = Array.isArray(res?.data) ? res.data : [];
+            const res = await this.service.GET<DataWithPagination<SchoolInformationResponseModel[]>>(this.basePath, params?.params);
+
             callback.onSuccess({
                 data: dataList,
                 pagination: {
                     page: Number(params?.params?.page) || 1,
                     limit: Number(params?.params?.limit) || 10,
-                    total_items: dataList.length,
+                    total_data: res.pagination.,
                     total_pages: 1,
                 },
             });

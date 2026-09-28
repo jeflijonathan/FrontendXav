@@ -18,7 +18,8 @@ export default class ClassroomService {
                 pagination: {
                     page: Number(params?.params?.page) || 1,
                     limit: Number(params?.params?.limit) || 10,
-                    total_pages: 1,
+                    total_data: res.pagination?.total_data || 0,
+                    total_pages: res.pagination?.total_pages || 1,
                 },
             });
         } catch (err: any) {

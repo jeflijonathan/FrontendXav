@@ -26,7 +26,7 @@ export interface MenuItemType {
 export type PaginationType = {
   page: number;
   limit: number;
-  total: number;
+  total_data: number;
   total_pages: number;
 };
 

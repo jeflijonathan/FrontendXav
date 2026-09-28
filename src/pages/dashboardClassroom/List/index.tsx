@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { BaseTable, TableBody, TablePagination, TableFooter, TableToolbar, ResponsiveTableRow } from "@components/Table";
-import { Button, Chip } from "@mui/material";
+import { BaseTable, TableBody, TablePagination, TableFooter, TableRow } from "@components/Table";
+import TableToolbar from "./TableToolbar"; // Pastikan path import TableToolbar sudah benar
+import { Button, Chip, TableCell } from "@mui/material";
 import useClassroomList from "./hook/useClassroomList";
 import useClassroomFilters from "./hook/useClassroomFilters";
 import useDashboardClassroomStore from "../store";
@@ -35,7 +36,7 @@ const ClassroomTable = () => {
                     Create Classroom
                 </Button>
             </div>
-            
+
             <TableToolbar
                 search={state.search.value}
                 onSearchChange={handleSearch}
@@ -55,33 +56,6 @@ const ClassroomTable = () => {
                     className="bg-transparent"
                 >
                     {tableData.map((row, index) => {
-                        const columns = [
-                            { label: "Class", content: row.class?.name || row.id_class },
-                            { 
-                                label: "Teacher & Subject", 
-                                content: row.teacher_subject 
-                                    ? `${row.teacher_subject.teacher?.first_name || ''} ${row.teacher_subject.teacher?.last_name || ''} (${row.teacher_subject.subject?.name || ''})`
-                                    : row.id_teacher_subject 
-                            },
-                            { 
-                                label: "School Info", 
-                                content: row.school_information 
-                                    ? `${row.school_information.name_school} (${row.school_information.periode})`
-                                    : row.id_school_information 
-                            },
-                            {
-                                label: "Status",
-                                content: (
-                                    <Chip
-                                        label={row.status}
-                                        color={row.status === "active" ? "success" : "default"}
-                                        size="small"
-                                    />
-                                ),
-                            },
-                            { label: "Created At", content: new Date(row.created_at).toLocaleDateString(), hideOnMobile: true },
-                        ];
-
                         const actions = (
                             <div className="flex gap-2">
                                 <Button size="small" variant="outlined" color="warning" onClick={() => setUpdateId(row.id_class_room)}>Edit</Button>
@@ -90,12 +64,35 @@ const ClassroomTable = () => {
                         );
 
                         return (
-                            <ResponsiveTableRow
+                            <TableRow
                                 key={row.id_class_room}
                                 index={index}
-                                columns={columns}
                                 actions={actions}
-                            />
+                            >
+                                <TableCell sx={{ py: 1 }}>
+                                    {row.class?.name || row.id_class}
+                                </TableCell>
+                                <TableCell sx={{ py: 1 }}>
+                                    {row.teacher_subject
+                                        ? `${row.teacher_subject.teacher?.first_name || ''} ${row.teacher_subject.teacher?.last_name || ''} (${row.teacher_subject.subject?.name || ''})`
+                                        : row.id_teacher_subject}
+                                </TableCell>
+                                <TableCell sx={{ py: 1 }}>
+                                    {row.school_information
+                                        ? `${row.school_information.name_school} (${row.school_information.periode})`
+                                        : row.id_school_information}
+                                </TableCell>
+                                <TableCell sx={{ py: 1 }}>
+                                    <Chip
+                                        label={row.status}
+                                        color={row.status === "active" ? "success" : "default"}
+                                        size="small"
+                                    />
+                                </TableCell>
+                                <TableCell sx={{ py: 1 }} className="hidden md:table-cell">
+                                    {new Date(row.created_at).toLocaleDateString()}
+                                </TableCell>
+                            </TableRow>
                         );
                     })}
                 </TableBody>
@@ -108,16 +105,16 @@ const ClassroomTable = () => {
                 </TableFooter>
             </BaseTable>
 
-            <CreateClassroomFormCardDialog 
-                isOpen={isCreateOpen} 
-                onClose={() => { setIsCreateOpen(false); refresh(); }} 
+            <CreateClassroomFormCardDialog
+                isOpen={isCreateOpen}
+                onClose={() => { setIsCreateOpen(false); refresh(); }}
             />
 
             {updateId && (
-                <UpdateClassroomFormCardDialog 
-                    id={updateId} 
-                    isOpen={true} 
-                    onClose={() => { setUpdateId(null); refresh(); }} 
+                <UpdateClassroomFormCardDialog
+                    id={updateId}
+                    isOpen={true}
+                    onClose={() => { setUpdateId(null); refresh(); }}
                 />
             )}
         </>

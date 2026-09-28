@@ -6,26 +6,28 @@ import { filterMapper } from "@common/utils/filterMapper";
 const useSchoolInfoList = () => {
     const { enqueueSnackbar } = useSnackbar();
     const { state, setState } = useDashboardSchoolInformationStore();
+    const service = new SchoolInformationService();
 
     const fetchList = async () => {
         setState((prev) => ({ ...prev, isLoading: true }));
-        const filterParams = filterMapper(state);
-        await new SchoolInformationService().getAll({ onSuccess: (res: any) => {
-                        setState((prev) => ({
-                            ...prev,
-                            data: res.data || [],
-                            pagination: {
-                                total_data: res.pagination?.total_data || 0,
-                                total_pages: res.pagination?.total_pages || 1,
-                                page: res.pagination?.page || 1,
-                                limit: res.pagination?.limit || 10,
-                            },
-                            isLoading: false,
-                        }));
-                    }, onError: (err: any) => {
-                        enqueueSnackbar(err.message || "Failed to fetch school informations", { variant: "error" });
-                        setState((prev) => ({ ...prev, isLoading: false }));
-                    } }, { params: filterParams });
+        await service.getAll({
+            onSuccess: (res: any) => {
+                setState((prev) => ({
+                    ...prev,
+                    data: res.data || [],
+                    pagination: {
+                        total_data: res.pagination?.total_data || 0,
+                        total_pages: res.pagination?.total_pages || 1,
+                        page: res.pagination?.page || 1,
+                        limit: res.pagination?.limit || 10,
+                    },
+                    isLoading: false,
+                }));
+            }, onError: (err: any) => {
+                enqueueSnackbar(err.message || "Failed to fetch school informations", { variant: "error" });
+                setState((prev) => ({ ...prev, isLoading: false }));
+            }
+        }, { params: filterParams });
     };
 
     const tableHeader = [
