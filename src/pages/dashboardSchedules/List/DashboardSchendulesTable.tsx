@@ -43,13 +43,14 @@ const DashboardScheduleTable = () => {
             </IconButton>
         </div>
     );
+
     const dummyData: ScheduleItem[] = [
         { id: 1, className: "10-A", subject: "Math", day: "Senin", time: "08.00 - 10.00", teacher: "Pak Budi", room: "101", },
         { id: 2, className: "10-B", subject: "Physics", day: "Selasa", time: "10.00 - 12.00", teacher: "Bu Siti", room: "102" },
         { id: 3, className: "11-A", subject: "Chemistry", day: "Rabu", time: "08.00 - 09.30", teacher: "Pak Joko", room: "103" },
     ];
-    const [data] = useState<ScheduleItem[]>(dummyData);
 
+    const [data] = useState<ScheduleItem[]>(dummyData);
 
     return (
         <BaseTable>

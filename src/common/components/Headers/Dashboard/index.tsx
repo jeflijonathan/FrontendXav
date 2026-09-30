@@ -1,11 +1,18 @@
-import { Box, Typography, useTheme } from '@mui/material';
+import { Box, Button, Typography, useTheme } from '@mui/material';
 
-export type Props = {
+export type DashboardHeaderProps = {
     title: string;
     description: string;
+    buttonText?: string;
+    children?: React.ReactNode;
+    actionButton?: React.ReactNode;
 };
 
-const DashboardHeader = ({ title, description }: Props) => {
+const DashboardHeader = ({
+    title,
+    description,
+    children,
+}: DashboardHeaderProps) => {
     const theme = useTheme();
 
     return (
@@ -42,6 +49,7 @@ const DashboardHeader = ({ title, description }: Props) => {
                     {description}
                 </Typography>
             </Box>
+            {children}
         </Box>
     );
 };

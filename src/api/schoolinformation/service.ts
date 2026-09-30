@@ -3,7 +3,7 @@ import { type SchoolInformationResponseModel, type CreateSchoolInformationReques
 import { API } from "../index";
 
 export default class SchoolInformationService {
-    basePath = "/school-informations";
+    basePath = "/school-informations/";
     service = new API();
 
     async getAll(
@@ -12,16 +12,23 @@ export default class SchoolInformationService {
     ) {
         try {
             const res = await this.service.GET<DataWithPagination<SchoolInformationResponseModel[]>>(this.basePath, params?.params);
-
+            console.log(res)
             callback.onSuccess({
-                data: dataList,
-                pagination: {
-                    page: Number(params?.params?.page) || 1,
-                    limit: Number(params?.params?.limit) || 10,
-                    total_data: res.pagination.,
-                    total_pages: 1,
-                },
+                data: res.data.data,
+                pagination: res.data.pagination
             });
+
+        } catch (err: any) {
+            console.log(err.message)
+            callback.onError(err.message || "Failed to fetch school information");
+        }
+        if (callback.onFullfilled) callback.onFullfilled();
+    }
+
+    async getById(id: string, callback: FetchCallback<SchoolInformationResponseModel>) {
+        try {
+            const res = await this.service.GET<SchoolInformationResponseModel>(`${this.basePath}/${id}`);
+            callback.onSuccess(res.data);
         } catch (err: any) {
             callback.onError(err.message || "Failed to fetch school information");
         }

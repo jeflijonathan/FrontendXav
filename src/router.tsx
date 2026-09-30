@@ -18,6 +18,7 @@ import DashboardProfilePage from "./pages/DashboardProfile/DashboardProfilePage"
 import WhatsappConnections from "./pages/settings/WhatsappConnections";
 import TestMenuPage from "./pages/testMenu";
 import DashboardSchendule from "@pages/dashboardSchedules";
+import DashboardSchoolInformation from "@pages/dashboardSchoolInformation";
 
 const routes = createBrowserRouter([
   {
@@ -63,10 +64,10 @@ const routes = createBrowserRouter([
       //   path: "/teacher-subjects",
       //   element: <TeacherSubjectTable />,
       // },
-      // {
-      //   path: "/school-informations",
-      //   element: <SchoolInformationTable />,
-      // },
+      {
+        path: "/school-informations",
+        element: <DashboardSchoolInformation />,
+      },
       // {
       //   path: "/effective-weeks",
       //   element: <EffectiveWeekTable />,

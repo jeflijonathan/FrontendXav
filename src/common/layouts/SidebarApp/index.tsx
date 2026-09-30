@@ -26,9 +26,9 @@ const SidebarApp = () => {
       icon: <SchoolIcon fontSize="small" />,
       label: "Akademik",
       subItems: [
-        { label: "Major (Jurusan)", href: "/majors" },
-        { label: "Class (Kelas)", href: "/classes" },
-        { label: "Classroom", href: "/classrooms" },
+        { label: "Jurusan", href: "/majors" },
+        { label: "Kelas", href: "/classes" },
+        { label: "Ruang Kelas", href: "/classrooms" },
       ],
     },
     {
@@ -47,14 +47,15 @@ const SidebarApp = () => {
       subItems: [
         { label: "Category Schedule Time", href: "/category-schedule-times" },
         { label: "Schedule Time Slots", href: "/schedule-times" },
-        { label: "Schedules (Jadwal)", href: "/schedules" },
+        { label: "Jadwal", href: "/schedules" },
       ],
     },
     {
       icon: <BusinessIcon fontSize="small" />,
       label: "Sekolah",
       subItems: [
-        { label: "School Information", href: "/school-informations" },
+        { label: "Pengumuman", href: "/announcements" },
+        { label: "informasi Sekolah", href: "/school-informations" },
       ],
     },
     {
@@ -102,9 +103,9 @@ const SidebarApp = () => {
             : "-translate-x-full md:w-20 md:translate-x-0",
         )}
       >
-        <LogoSidebar isSidebarOpen={isSidebarOpen}/>
+        <LogoSidebar isSidebarOpen={isSidebarOpen} />
         <BaseMenu>
-           <p
+          <p
             className={clsx(
               "px-3 text-[10px] font-bold uppercase tracking-widest mb-2 whitespace-nowrap text-secondary-txt/60",
               textVisibilityClass,
@@ -112,14 +113,14 @@ const SidebarApp = () => {
           >
             Main Menu
           </p>
-           <nav className="space-y-1.5">
+          <nav className="space-y-1.5">
             {menuItems.map((item, index) => (
               <ItemMenu key={index} item={item} />
             ))}
           </nav>
         </BaseMenu>
-          
-         
+
+
         <div className="p-4 border-t shrink-0 overflow-hidden border-light-dark bg-theme-secondary/40">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-3 whitespace-nowrap">

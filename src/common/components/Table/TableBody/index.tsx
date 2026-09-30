@@ -23,6 +23,7 @@ interface TableBodyProps {
     dataLength?: number;
     className?: string;
     skeletonRows?: number;
+    maxDesktopCols?: number;
 }
 
 const TableBody = ({
@@ -32,10 +33,29 @@ const TableBody = ({
     dataLength = 0,
     className,
     skeletonRows = 5,
+    maxDesktopCols = 12,
 }: TableBodyProps) => {
     const isCompact = useTableStore((state) => state.isCompact);
-    // Batas jumlah kolom utama yang tampil di tabel (jika compact tampil 3 agar muat di layar kecil)
-    const maxVisibleCols = isCompact ? 3 : header.length;
+    const containerWidth = useTableStore((state) => state.containerWidth);
+
+    // Hitung berapa kolom yang muat secara dinamis berdasarkan lebar layar (dikurangi Actions, No, dan padding)
+    let dynamicMaxVisible = 0;
+    let availableWidth = containerWidth - 250; // Buffer 250px untuk No, Actions, dan panah
+
+    for (let i = 0; i < header.length; i++) {
+        // Ambil angka dari width (contoh: "150px" -> 150), default 100
+        const w = parseInt(header[i].width || "100", 10);
+        if (availableWidth >= w) {
+            availableWidth -= w;
+            dynamicMaxVisible++;
+        } else {
+            break;
+        }
+    }
+    // Pastikan tidak melebihi maxDesktopCols jika diset, dan minimal 1 (selalu tampilkan setidaknya kolom utama)
+    dynamicMaxVisible = Math.max(1, Math.min(dynamicMaxVisible, maxDesktopCols || header.length));
+
+    const maxVisibleCols = dynamicMaxVisible;
 
     const renderTableLoading = () => {
         return Array.from(new Array(skeletonRows)).map((_, rowIndex) => (

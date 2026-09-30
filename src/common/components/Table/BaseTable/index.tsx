@@ -10,6 +10,7 @@ interface BaseTableProps {
 const BaseTable = ({ children, breakpoint = 768 }: BaseTableProps) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const setIsCompact = useTableStore((state) => state.setIsCompact);
+    const setContainerWidth = useTableStore((state) => state.setContainerWidth);
 
     useEffect(() => {
         const container = containerRef.current;
@@ -19,12 +20,13 @@ const BaseTable = ({ children, breakpoint = 768 }: BaseTableProps) => {
             for (const entry of entries) {
                 const currentWidth = entry.contentRect.width;
                 setIsCompact(currentWidth < breakpoint);
+                setContainerWidth(currentWidth);
             }
         });
 
         observer.observe(container);
         return () => observer.disconnect();
-    }, [breakpoint, setIsCompact]);
+    }, [breakpoint, setIsCompact, setContainerWidth]);
 
     return (
         <TableContainer

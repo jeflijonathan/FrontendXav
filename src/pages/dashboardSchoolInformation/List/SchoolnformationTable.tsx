@@ -1,70 +1,69 @@
 import { useEffect, useState } from "react";
-import { BaseTable } from "@components/Table";
+import { BaseTable, TableHeader } from "@components/Table";
 import TableBody from "@components/Table/TableBody";
 import TableRow from "@components/Table/TableRow";
 import TableFooter from "@components/Table/TableFooter";
 import TablePagination from "@components/Table/TablePagination";
-import TableToolbar from "./TableToolbar"; // Sesuaikan path import TableToolbar Anda
-import { TableCell, Button, Chip } from "@mui/material";
-import type { TableHeaderType } from "@components/Table/TableBody";
+import { TableCell, Chip, IconButton, type IconButtonProps } from "@mui/material";
 import useSchoolInfoList from "./hook/useSchoolInfoList";
 import useSchoolInfoFilters from "./hook/useSchoolInfoFilters";
 import useDashboardSchoolInformationStore from "../store";
-import CreateSchoolInfoFormCardDialog from "../Create/CreateSchoolInfoFormCardDialog";
-import UpdateSchoolInfoFormCardDialog from "../Update/UpdateSchoolInfoFormCardDialog";
-import useDeleteSchoolInfo from "../Delete/hook/useDeleteSchoolInfo";
-
-const schoolInfoHeaders: TableHeaderType[] = [
-    { label: "School Name", width: "200px" },
-    { label: "Periode", width: "120px" },
-    { label: "NPSN", width: "150px" },
-    { label: "Headmaster", width: "180px" },
-    { label: "Status", width: "120px" },
-    { label: "Created At", width: "150px" },
-];
-
-const sortOptions = [
-    { label: "School Name", value: "name_school" },
-    { label: "Created At", value: "created_at" },
-];
+import { filterSchoolInformationMapper } from "@pages/dashboardSchoolInformation/List/utils/FilterSchoolInformationMapper";
+import { Edit, Visibility } from "@mui/icons-material";
+import { listTableMapper, type SchoolInformationMappedTable } from "./utils/ListTableMapper";
+import UpdateSchoolInfoCardDialog from "../Update/UpdateSchoolInfoCardDialog";
 
 const SchoolInformationTable = () => {
     const { state } = useDashboardSchoolInformationStore();
-    const { tableData, fetchList } = useSchoolInfoList();
+    const { tableData, fetchSchoolInfoList, statusData, schoolInfoHeaders, sortOptions } = useSchoolInfoList();
     const { handleChangePage, handleSearch, handleSort, handleOrder } = useSchoolInfoFilters();
-    const { handleDelete } = useDeleteSchoolInfo();
-
-    const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [updateId, setUpdateId] = useState<string | null>(null);
+    const dataMapper = listTableMapper(state.data);
+    const refresh = () => fetchSchoolInfoList(filterSchoolInformationMapper(state));
 
-    const refresh = () => fetchList();
-
-    useEffect(() => {
+    useEffect(function loadSchoolInformationData() {
         refresh();
     }, [state.pagination.page, state.search.value, state.filters.sort, state.filters.order_by]);
 
-    const renderActions = (row: any) => (
+    const ListActions: Array<{
+        label: string;
+        icon: React.ReactNode;
+        color: IconButtonProps["color"];
+        onClick: (item: any) => void;
+    }> = [
+            {
+                label: "Read",
+                icon: <Visibility fontSize="small" />,
+                color: "info",
+                onClick: (item) => console.log("Read", item.id),
+            },
+            {
+                label: "Edit",
+                icon: <Edit fontSize="small" />,
+                color: "primary",
+                onClick: (item) => console.log("Edit", item.id),
+            },
+        ];
+
+    const renderActions = (item: SchoolInformationMappedTable) => (
         <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
-            <Button size="small" variant="outlined" color="warning" onClick={() => setUpdateId(row.id)}>
-                Edit
-            </Button>
-            <Button size="small" variant="outlined" color="error" onClick={() => handleDelete(row.id, refresh)}>
-                Delete
-            </Button>
+            {ListActions.map((action, index) => (
+                <IconButton
+                    key={index}
+                    size="small"
+                    color={action.color}
+                    onClick={() => action.onClick(item)}
+                    title={action.label}
+                >
+                    {action.icon}
+                </IconButton>
+            ))}
         </div>
     );
 
     return (
         <>
-            <div className="flex justify-between items-center mb-4">
-                <h1 className="text-2xl font-bold text-primary-txt">School Information (Informasi Sekolah)</h1>
-                <Button variant="contained" color="primary" onClick={() => setIsCreateOpen(true)}>
-                    Create School Info
-                </Button>
-            </div>
-
-            {/* Integrasi TableToolbar */}
-            <TableToolbar
+            <TableHeader
                 search={state.search.value}
                 onSearchChange={handleSearch}
                 sortBy={state.filters.sort}
@@ -74,17 +73,14 @@ const SchoolInformationTable = () => {
                 onSortDirChange={handleOrder}
             />
 
-            <BaseTable>
+            <BaseTable breakpoint={1200}>
                 <TableBody
                     header={schoolInfoHeaders}
                     isLoading={state.isLoading}
                     dataLength={tableData.length}
                     skeletonRows={3}
                 >
-                    {tableData.map((row, index) => {
-                        const headmasterName = row.headmaster
-                            ? `${row.headmaster.first_name} ${row.headmaster.last_name}`
-                            : row.id_headmaster;
+                    {dataMapper.map((row, index) => {
 
                         return (
                             <TableRow
@@ -93,19 +89,31 @@ const SchoolInformationTable = () => {
                                 header={schoolInfoHeaders}
                                 actions={renderActions(row)}
                             >
-                                <TableCell sx={{ py: 1 }}>{row.name_school}</TableCell>
                                 <TableCell sx={{ py: 1 }}>{row.periode}</TableCell>
+                                <TableCell sx={{ py: 1 }}>{row.name_school}</TableCell>
                                 <TableCell sx={{ py: 1 }}>{row.NPSN}</TableCell>
-                                <TableCell sx={{ py: 1 }}>{headmasterName}</TableCell>
+                                <TableCell sx={{ py: 1 }}>{row.headmaster.name}</TableCell>
                                 <TableCell sx={{ py: 1 }}>
                                     <Chip
-                                        label={row.status}
-                                        color={row.status === "active" ? "success" : "default"}
+                                        label={statusData[Number(row.status)].label}
+                                        color={statusData[Number(row.status)].color}
                                         size="small"
                                     />
                                 </TableCell>
                                 <TableCell sx={{ py: 1 }}>
                                     {new Date(row.created_at).toLocaleDateString()}
+                                </TableCell>
+                                <TableCell sx={{ py: 1 }}>
+                                    {new Date(row.updated_at).toLocaleDateString()}
+                                </TableCell>
+                                <TableCell sx={{ py: 1 }}>
+                                    test
+                                </TableCell>
+                                <TableCell sx={{ py: 1 }}>
+                                    test1lorem ipsum dolor sit amet consectetur adipisicing elit. Quisquam, quod.
+                                </TableCell>
+                                <TableCell sx={{ py: 1 }}>
+                                    test1lorem ipsum dolor sit amet consectetur adipisicing elit. Quisquam, quod.
                                 </TableCell>
                             </TableRow>
                         );
@@ -120,16 +128,11 @@ const SchoolInformationTable = () => {
                 </TableFooter>
             </BaseTable>
 
-            <CreateSchoolInfoFormCardDialog
-                isOpen={isCreateOpen}
-                onClose={() => { setIsCreateOpen(false); refresh(); }}
-            />
-
             {updateId && (
-                <UpdateSchoolInfoFormCardDialog
+                <UpdateSchoolInfoCardDialog
                     id={updateId}
                     isOpen={true}
-                    onClose={() => { setUpdateId(null); refresh(); }}
+                    onClose={() => { setUpdateId(null); fetchSchoolInfoList(filterSchoolInformationMapper(state)); }}
                 />
             )}
         </>

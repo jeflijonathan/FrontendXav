@@ -61,3 +61,8 @@ export type FilterParams = {
     | null;
   };
 };
+
+export type SortOptionType = {
+  label: string;
+  value: string;
+}

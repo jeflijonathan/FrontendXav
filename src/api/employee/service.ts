@@ -11,16 +11,11 @@ export default class EmployeeService {
         params: FilterParams
     ) {
         try {
-            const res = await this.service.GET<EmployeeResponseModel[]>(this.basePath, params?.params);
-            const dataList = Array.isArray(res?.data) ? res.data : [];
+            const res = await this.service.GET<DataWithPagination<EmployeeResponseModel[]>>(this.basePath, params?.params);
+
             callback.onSuccess({
-                data: dataList,
-                pagination: {
-                    page: Number(params?.params?.page) || 1,
-                    limit: Number(params?.params?.limit) || 10,
-                    total_items: dataList.length,
-                    total_pages: 1,
-                },
+                data: res.data.data,
+                pagination: res.data.pagination,
             });
         } catch (err: any) {
             callback.onError(err.message || "Failed to fetch employees");
@@ -52,19 +47,7 @@ export default class EmployeeService {
         } catch (err: any) {
             callback.onError(err.message || "Failed to update employee");
         }
-        if (callback.onFullfilled) callback.onFullfilled();
-    }
 
-    async deleteEmployeeRequest(
-        id: string,
-        callback: FetchCallback<any>
-    ) {
-        try {
-            const res = await this.service.DELETE(`${this.basePath}/${id}`);
-            callback.onSuccess(res.data);
-        } catch (err: any) {
-            callback.onError(err.message || "Failed to delete employee");
-        }
         if (callback.onFullfilled) callback.onFullfilled();
     }
 }
