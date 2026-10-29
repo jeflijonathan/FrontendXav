@@ -30,6 +30,7 @@ export type DashboardSchoolInformationStoreStateType = {
     isLoading: boolean;
     isCreateLoading: boolean;
     isUpdateLoading: boolean;
+    isDetailLoading: boolean;
     filters: FilterType;
     search: SearchType;
     pagination: PaginationType;
@@ -50,6 +51,7 @@ export const useDashboardSchoolInformationStore = create<StoreType>((set) => ({
         isLoading: false,
         isCreateLoading: false,
         isUpdateLoading: false,
+        isDetailLoading: false,
         filters: { page: 1, limit: 10, sort: "created_at", order_by: "desc", status: "" },
         search: { value: "" },
         pagination: { total_data: 0, total_pages: 1, page: 1, limit: 10 },

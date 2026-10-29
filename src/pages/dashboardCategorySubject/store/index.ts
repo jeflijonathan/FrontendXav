@@ -1,35 +1,79 @@
-import type { CategorySubjectResponseModel } from "@api/categorysubject/model";
-import type { PaginationType } from "@common/types";
+/**
+ * DashboardCategorySubject Store
+ *
+ * Layer: Framework Logic (Zustand state store)
+ */
 import { create } from "zustand";
+import type {
+    CategorySubjectResponseModel,
+    CreateCategorySubjectRequestModel,
+} from "@api/categorysubject/model";
 
-export type StateType = {
-    isLoading: boolean;
+export type FilterType = {
+    page: number;
+    limit: number;
+    sort: string;
+    order_by: "asc" | "desc" | string;
+    status: string;
+};
+
+export type SearchType = {
+    value: string;
+};
+
+export type PaginationType = {
+    total_data: number;
+    total_pages: number;
+    page: number;
+    limit: number;
+};
+
+export type DashboardCategorySubjectStoreStateType = {
     data: CategorySubjectResponseModel[];
+    createCategorySubjectReqDetails: CreateCategorySubjectRequestModel;
+    updateCategorySubjectReqDetails: CategorySubjectResponseModel | null;
+    isLoading: boolean;
+    isCreateLoading: boolean;
+    isUpdateLoading: boolean;
+    isDetailLoading: boolean;
+    isDeleteLoading: boolean;
+    filters: FilterType;
+    search: SearchType;
     pagination: PaginationType;
-    filters: { sort: string; order_by: string; };
-    search: { value: string; };
 };
 
-const initialState: StateType = {
-    isLoading: false,
-    data: [],
-    filters: { order_by: "asc", sort: "created_at" },
-    pagination: { page: 1, limit: 10, total_items: 0, total_pages: 1 },
-    search: { value: "" },
+type StoreType = {
+    state: DashboardCategorySubjectStoreStateType;
+    setState: (
+        fn: (p: DashboardCategorySubjectStoreStateType) => DashboardCategorySubjectStoreStateType
+    ) => void;
 };
 
-export type CreateStateType = {
-    state: StateType;
-    setState: (updater: Partial<StateType> | ((prev: StateType) => Partial<StateType>)) => void;
-};
-
-const useDashboardCategorySubjectStore = create<CreateStateType>((set) => ({
-    state: initialState,
-    setState: (updater) => {
-        set((prev) => ({
-            state: { ...prev.state, ...(typeof updater === "function" ? updater(prev.state) : updater) }
-        }));
+export const useDashboardCategorySubjectStore = create<StoreType>((set) => ({
+    state: {
+        data: [],
+        createCategorySubjectReqDetails: {
+            name: "",
+            status: true,
+        },
+        updateCategorySubjectReqDetails: null,
+        isLoading: false,
+        isCreateLoading: false,
+        isUpdateLoading: false,
+        isDetailLoading: false,
+        isDeleteLoading: false,
+        filters: {
+            page: 1,
+            limit: 10,
+            sort: "created_at",
+            order_by: "desc",
+            status: "",
+        },
+        search: { value: "" },
+        pagination: { total_data: 0, total_pages: 1, page: 1, limit: 10 },
     },
+    setState: (fn) => set((prev) => ({ state: fn(prev.state) })),
 }));
 
 export default useDashboardCategorySubjectStore;
+

@@ -3,7 +3,7 @@ import { type SchoolInformationResponseModel, type CreateSchoolInformationReques
 import { API } from "../index";
 
 export default class SchoolInformationService {
-    basePath = "/school-informations/";
+    basePath = "/school-informations";
     service = new API();
 
     async getAll(

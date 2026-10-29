@@ -12,7 +12,7 @@ const BaseTable = ({ children, breakpoint = 768 }: BaseTableProps) => {
     const setIsCompact = useTableStore((state) => state.setIsCompact);
     const setContainerWidth = useTableStore((state) => state.setContainerWidth);
 
-    useEffect(() => {
+    useEffect(function handleContainerResize() {
         const container = containerRef.current;
         if (!container) return;
 

@@ -24,6 +24,7 @@ interface TableBodyProps {
     className?: string;
     skeletonRows?: number;
     maxDesktopCols?: number;
+    selectAction?: ReactNode;
 }
 
 const TableBody = ({
@@ -34,16 +35,14 @@ const TableBody = ({
     className,
     skeletonRows = 5,
     maxDesktopCols = 12,
+    selectAction,
 }: TableBodyProps) => {
-    const isCompact = useTableStore((state) => state.isCompact);
     const containerWidth = useTableStore((state) => state.containerWidth);
 
-    // Hitung berapa kolom yang muat secara dinamis berdasarkan lebar layar (dikurangi Actions, No, dan padding)
     let dynamicMaxVisible = 0;
-    let availableWidth = containerWidth - 250; // Buffer 250px untuk No, Actions, dan panah
+    let availableWidth = containerWidth - 250;
 
     for (let i = 0; i < header.length; i++) {
-        // Ambil angka dari width (contoh: "150px" -> 150), default 100
         const w = parseInt(header[i].width || "100", 10);
         if (availableWidth >= w) {
             availableWidth -= w;
@@ -52,38 +51,85 @@ const TableBody = ({
             break;
         }
     }
-    // Pastikan tidak melebihi maxDesktopCols jika diset, dan minimal 1 (selalu tampilkan setidaknya kolom utama)
+
     dynamicMaxVisible = Math.max(1, Math.min(dynamicMaxVisible, maxDesktopCols || header.length));
 
     const maxVisibleCols = dynamicMaxVisible;
 
+    // Tentukan apakah ada kolom yang disembunyikan dan perlu tombol expand
+    const hasExpandableCols = header.length > maxVisibleCols;
+
     const renderTableLoading = () => {
         return Array.from(new Array(skeletonRows)).map((_, rowIndex) => (
-            <TableRow key={`skeleton-row-${rowIndex}`} index={rowIndex} header={header} maxVisible={maxVisibleCols}>
-                {header.map((_, colIndex) => (
-                    <TableCell key={`skeleton-cell-${colIndex}`}>
-                        <SkeletonLoader isLoading={isLoading} variant="text" height={24}>
-                            <div />
+            <MuiTableRow key={`skeleton-row-${rowIndex}`}>
+                {/* Kolom Expand hanya muncul jika ada kolom yang disembunyikan */}
+                {hasExpandableCols && (
+                    <TableCell sx={{ width: "40px", borderBottom: "1px solid rgba(148, 163, 184, 0.2)" }}>
+                        <SkeletonLoader isLoading={!isLoading} variant="circular" width="20px" height="20px">
+                            <div style={{ width: "20px", height: "20px", backgroundColor: "#e2e8f0", borderRadius: "50%" }} />
                         </SkeletonLoader>
                     </TableCell>
-                ))}
-            </TableRow>
+                )}
+
+                {selectAction !== undefined && (
+                    <TableCell sx={{ width: "48px", px: 1, py: 1, borderBottom: "1px solid rgba(148, 163, 184, 0.2)" }}>
+                        <SkeletonLoader isLoading={!isLoading} variant="rectangular" width="20px" height="20px">
+                            <div style={{ width: "20px", height: "20px", backgroundColor: "#e2e8f0", borderRadius: "4px" }} />
+                        </SkeletonLoader>
+                    </TableCell>
+                )}
+
+                <TableCell sx={{ width: "50px", borderBottom: "1px solid rgba(148, 163, 184, 0.2)" }}>
+                    <SkeletonLoader isLoading={!isLoading} variant="text" width="100%" height={20}>
+                        <div style={{ width: "24px", height: "20px", backgroundColor: "#e2e8f0", borderRadius: "4px" }} />
+                    </SkeletonLoader>
+                </TableCell>
+
+                {header.map((h, colIndex) => {
+                    if (colIndex >= maxVisibleCols) return null;
+                    return (
+                        <TableCell
+                            key={`skeleton-cell-${colIndex}`}
+                            sx={{
+                                borderBottom: "1px solid rgba(148, 163, 184, 0.2)",
+                                ...(h.width ? { width: h.width } : {})
+                            }}
+                        >
+                            <SkeletonLoader isLoading={!isLoading} variant="text" width="100%" height={24}>
+                                <div style={{ width: "85%", height: "24px", backgroundColor: "#e2e8f0", borderRadius: "4px" }} />
+                            </SkeletonLoader>
+                        </TableCell>
+                    );
+                })}
+
+                <TableCell sx={{ borderBottom: "1px solid rgba(148, 163, 184, 0.2)", minWidth: "100px" }}>
+                    <SkeletonLoader isLoading={!isLoading} variant="text" width="100%" height={24}>
+                        <div style={{ width: "70px", height: "24px", backgroundColor: "#e2e8f0", borderRadius: "4px" }} />
+                    </SkeletonLoader>
+                </TableCell>
+            </MuiTableRow>
         ));
     };
 
     const TableEmpty = () => {
+        // Sesuaikan colSpan berdasarkan ada tidaknya kolom expand dan select
+        const colSpanCount = header.length + (hasExpandableCols ? 3 : 2) + (selectAction !== undefined ? 1 : 0);
         return (
-            <TableRow index={0} header={header} maxVisible={maxVisibleCols}>
-                <TableCell colSpan={header.length} align="center" sx={{ py: 4 }}>
+            <MuiTableRow>
+                <TableCell colSpan={colSpanCount} align="center" sx={{ py: 4, borderBottom: "1px solid rgba(148, 163, 184, 0.2)" }}>
                     <Typography color="text.secondary">No data available</Typography>
                 </TableCell>
-            </TableRow>
+            </MuiTableRow>
         );
     };
 
     const processedChildren = React.Children.map(children, (child) => {
         if (isValidElement(child)) {
-            return React.cloneElement(child as React.ReactElement<any>, { header, maxVisible: maxVisibleCols });
+            return React.cloneElement(child as React.ReactElement<any>, {
+                header,
+                maxVisible: maxVisibleCols,
+                hasExpandableCols
+            });
         }
         return child;
     });
@@ -98,12 +144,33 @@ const TableBody = ({
         <>
             <TableHead>
                 <MuiTableRow>
-                    {/* Tombol panah dropdown selalu ada di setiap baris */}
-                    <TableCell sx={{ width: "40px", borderBottom: "1px solid rgba(148, 163, 184, 0.2)" }} />
-                    <TableCell sx={{ width: "50px", borderBottom: "1px solid rgba(148, 163, 184, 0.2)" }}>No</TableCell>
+                    {/* Tampilkan header Expand hanya jika ada kolom yang disembunyikan */}
+                    {hasExpandableCols && (
+                        <TableCell sx={{
+                            fontWeight: "bold",
+                            fontSize: "0.875rem",
+                            color: "#94a3b8", width: "40px", borderBottom: "1px solid rgba(148, 163, 184, 0.2)"
+                        }}>Expand</TableCell>
+                    )}
+
+                    {selectAction !== undefined && (
+                        <TableCell sx={{
+                            width: "48px",
+                            px: 1,
+                            py: 0.5,
+                            borderBottom: "1px solid rgba(148, 163, 184, 0.2)",
+                        }}>
+                            {selectAction}
+                        </TableCell>
+                    )}
+
+                    <TableCell sx={{
+                        fontWeight: "bold",
+                        fontSize: "0.875rem",
+                        color: "#94a3b8", width: "50px", borderBottom: "1px solid rgba(148, 163, 184, 0.2)"
+                    }}>No</TableCell>
 
                     {header.map((h, i) => {
-                        // Jika kolom melebihi batas maxVisibleCols, jangan render di header utama
                         if (i >= maxVisibleCols) return null;
 
                         return (

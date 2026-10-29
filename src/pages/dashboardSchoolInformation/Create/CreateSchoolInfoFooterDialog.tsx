@@ -7,8 +7,9 @@ const CreateSchoolInfoFooterDialog = ({ onClose }: { onClose: () => void }) => {
     return (
         <DialogFooter>
             <Button type="button" variant="outlined" onClick={onClose} sx={{ borderRadius: "10px", textTransform: "none" }}>Cancel</Button>
-            <Button type="submit" variant="contained" onClick={() => handleCreate()} color="primary" sx={{ borderRadius: "10px", textTransform: "none" }}>Submit</Button>
+            <Button type="submit" variant="contained" onClick={() => handleCreate(onClose)} color="primary" sx={{ borderRadius: "10px", textTransform: "none" }}>Submit</Button>
         </DialogFooter>
     )
 }
+
 export default CreateSchoolInfoFooterDialog;

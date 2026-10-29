@@ -1,50 +1,69 @@
-import useDashboardMajorStore from "../../store";
+import { useDashboardMajorStore } from "../../store";
 import MajorService from "@api/major/service";
-import { type MajorResponseModel } from "@api/major/model";
 import { useSnackbar } from "notistack";
+import type { FilterParams, SortOptionType } from "@common/types";
+import type { TableHeaderType } from "@components/Table/TableBody";
+import type { MajorResponseModel } from "@api/major/model";
 
-const useMajorList = () => {
+type ReturnHook = {
+    statusData: Record<number, { label: string; color: "success" | "error" }>;
+    tableData: MajorResponseModel[];
+    majorHeaders: TableHeaderType[];
+    sortOptions: SortOptionType[];
+    fetchMajorList: (filterParams?: FilterParams) => Promise<void>;
+};
+
+const useMajorList = (): ReturnHook => {
     const { enqueueSnackbar } = useSnackbar();
     const { state, setState } = useDashboardMajorStore();
+    const service = new MajorService();
 
-    const fetchList = async () => {
+    const fetchMajorList = async (filterParams?: FilterParams) => {
         setState((prev) => ({ ...prev, isLoading: true }));
-        const svc = new MajorService();
-        await svc.getAll(
+        return await service.getAll(
             {
-                onSuccess: (res: any) => {
+                onSuccess: (res) => {
                     setState((prev) => ({
                         ...prev,
                         data: res.data || [],
-                        pagination: {
-                            total_data: res.pagination?.total_items || 0,
-                            total_pages: res.pagination?.total_pages || 1,
-                            page: res.pagination?.page || 1,
-                            limit: res.pagination?.limit || 10,
-                        },
+                        pagination: res.pagination,
                         isLoading: false,
                     }));
                 },
-                onError: (err: any) => {
-                    enqueueSnackbar(typeof err === 'string' ? err : "Failed to fetch majors", { variant: "error" });
+                onError: (err) => {
+                    enqueueSnackbar(err.message || "Failed to fetch majors", { variant: "error" });
                     setState((prev) => ({ ...prev, isLoading: false }));
                 },
             },
-            { params: { page: state.filters.page, limit: state.filters.limit, search: state.filters.search } }
+            filterParams
         );
     };
 
-    const tableHeader = [
-        { label: "Major Name", key: "name" },
-        { label: "Status", key: "status" },
-        { label: "Created At", key: "created_at" },
-        { label: "Action", key: "action" },
+    const majorHeaders: TableHeaderType[] = [
+        { label: "ID Major", width: "220px" },
+        { label: "Nama Jurusan", width: "260px" },
+        { label: "Status", width: "120px" },
+        { label: "Dibuat Pada", width: "160px" },
+        { label: "Diperbarui Pada", width: "160px" },
     ];
 
+    const sortOptions: SortOptionType[] = [
+        { label: "Nama Jurusan", value: "name" },
+        { label: "Tanggal Dibuat", value: "created_at" },
+        { label: "Tanggal Diperbarui", value: "updated_at" },
+    ];
+
+    const statusData: Record<number, { label: string; color: "success" | "error" }> = {
+        1: { label: "Aktif", color: "success" },
+        0: { label: "Non Aktif", color: "error" },
+    };
+
     return {
-        tableData: state.data as MajorResponseModel[],
-        tableHeader,
-        fetchList,
+        statusData,
+        tableData: state.data,
+        majorHeaders,
+        sortOptions,
+        fetchMajorList,
     };
 };
 

@@ -1,3 +1,4 @@
+import type { AxiosError } from "axios";
 import type { ReactNode } from "react";
 
 export interface ThemeProperties {
@@ -12,6 +13,16 @@ export interface SubItemType {
   label: string;
   href: string;
 }
+export type CommonOptions = {
+  value: number | string | boolean;
+  icon?: string;
+  label: string;
+};
+export type FilterType = {
+  key: string;
+  label: string;
+  options: CommonOptions[];
+};
 
 export interface MenuItemType {
   icon: ReactNode;
@@ -45,7 +56,7 @@ export type DataWithPagination<T> = {
 
 export type FetchCallback<T> = {
   onSuccess: (data: T) => void;
-  onError: (error: any) => void;
+  onError: ({ detail, message }: { detail?: string[], message?: string }) => void;
   onFullfilled?: () => void;
 };
 

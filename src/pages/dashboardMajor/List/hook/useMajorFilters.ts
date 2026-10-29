@@ -1,9 +1,9 @@
-import useDashboardMajorStore from "../../store";
+import { useDashboardMajorStore } from "../../store";
 
 const useMajorFilters = () => {
     const { setState } = useDashboardMajorStore();
 
-    const handleChangePage = (page: number) => {
+    const handleChangePage = async (page: number) => {
         setState((prev) => ({
             ...prev,
             pagination: { ...prev.pagination, page },
@@ -15,26 +15,42 @@ const useMajorFilters = () => {
         setState((prev) => ({
             ...prev,
             search: { value },
-            filters: { ...prev.filters, search: value, page: 1 },
+            pagination: { ...prev.pagination, page: 1 },
+            filters: { ...prev.filters, page: 1 },
+        }));
+    };
+
+    const handleSort = async (sort: string) => {
+        setState((prev) => ({
+            ...prev,
+            filters: { ...prev.filters, sort, page: 1 },
             pagination: { ...prev.pagination, page: 1 },
         }));
     };
 
-    const handleSort = (sort: string) => {
+    const handleOrder = async (order_by: "asc" | "desc") => {
         setState((prev) => ({
             ...prev,
-            filters: { ...prev.filters, sort },
+            filters: { ...prev.filters, order_by, page: 1 },
+            pagination: { ...prev.pagination, page: 1 },
         }));
     };
 
-    const handleOrder = (order_by: "asc" | "desc") => {
+    const handleFilterStatus = async (status: string) => {
         setState((prev) => ({
             ...prev,
-            filters: { ...prev.filters, order_by },
+            filters: { ...prev.filters, status, page: 1 },
+            pagination: { ...prev.pagination, page: 1 },
         }));
     };
 
-    return { handleChangePage, handleSearch, handleSort, handleOrder };
+    return {
+        handleChangePage,
+        handleSearch,
+        handleSort,
+        handleOrder,
+        handleFilterStatus,
+    };
 };
 
 export default useMajorFilters;

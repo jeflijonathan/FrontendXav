@@ -1,47 +1,71 @@
-import EmployeeService from "@api/employee/service";
 import useDashboardEmployeeStore from "../../store";
-import { filterMapper } from "../utils/filterMapper";
-import type { TableHeader } from "@components/Table/TableBody";
+import EmployeeService from "@api/employee/service";
+import { useSnackbar } from "notistack";
+import type { FilterParams, SortOptionType } from "@common/types";
+import type { TableHeaderType } from "@components/Table/TableBody";
+import type { EmployeeResponseModel } from "@api/employee/model";
 
-const useEmployeeList = () => {
-    const service = new EmployeeService();
+type ReturnHook = {
+    statusData: Record<number, { label: string; color: "success" | "error" }>;
+    tableData: EmployeeResponseModel[];
+    employeeHeaders: TableHeaderType[];
+    sortOptions: SortOptionType[];
+    fetchEmployeeList: (filterParams?: FilterParams) => Promise<void>;
+}
+
+const useEmployeeList = (): ReturnHook => {
+    const { enqueueSnackbar } = useSnackbar();
     const { state, setState } = useDashboardEmployeeStore();
+    const service = new EmployeeService();
 
-    const tableHeader: TableHeader[] = [
-        { label: "NO", width: "w-10" },
-        { label: "Name", width: "w-40" },
-        { label: "Email", width: "w-40", className: "hidden md:table-cell" },
-        { label: "Gender", width: "w-20", className: "hidden md:table-cell" },
-        { label: "Created At", width: "w-40", className: "hidden lg:table-cell" },
-        { label: "Action", width: "w-20" },
-    ];
-
-    const tableData = state.data;
-
-    const fetchList = async (params?: any) => {
-        setState({ isLoading: true });
-        const filterParams = filterMapper({
-            ...state.filters,
-            ...state.pagination,
-            ...state.search,
-            ...params,
-        });
-
-        await service.getEmployeeRequest(
-            {
-                onSuccess: (response) => {
-                    setState({ data: response.data, pagination: response.pagination, isLoading: false });
-                },
-                onError: (err: any) => {
-                    console.error(err);
-                    setState({ isLoading: false });
-                },
+    const fetchEmployeeList = async (filterParams?: FilterParams) => {
+        setState((prev) => ({ ...prev, isLoading: true }));
+        return await service.getAll({
+            onSuccess: (res: any) => {
+                setState((prev) => ({
+                    ...prev,
+                    data: res.data || [],
+                    pagination: res.pagination,
+                    isLoading: false,
+                }));
             },
-            filterParams
-        );
+            onError: (err: any) => {
+                enqueueSnackbar(err.message || "Failed to fetch employees", { variant: "error" });
+                setState((prev) => ({ ...prev, isLoading: false }));
+            },
+        }, filterParams);
     };
 
-    return { fetchList, tableData, tableHeader };
+    const employeeHeaders: TableHeaderType[] = [
+        { label: "NIY", width: "120px" },
+        { label: "Photo", width: "80px" },
+        { label: "Name", width: "200px" },
+        { label: "Roles", width: "180px" },
+        { label: "Email", width: "200px" },
+        { label: "Phone", width: "150px" },
+        { label: "Gender", width: "100px" },
+        { label: "Status", width: "100px" },
+        { label: "Created At", width: "150px" },
+    ];
+
+    const sortOptions: SortOptionType[] = [
+        { label: "Name", value: "first_name" },
+        { label: "NIY", value: "niy" },
+        { label: "Created At", value: "created_at" },
+    ];
+
+    const statusData: Record<number, { label: string; color: "success" | "error" }> = {
+        1: { label: "Aktif", color: "success" },
+        0: { label: "Non Aktif", color: "error" },
+    };
+
+    return {
+        statusData,
+        tableData: state.data,
+        employeeHeaders,
+        sortOptions,
+        fetchEmployeeList,
+    };
 };
 
 export default useEmployeeList;

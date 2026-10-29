@@ -13,23 +13,23 @@ const useUpdateSchoolInfo = () => {
     const service = new SchoolInformationService();
 
     const fetchDetail = async (id: string) => {
-        setState(prev => ({ ...prev, isLoading: true }));
+        setState(prev => ({ ...prev, isDetailLoading: true }));
         await service.getById(id, {
             onSuccess: (res: any) => {
                 setState(prev => ({
                     ...prev,
                     updateSchoolInfoReqDetails: res,
-                    isLoading: false,
+                    isDetailLoading: false,
                 }));
             },
             onError: (err: any) => {
-                setState(prev => ({ ...prev, isLoading: false }));
+                setState(prev => ({ ...prev, isDetailLoading: false }));
                 snackbar.error(err.message || "Failed to fetch school information details");
             }
         });
     };
 
-    const handleUpdate = (id: string) => {
+    const handleUpdate = (id: string, onSuccessCallback?: () => void) => {
         return handleSubmit(async (payload) => {
             setState(prev => ({ ...prev, isUpdateLoading: true }));
             const data: UpdateSchoolInformationRequest = {
@@ -46,6 +46,7 @@ const useUpdateSchoolInfo = () => {
                     setState(prev => ({ ...prev, isUpdateLoading: false }));
                     fetchSchoolInfoList(filterSchoolInformationMapper(state));
                     snackbar.success("School information updated successfully");
+                    onSuccessCallback?.();
                 },
                 onError: (err: any) => {
                     setState(prev => ({ ...prev, isUpdateLoading: false }));

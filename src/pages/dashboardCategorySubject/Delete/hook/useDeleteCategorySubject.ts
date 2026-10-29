@@ -1,27 +1,43 @@
+/**
+ * useDeleteCategorySubject — Framework Logic Hook
+ *
+ * Handles deleting a Category Subject with snackbar notifications.
+ *
+ * Layer: Framework Logic
+ */
+import { useSnackbar } from "notistack";
 import CategorySubjectService from "@api/categorysubject/service";
 import useDashboardCategorySubjectStore from "../../store";
-import { useSnackbar } from "notistack";
 
 const useDeleteCategorySubject = () => {
-    const service = new CategorySubjectService();
-    const { setState } = useDashboardCategorySubjectStore();
     const { enqueueSnackbar } = useSnackbar();
+    const { state, setState } = useDashboardCategorySubjectStore();
+    const service = new CategorySubjectService();
 
     const handleDelete = async (id: string, onSuccessCallback?: () => void) => {
-        if(!window.confirm("Are you sure you want to delete this Category Subject?")) return;
-        setState({ isLoading: true });
-        await service.deleteCategorySubjectRequest(id, {
+        setState((prev) => ({ ...prev, isDeleteLoading: true }));
+        await service.delete(id, {
             onSuccess: () => {
-                enqueueSnackbar("Category Subject deleted successfully!", { variant: "success" });
-                if(onSuccessCallback) onSuccessCallback();
+                enqueueSnackbar("Kategori mata pelajaran berhasil dihapus", {
+                    variant: "success",
+                });
+                setState((prev) => ({ ...prev, isDeleteLoading: false }));
+                if (onSuccessCallback) onSuccessCallback();
             },
-            onError: (err: any) => {
-                enqueueSnackbar("Failed to delete Category Subject.", { variant: "error" });
-                console.error(err);
+            onError: (err) => {
+                enqueueSnackbar(err.message || "Gagal menghapus kategori", {
+                    variant: "error",
+                });
+                setState((prev) => ({ ...prev, isDeleteLoading: false }));
             },
-            onFullfilled: () => setState({ isLoading: false })
         });
     };
-    return { handleDelete };
+
+    return {
+        handleDelete,
+        isLoading: state.isDeleteLoading,
+    };
 };
+
 export default useDeleteCategorySubject;
+

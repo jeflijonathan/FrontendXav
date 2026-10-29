@@ -45,6 +45,7 @@ const SidebarApp = () => {
       icon: <CalendarMonthIcon fontSize="small" />,
       label: "Jadwal",
       subItems: [
+        { label: "Roster Jam Belajar", href: "/roster-jam" },
         { label: "Category Schedule Time", href: "/category-schedule-times" },
         { label: "Schedule Time Slots", href: "/schedule-times" },
         { label: "Jadwal", href: "/schedules" },

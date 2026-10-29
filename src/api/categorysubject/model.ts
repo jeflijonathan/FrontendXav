@@ -1,5 +1,6 @@
 export interface CategorySubjectResponseModel {
     id: string;
+    id_category_subject?: string;
     name: string;
     status: boolean;
     created_at: string;
@@ -16,3 +17,7 @@ export interface UpdateCategorySubjectRequestModel {
     name?: string;
     status?: boolean;
 }
+
+// Backward-compatibility aliases
+export type CreateCategorySubjectRequest = CreateCategorySubjectRequestModel;
+export type UpdateCategorySubjectRequest = UpdateCategorySubjectRequestModel;

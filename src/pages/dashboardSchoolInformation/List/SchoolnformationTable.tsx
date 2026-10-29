@@ -12,14 +12,20 @@ import { filterSchoolInformationMapper } from "@pages/dashboardSchoolInformation
 import { Edit, Visibility } from "@mui/icons-material";
 import { listTableMapper, type SchoolInformationMappedTable } from "./utils/ListTableMapper";
 import UpdateSchoolInfoCardDialog from "../Update/UpdateSchoolInfoCardDialog";
+import DetailSchoolInfoCardDialog from "../Detail/DetailSchoolInfoCardDialog";
 
 const SchoolInformationTable = () => {
     const { state } = useDashboardSchoolInformationStore();
     const { tableData, fetchSchoolInfoList, statusData, schoolInfoHeaders, sortOptions } = useSchoolInfoList();
     const { handleChangePage, handleSearch, handleSort, handleOrder } = useSchoolInfoFilters();
     const [updateId, setUpdateId] = useState<string | null>(null);
+    const [detailId, setDetailId] = useState<string | null>(null);
     const dataMapper = listTableMapper(state.data);
     const refresh = () => fetchSchoolInfoList(filterSchoolInformationMapper(state));
+    const [isdialogOpen, setDialogOpen] = useState({
+        update: false,
+        detail: false,
+    });
 
     useEffect(function loadSchoolInformationData() {
         refresh();
@@ -35,13 +41,25 @@ const SchoolInformationTable = () => {
                 label: "Read",
                 icon: <Visibility fontSize="small" />,
                 color: "info",
-                onClick: (item) => console.log("Read", item.id),
+                onClick: (item) => {
+                    setDetailId(item.id);
+                    setDialogOpen({
+                        ...isdialogOpen,
+                        detail: true,
+                    });
+                },
             },
             {
                 label: "Edit",
                 icon: <Edit fontSize="small" />,
                 color: "primary",
-                onClick: (item) => console.log("Edit", item.id),
+                onClick: (item) => {
+                    setUpdateId(item.id);
+                    setDialogOpen({
+                        ...isdialogOpen,
+                        update: !isdialogOpen.update,
+                    });
+                },
             },
         ];
 
@@ -107,13 +125,7 @@ const SchoolInformationTable = () => {
                                     {new Date(row.updated_at).toLocaleDateString()}
                                 </TableCell>
                                 <TableCell sx={{ py: 1 }}>
-                                    test
-                                </TableCell>
-                                <TableCell sx={{ py: 1 }}>
-                                    test1lorem ipsum dolor sit amet consectetur adipisicing elit. Quisquam, quod.
-                                </TableCell>
-                                <TableCell sx={{ py: 1 }}>
-                                    test1lorem ipsum dolor sit amet consectetur adipisicing elit. Quisquam, quod.
+                                    {row.alamat}
                                 </TableCell>
                             </TableRow>
                         );
@@ -132,7 +144,18 @@ const SchoolInformationTable = () => {
                 <UpdateSchoolInfoCardDialog
                     id={updateId}
                     isOpen={true}
-                    onClose={() => { setUpdateId(null); fetchSchoolInfoList(filterSchoolInformationMapper(state)); }}
+                    onClose={() => { setUpdateId(null); }}
+                />
+            )}
+
+            {detailId && isdialogOpen.detail && (
+                <DetailSchoolInfoCardDialog
+                    id={detailId}
+                    isOpen={isdialogOpen.detail}
+                    onClose={() => {
+                        setDetailId(null);
+                        setDialogOpen(prev => ({ ...prev, detail: false }));
+                    }}
                 />
             )}
         </>

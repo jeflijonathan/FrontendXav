@@ -12,7 +12,7 @@ const useCreateSchoolInfo = () => {
     const { fetchSchoolInfoList } = useSchoolInfoList();
     const service = new SchoolInformationService();
 
-    const handleCreate = () => {
+    const handleCreate = (onSuccessCallback?: () => void) => {
         return handleSubmit(async (payload) => {
             setState(prev => ({ ...prev, isCreateLoading: true }))
             const data: CreateSchoolInformationRequest = {
@@ -29,6 +29,7 @@ const useCreateSchoolInfo = () => {
                     setState(prev => ({ ...prev, isCreateLoading: false }))
                     fetchSchoolInfoList(filterSchoolInformationMapper(state));
                     snackbar.success("School information created successfully");
+                    onSuccessCallback?.();
                 }, onError: (err: any) => {
                     setState(prev => ({ ...prev, isCreateLoading: false }))
                     snackbar.error(err.message || "Failed to create school information");

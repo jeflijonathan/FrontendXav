@@ -12,6 +12,7 @@ export interface ApiResponse<T = any> {
   status_code: number;
   message: string;
   data: T;
+  details?: string[];
 }
 
 export class API {
@@ -59,6 +60,14 @@ export class API {
 
   async POST<T = any, U = ApiResponse<T>>(path: string, data?: any): Promise<U> {
     const headers = this.getHeaders();
+    const res = this.api.post(path, data, { headers });
+    return await catchError<U>(res);
+  }
+
+  async POSTFORMDATA<T = any, U = ApiResponse<T>>(path: string, data: FormData): Promise<U> {
+    const headers = this.getHeaders();
+    // Override the instance's application/json content type to let Axios handle FormData
+    headers["Content-Type"] = "multipart/form-data";
     const res = this.api.post(path, data, { headers });
     return await catchError<U>(res);
   }

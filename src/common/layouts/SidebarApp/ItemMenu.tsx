@@ -36,7 +36,6 @@ const ItemMenu = ({ item }: ItemMenuProps) => {
     }, 150);
   };
 
-  // Dipanggil dari SubMenu saat mouse masuk/keluar popover
   const handlePopoverMouseEnter = () => {
     if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
     setIsHovered(true);
@@ -67,7 +66,7 @@ const ItemMenu = ({ item }: ItemMenuProps) => {
         onClick={toggleDropdown}
         className={clsx(
           "flex items-center justify-between px-3 py-3 rounded-xl font-medium transition-all duration-200 whitespace-nowrap cursor-pointer",
-         isActive
+          isActive
             ? "bg-primary text-theme-primary shadow-lg shadow-primary/20"
             : "text-secondary-txt hover:bg-primary/10 hover:text-primary",
         )}

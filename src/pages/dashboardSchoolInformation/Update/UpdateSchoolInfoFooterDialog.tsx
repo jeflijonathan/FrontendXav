@@ -7,7 +7,7 @@ const UpdateSchoolInfoFooterDialog = ({ id, onClose }: { id: string, onClose: ()
     return (
         <DialogFooter>
             <Button type="button" variant="outlined" onClick={onClose} sx={{ borderRadius: "10px", textTransform: "none" }}>Cancel</Button>
-            <Button type="submit" variant="contained" onClick={() => handleUpdate(id)} color="primary" sx={{ borderRadius: "10px", textTransform: "none" }}>Update</Button>
+            <Button type="submit" variant="contained" onClick={() => handleUpdate(id, onClose)} color="primary" sx={{ borderRadius: "10px", textTransform: "none" }}>Update</Button>
         </DialogFooter>
     )
 }

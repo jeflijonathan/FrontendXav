@@ -1,26 +1,62 @@
+/**
+ * useUpdateCategorySubject — Framework Logic Hook
+ *
+ * Handles API submission for updating a category subject.
+ *
+ * Layer: Framework Logic
+ */
+import { useFormContext } from "react-hook-form";
+import { useSnackbar } from "notistack";
 import CategorySubjectService from "@api/categorysubject/service";
 import useDashboardCategorySubjectStore from "../../store";
-import { useSnackbar } from "notistack";
+import useCategorySubjectList from "../../List/hook/useCategorySubjectList";
+import { filterCategorySubjectMapper } from "../../List/utils/FilterCategorySubjectMapper";
+import type { UpdateCategorySubjectRequestModel } from "@api/categorysubject/model";
 
 const useUpdateCategorySubject = () => {
-    const service = new CategorySubjectService();
-    const { setState } = useDashboardCategorySubjectStore();
+    const { handleSubmit, setError } =
+        useFormContext<UpdateCategorySubjectRequestModel>();
     const { enqueueSnackbar } = useSnackbar();
+    const { state, setState } = useDashboardCategorySubjectStore();
+    const { fetchCategorySubjectList } = useCategorySubjectList();
+    const service = new CategorySubjectService();
 
-    const handleUpdate = async (id: string, data: any, onSuccessCallback?: () => void) => {
-        setState({ isLoading: true });
-        await service.updateCategorySubjectRequest(id, data, {
-            onSuccess: () => {
-                enqueueSnackbar("Category Subject updated successfully!", { variant: "success" });
-                if(onSuccessCallback) onSuccessCallback();
-            },
-            onError: (err: any) => {
-                enqueueSnackbar(err || "Failed to update Category Subject.", { variant: "error" });
-                console.error(err);
-            },
-            onFullfilled: () => setState({ isLoading: false })
+    const handleUpdate = (id: string, onSuccessCallback?: () => void) => {
+        return handleSubmit(async (payload) => {
+            setState((prev) => ({ ...prev, isUpdateLoading: true }));
+
+            await service.update(id, payload, {
+                onSuccess: () => {
+                    enqueueSnackbar("Kategori mata pelajaran berhasil diperbarui", {
+                        variant: "success",
+                    });
+                    setState((prev) => ({
+                        ...prev,
+                        isUpdateLoading: false,
+                        updateCategorySubjectReqDetails: null,
+                    }));
+                    fetchCategorySubjectList(filterCategorySubjectMapper(state));
+                    if (onSuccessCallback) onSuccessCallback();
+                },
+                onError: (err) => {
+                    enqueueSnackbar(err.message || "Gagal memperbarui kategori", {
+                        variant: "error",
+                    });
+                    setError("root.serverError", {
+                        type: "manual",
+                        message: err.message || "Gagal menyimpan perubahan",
+                    });
+                    setState((prev) => ({ ...prev, isUpdateLoading: false }));
+                },
+            });
         });
     };
-    return { handleUpdate };
+
+    return {
+        handleUpdate,
+        isLoading: state.isUpdateLoading,
+    };
 };
+
 export default useUpdateCategorySubject;
+
