@@ -13,6 +13,7 @@ import ItemMenu from "./ItemMenu";
 import type { MenuItemType } from "../../types";
 import LogoSidebar from "./LogoSidebar";
 import BaseMenu from "./BaseMenu";
+
 const SidebarApp = () => {
   const { isSidebarOpen, handleSidebarToggle } = useSidebarStore();
 
@@ -44,9 +45,6 @@ const SidebarApp = () => {
       label: "Jadwal",
       subItems: [
         { label: "Roster Jam Belajar", href: "/roster-jam" },
-        { label: "Category Schedule Time", href: "/category-schedule-times" },
-        { label: "Schedule Time Slots", href: "/schedule-times" },
-        { label: "Jadwal", href: "/schedules" },
       ],
     },
     {
@@ -71,7 +69,6 @@ const SidebarApp = () => {
       subItems: [
         { label: "Profile", href: "/dashboard-profile" },
         { label: "Security", href: "/settings/security" },
-        { label: "WhatsApp Connections", href: "/settings/whatsapp-connections" },
       ],
     },
     { icon: <HelpIcon fontSize="small" />, label: "Help & Support", href: "#" },

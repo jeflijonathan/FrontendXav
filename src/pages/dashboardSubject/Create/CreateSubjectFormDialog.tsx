@@ -128,15 +128,16 @@ const CreateSubjectFormDialog = () => {
                         <TextField
                             {...field}
                             select
-                            label="Major"
+                            label="Major *"
                             fullWidth
                             size="small"
                             value={field.value || ""}
-                            onChange={(e) => field.onChange(e.target.value || null)}
-                            helperText="Select major if vocational specific, or leave empty for general"
+                            onChange={(e) => field.onChange(e.target.value)}
+                            error={!!errors.id_major}
+                            helperText={errors.id_major?.message || "Select the major for this subject"}
                         >
-                            <MenuItem value="">
-                                <em>General (All Majors)</em>
+                            <MenuItem value="" disabled>
+                                <em>Select Major</em>
                             </MenuItem>
                             {state.majors.map((m) => {
                                 const mId = m.id_major || m.id || "";

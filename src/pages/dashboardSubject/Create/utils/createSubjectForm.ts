@@ -11,17 +11,19 @@ import type { CreateSubjectRequestModel } from "@api/subject/model";
 export const CreateSubjectSchema = yup.object().shape({
     name: yup
         .string()
-        .required("Nama mata pelajaran wajib diisi")
-        .min(2, "Nama mata pelajaran minimal 2 karakter")
-        .max(255, "Nama mata pelajaran maksimal 255 karakter"),
+        .required("Subject name is required")
+        .min(2, "Subject name must be at least 2 characters")
+        .max(255, "Subject name must be at most 255 characters"),
     id_category_subject: yup
         .string()
-        .required("Category wajib dipilih"),
+        .required("Category is required"),
     kelas: yup
         .string()
-        .required("Tingkat kelas wajib dipilih"),
+        .required("Grade is required"),
     fase: yup.string().optional(),
-    id_major: yup.string().optional().nullable(),
+    id_major: yup
+        .string()
+        .required("Major is required"),
     code_subject: yup.string().optional().nullable(),
     status: yup.boolean().required(),
 });
