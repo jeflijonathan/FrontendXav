@@ -4,6 +4,12 @@ export interface SubjectCategorySimpleModel {
     name: string;
 }
 
+export interface SubjectMajorSimpleModel {
+    id?: string;
+    id_major?: string;
+    name: string;
+}
+
 export interface SubjectResponseModel {
     id: string;
     id_subject?: string;
@@ -12,11 +18,14 @@ export interface SubjectResponseModel {
     category_subject_id?: string;
     id_major?: string | null;
     code_subject?: string | null;
+    kelas?: string | null;
+    fase?: string | null;
     status: boolean;
     created_at: string;
     updated_at: string;
     deleted_at: string | null;
     category?: SubjectCategorySimpleModel | null;
+    major?: SubjectMajorSimpleModel | null;
 }
 
 export interface CreateSubjectRequestModel {
@@ -25,6 +34,8 @@ export interface CreateSubjectRequestModel {
     category_subject_id?: string;
     id_major?: string | null;
     code_subject?: string | null;
+    kelas?: string | null;
+    fase?: string | null;
     status?: boolean;
 }
 
@@ -34,6 +45,8 @@ export interface UpdateSubjectRequestModel {
     category_subject_id?: string;
     id_major?: string | null;
     code_subject?: string | null;
+    kelas?: string | null;
+    fase?: string | null;
     status?: boolean;
 }
 

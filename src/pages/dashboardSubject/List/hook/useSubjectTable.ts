@@ -28,6 +28,7 @@ export interface SubjectTableHookReturn {
     ) => void;
     tableData: SubjectResponseModel[];
     categories: ReturnType<typeof useSubjectList>["categories"];
+    majors: ReturnType<typeof useSubjectList>["majors"];
     headers: ReturnType<typeof useSubjectList>["headers"];
     sortOptions: ReturnType<typeof useSubjectList>["sortOptions"];
     statusData: ReturnType<typeof useSubjectList>["statusData"];
@@ -39,6 +40,9 @@ export interface SubjectTableHookReturn {
     handleSort: (sort: string) => void;
     handleOrder: (order_by: "asc" | "desc") => void;
     handleFilterCategory: (id_category_subject: string) => void;
+    handleFilterMajor: (id_major: string) => void;
+    handleFilterKelas: (kelas: string) => void;
+    handleFilterFase: (fase: string) => void;
     handleFilterStatus: (status: string) => void;
 
     // Dialog state
@@ -63,8 +67,9 @@ const useSubjectTable = (): SubjectTableHookReturn => {
     const {
         tableData,
         categories,
+        majors,
         fetchSubjectList,
-        fetchCategoryOptions,
+        fetchDropdownOptions,
         headers,
         sortOptions,
         statusData,
@@ -80,9 +85,9 @@ const useSubjectTable = (): SubjectTableHookReturn => {
         delete: false,
     });
 
-    // Fetch category options on initial mount for FK resolution & filtering
+    // Fetch dropdown options on initial mount for FK resolution & filtering
     useEffect(() => {
-        fetchCategoryOptions();
+        fetchDropdownOptions();
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -109,6 +114,9 @@ const useSubjectTable = (): SubjectTableHookReturn => {
         state.filters.order_by,
         state.filters.status,
         state.filters.id_category_subject,
+        state.filters.id_major,
+        state.filters.kelas,
+        state.filters.fase,
     ]);
 
     const openDetailDialog = useCallback((item: SubjectResponseModel) => {
@@ -151,6 +159,7 @@ const useSubjectTable = (): SubjectTableHookReturn => {
         setState,
         tableData,
         categories,
+        majors,
         headers,
         sortOptions,
         statusData,
@@ -170,4 +179,3 @@ const useSubjectTable = (): SubjectTableHookReturn => {
 };
 
 export default useSubjectTable;
-

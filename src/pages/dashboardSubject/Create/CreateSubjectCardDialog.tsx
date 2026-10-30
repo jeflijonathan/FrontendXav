@@ -27,7 +27,7 @@ const CreateSubjectCardDialog = ({ isOpen, onClose }: Props) => {
     return (
         <FormProvider {...createSubjectForm}>
             <BaseDialog isOpen={isOpen} onClose={handleClose} maxWidth="sm">
-                <DialogHeader title="Tambah Mata Pelajaran" onClose={handleClose} />
+                <DialogHeader title="Add Subject" onClose={handleClose} />
                 <CreateSubjectFormDialog />
                 <CreateSubjectFooterDialog onClose={handleClose} />
             </BaseDialog>

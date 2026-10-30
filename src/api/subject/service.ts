@@ -20,8 +20,8 @@ export default class SubjectService {
                 const rawList: SubjectResponseModel[] = Array.isArray(res.data)
                     ? res.data
                     : Array.isArray(res.data?.data)
-                    ? res.data.data
-                    : [];
+                        ? res.data.data
+                        : [];
 
                 let filtered = [...rawList];
 

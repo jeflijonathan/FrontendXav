@@ -6,6 +6,7 @@
  * Layer: Framework Logic
  */
 import useDashboardSubjectStore from "../../store";
+import { calculateFase } from "../utils/subjectHelper";
 
 const useSubjectFilters = () => {
     const { setState } = useDashboardSubjectStore();
@@ -76,6 +77,41 @@ const useSubjectFilters = () => {
         }));
     };
 
+    const handleFilterMajor = (id_major: string) => {
+        setState((prev) => ({
+            ...prev,
+            pagination: { ...prev.pagination, page: 1 },
+            filters: {
+                ...prev.filters,
+                id_major,
+            },
+        }));
+    };
+
+    const handleFilterKelas = (kelas: string) => {
+        const derivedFase = calculateFase(kelas);
+        setState((prev) => ({
+            ...prev,
+            pagination: { ...prev.pagination, page: 1 },
+            filters: {
+                ...prev.filters,
+                kelas,
+                fase: derivedFase,
+            },
+        }));
+    };
+
+    const handleFilterFase = (fase: string) => {
+        setState((prev) => ({
+            ...prev,
+            pagination: { ...prev.pagination, page: 1 },
+            filters: {
+                ...prev.filters,
+                fase,
+            },
+        }));
+    };
+
     const handleFilterStatus = (status: string) => {
         setState((prev) => ({
             ...prev,
@@ -94,9 +130,11 @@ const useSubjectFilters = () => {
         handleSort,
         handleOrder,
         handleFilterCategory,
+        handleFilterMajor,
+        handleFilterKelas,
+        handleFilterFase,
         handleFilterStatus,
     };
 };
 
 export default useSubjectFilters;
-

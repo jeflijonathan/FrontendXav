@@ -20,7 +20,7 @@ const CreateSubjectFooterDialog = ({ onClose }: { onClose: () => void }) => {
                 disabled={isLoading}
                 sx={{ borderRadius: "8px", textTransform: "none" }}
             >
-                Batal
+                Cancel
             </Button>
             <Button
                 variant="contained"
@@ -29,7 +29,7 @@ const CreateSubjectFooterDialog = ({ onClose }: { onClose: () => void }) => {
                 loading={isLoading}
                 sx={{ borderRadius: "8px", textTransform: "none", fontWeight: 600 }}
             >
-                Simpan Mata Pelajaran
+                Save Subject
             </Button>
         </DialogFooter>
     );

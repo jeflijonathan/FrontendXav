@@ -2,8 +2,8 @@
  * SubjectTable — Representation Logic
  *
  * Renders Subject list table with:
- * - Search bar, Category dropdown filter, Status filter, Sort & Order options
- * - Columns: id(varchar), name, id_category_subject(FK), status, created_at, updated_at, deleted_at, actions
+ * - Search bar, Filter Grade (10, 11, 12), Filter Major, Filter Category, Filter Status, Sort & Order
+ * - Columns: ID, Subject Name, Grade (10/11/12), Phase (E/F), Major, Category, Status, Created At, Updated At, Deleted At, Actions
  * - Footer with limit selector aligned with pagination and total data count
  * - Action buttons: Detail, Edit, Delete (with BaseDialog confirmation)
  *
@@ -21,7 +21,7 @@ import {
     Select,
     MenuItem,
 } from "@mui/material";
-import { Edit, Visibility, Delete, Category } from "@mui/icons-material";
+import { Edit, Visibility, Delete, Category, School } from "@mui/icons-material";
 import { BaseTable, TableHeader } from "@components/Table";
 import TableBody from "@components/Table/TableBody";
 import TableRow from "@components/Table/TableRow";
@@ -34,6 +34,8 @@ import {
     resolveSubjectStatusChip,
     resolveSubjectId,
     resolveSubjectCategory,
+    resolveSubjectMajor,
+    getFaseChipConfig,
 } from "./utils/subjectHelper";
 import type { SubjectResponseModel } from "@api/subject/model";
 
@@ -41,10 +43,17 @@ import DetailSubjectCardDialog from "../Detail/DetailSubjectCardDialog";
 import UpdateSubjectCardDialog from "../Update/UpdateSubjectCardDialog";
 import DeleteSubjectConfirmDialog from "../Delete/DeleteSubjectConfirmDialog";
 
+const KELAS_FILTER_OPTIONS = [
+    { label: "All Grades", value: "" },
+    { label: "Grade 10", value: "10" },
+    { label: "Grade 11", value: "11" },
+    { label: "Grade 12", value: "12" },
+];
+
 const STATUS_FILTER_OPTIONS = [
-    { label: "Semua Status", value: "" },
-    { label: "Aktif", value: "true" },
-    { label: "Non Aktif", value: "false" },
+    { label: "All Status", value: "" },
+    { label: "Active", value: "true" },
+    { label: "Inactive", value: "false" },
 ];
 
 const SubjectTable = () => {
@@ -52,20 +61,23 @@ const SubjectTable = () => {
         state,
         tableData,
         categories,
+        majors,
         headers,
         sortOptions,
         statusData,
-        handleChangePage,
-        handleFilterLimit,
+        detailId,
+        updateId,
+        deleteTarget,
+        isDialogOpen,
         handleSearch,
         handleSort,
         handleOrder,
         handleFilterCategory,
+        handleFilterMajor,
+        handleFilterKelas,
         handleFilterStatus,
-        updateId,
-        detailId,
-        deleteTarget,
-        isDialogOpen,
+        handleFilterLimit,
+        handleChangePage,
         openDetailDialog,
         closeDetailDialog,
         openUpdateDialog,
@@ -75,12 +87,14 @@ const SubjectTable = () => {
         refresh,
     } = useSubjectTable();
 
-    const ListActions: Array<{
+    interface ActionItem {
         label: string;
         icon: React.ReactNode;
         color: IconButtonProps["color"];
         onClick: (item: SubjectResponseModel) => void;
-    }> = [
+    }
+
+    const ListActions: ActionItem[] = [
         {
             label: "Detail",
             icon: <Visibility fontSize="small" />,
@@ -119,10 +133,55 @@ const SubjectTable = () => {
 
     return (
         <div className="flex flex-col gap-4">
-            {/* Filter Bar: Kategori Mata Pelajaran & Status */}
+            {/* Filter Bar: Grade, Major, Category & Status */}
             <div className="bg-theme-secondary/40 border border-light-dark p-3.5 rounded-xl flex flex-wrap items-center gap-3">
-                {/* Filter Kategori */}
-                <FormControl size="small" sx={{ minWidth: 200, flex: { xs: "1 1 100%", sm: "0 0 auto" } }}>
+                {/* Filter Grade (10, 11, 12) */}
+                <FormControl size="small" sx={{ minWidth: 140, flex: { xs: "1 1 auto", sm: "0 0 auto" } }}>
+                    <InputLabel id="filter-tingkat-label">Grade</InputLabel>
+                    <Select
+                        labelId="filter-tingkat-label"
+                        label="Grade"
+                        value={state.filters.kelas}
+                        onChange={(e) => handleFilterKelas(e.target.value)}
+                        sx={{ borderRadius: "8px", fontWeight: 600 }}
+                    >
+                        {KELAS_FILTER_OPTIONS.map((opt) => (
+                            <MenuItem key={opt.value} value={opt.value}>
+                                {opt.label}
+                            </MenuItem>
+                        ))}
+                    </Select>
+                </FormControl>
+
+                {/* Filter Major */}
+                <FormControl size="small" sx={{ minWidth: 180, flex: { xs: "1 1 auto", sm: "0 0 auto" } }}>
+                    <InputLabel id="filter-major-label">Major</InputLabel>
+                    <Select
+                        labelId="filter-major-label"
+                        label="Major"
+                        value={state.filters.id_major}
+                        onChange={(e) => handleFilterMajor(e.target.value)}
+                        sx={{ borderRadius: "8px" }}
+                        startAdornment={
+                            <School sx={{ color: "primary.main", mr: 1, fontSize: 20 }} />
+                        }
+                    >
+                        <MenuItem value="">
+                            <em>All Majors</em>
+                        </MenuItem>
+                        {majors.map((m) => {
+                            const mId = m.id_major || m.id || "";
+                            return (
+                                <MenuItem key={mId} value={mId}>
+                                    {m.name}
+                                </MenuItem>
+                            );
+                        })}
+                    </Select>
+                </FormControl>
+
+                {/* Filter Category */}
+                <FormControl size="small" sx={{ minWidth: 180, flex: { xs: "1 1 auto", sm: "0 0 auto" } }}>
                     <InputLabel id="filter-category-label">Category</InputLabel>
                     <Select
                         labelId="filter-category-label"
@@ -149,7 +208,7 @@ const SubjectTable = () => {
                 </FormControl>
 
                 {/* Filter Status */}
-                <FormControl size="small" sx={{ minWidth: 140, flex: { xs: "1 1 auto", sm: "0 0 auto" } }}>
+                <FormControl size="small" sx={{ minWidth: 130, flex: { xs: "1 1 auto", sm: "0 0 auto" } }}>
                     <InputLabel id="filter-status-label">Status</InputLabel>
                     <Select
                         labelId="filter-status-label"
@@ -190,6 +249,8 @@ const SubjectTable = () => {
                         const id = resolveSubjectId(row);
                         const statusChip = resolveSubjectStatusChip(row.status);
                         const category = resolveSubjectCategory(row, categories);
+                        const major = resolveSubjectMajor(row, majors);
+                        const faseChip = getFaseChipConfig(row.fase, row.kelas);
 
                         return (
                             <TableRow
@@ -206,7 +267,7 @@ const SubjectTable = () => {
                                             sx={{
                                                 fontFamily: "monospace",
                                                 fontSize: "0.8rem",
-                                                maxWidth: 160,
+                                                maxWidth: 140,
                                                 overflow: "hidden",
                                                 textOverflow: "ellipsis",
                                                 whiteSpace: "nowrap",
@@ -217,14 +278,57 @@ const SubjectTable = () => {
                                     </Tooltip>
                                 </TableCell>
 
-                                {/* Nama Mata Pelajaran */}
+                                {/* Subject Name */}
                                 <TableCell sx={{ py: 1, fontWeight: 600 }}>
                                     <Typography variant="body2" sx={{ fontWeight: 600 }}>
                                         {row.name || "-"}
                                     </Typography>
                                     {row.code_subject && (
                                         <Typography variant="caption" color="text.secondary">
-                                            Kode: {row.code_subject}
+                                            Code: {row.code_subject}
+                                        </Typography>
+                                    )}
+                                </TableCell>
+
+                                {/* Grade (10, 11, 12) */}
+                                <TableCell sx={{ py: 1 }}>
+                                    <Chip
+                                        label={row.kelas ? `kelas ${row.kelas}` : "-"}
+                                        size="small"
+                                        color="primary"
+                                        variant="outlined"
+                                        sx={{ fontWeight: 600 }}
+                                    />
+                                </TableCell>
+
+                                {/* Phase (E for Grade 10, F for Grade 11-12) */}
+                                <TableCell sx={{ py: 1 }}>
+                                    <Tooltip
+                                        title={
+                                            row.kelas === "10"
+                                                ? "Fase E (designated for Grade 10)"
+                                                : "Fase F (designated for Grade 11-12)"
+                                        }
+                                        arrow
+                                    >
+                                        <Chip
+                                            label={faseChip.label}
+                                            size="small"
+                                            color={faseChip.color}
+                                            sx={{ fontWeight: 600 }}
+                                        />
+                                    </Tooltip>
+                                </TableCell>
+
+                                {/* Major */}
+                                <TableCell sx={{ py: 1 }}>
+                                    {major?.name ? (
+                                        <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                                            {major.name}
+                                        </Typography>
+                                    ) : (
+                                        <Typography variant="caption" color="text.secondary">
+                                            General (All Majors)
                                         </Typography>
                                     )}
                                 </TableCell>
@@ -255,21 +359,21 @@ const SubjectTable = () => {
                                     />
                                 </TableCell>
 
-                                {/* Dibuat Pada (created_at) */}
+                                {/* Created At (created_at) */}
                                 <TableCell sx={{ py: 1 }}>
                                     <Typography variant="body2" color="text.secondary">
                                         {formatSubjectDate(row.created_at)}
                                     </Typography>
                                 </TableCell>
 
-                                {/* Diperbarui Pada (updated_at) */}
+                                {/* Updated At (updated_at) */}
                                 <TableCell sx={{ py: 1 }}>
                                     <Typography variant="body2" color="text.secondary">
                                         {formatSubjectDate(row.updated_at)}
                                     </Typography>
                                 </TableCell>
 
-                                {/* Dihapus Pada (deleted_at) */}
+                                {/* Deleted At (deleted_at) */}
                                 <TableCell sx={{ py: 1 }}>
                                     {row.deleted_at ? (
                                         <Typography variant="body2" color="error.main">
@@ -330,4 +434,3 @@ const SubjectTable = () => {
 };
 
 export default SubjectTable;
-

@@ -16,13 +16,22 @@ export const CreateSubjectSchema = yup.object().shape({
         .max(255, "Nama mata pelajaran maksimal 255 karakter"),
     id_category_subject: yup
         .string()
-        .required("Kategori mata pelajaran wajib dipilih"),
+        .required("Category wajib dipilih"),
+    kelas: yup
+        .string()
+        .required("Tingkat kelas wajib dipilih"),
+    fase: yup.string().optional(),
+    id_major: yup.string().optional().nullable(),
+    code_subject: yup.string().optional().nullable(),
     status: yup.boolean().required(),
 });
 
 export const defaultCreateSubjectValues: CreateSubjectRequestModel = {
     name: "",
     id_category_subject: "",
+    id_major: "",
+    kelas: "10",
+    fase: "E",
+    code_subject: "",
     status: true,
 };
-

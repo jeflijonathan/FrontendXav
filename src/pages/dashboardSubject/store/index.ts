@@ -9,6 +9,7 @@ import type {
     CreateSubjectRequestModel,
 } from "@api/subject/model";
 import type { CategorySubjectResponseModel } from "@api/categorysubject/model";
+import type { MajorResponseModel } from "@api/major/model";
 
 export type FilterType = {
     page: number;
@@ -17,6 +18,9 @@ export type FilterType = {
     order_by: "asc" | "desc" | string;
     status: string;
     id_category_subject: string;
+    id_major: string;
+    kelas: string;
+    fase: string;
 };
 
 export type SearchType = {
@@ -33,6 +37,7 @@ export type PaginationType = {
 export type DashboardSubjectStoreStateType = {
     data: SubjectResponseModel[];
     categories: CategorySubjectResponseModel[];
+    majors: MajorResponseModel[];
     createSubjectReqDetails: CreateSubjectRequestModel;
     updateSubjectReqDetails: SubjectResponseModel | null;
     isLoading: boolean;
@@ -56,9 +61,13 @@ export const useDashboardSubjectStore = create<StoreType>((set) => ({
     state: {
         data: [],
         categories: [],
+        majors: [],
         createSubjectReqDetails: {
             name: "",
             id_category_subject: "",
+            id_major: "",
+            kelas: "10",
+            fase: "E",
             status: true,
         },
         updateSubjectReqDetails: null,
@@ -74,6 +83,9 @@ export const useDashboardSubjectStore = create<StoreType>((set) => ({
             order_by: "desc",
             status: "",
             id_category_subject: "",
+            id_major: "",
+            kelas: "",
+            fase: "",
         },
         search: { value: "" },
         pagination: { total_data: 0, total_pages: 1, page: 1, limit: 10 },
@@ -82,4 +94,3 @@ export const useDashboardSubjectStore = create<StoreType>((set) => ({
 }));
 
 export default useDashboardSubjectStore;
-

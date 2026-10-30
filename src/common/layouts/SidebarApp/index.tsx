@@ -28,7 +28,6 @@ const SidebarApp = () => {
       subItems: [
         { label: "Jurusan", href: "/majors" },
         { label: "Kelas", href: "/classes" },
-        { label: "Ruang Kelas", href: "/classrooms" },
       ],
     },
     {
@@ -38,7 +37,6 @@ const SidebarApp = () => {
         { label: "Category Subjects", href: "/category-subjects" },
         { label: "Subjects", href: "/subjects" },
         { label: "Teacher Subjects", href: "/teacher-subjects" },
-        { label: "Effective Weeks", href: "/effective-weeks" },
       ],
     },
     {

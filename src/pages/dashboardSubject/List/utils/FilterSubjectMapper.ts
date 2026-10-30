@@ -24,9 +24,12 @@ export const filterSubjectMapper = (
                 state.filters.id_category_subject !== ""
                     ? state.filters.id_category_subject
                     : undefined,
+            id_major:
+                state.filters.id_major !== "" ? state.filters.id_major : undefined,
+            kelas: state.filters.kelas !== "" ? state.filters.kelas : undefined,
+            fase: state.filters.fase !== "" ? state.filters.fase : undefined,
         },
     };
 };
 
 export default filterSubjectMapper;
-
