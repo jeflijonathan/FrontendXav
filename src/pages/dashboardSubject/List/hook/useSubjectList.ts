@@ -74,7 +74,7 @@ const useSubjectList = (): ReturnHook => {
     const headers: TableHeaderType[] = [
         { label: "ID", width: "180px" },
         { label: "Nama Mata Pelajaran", width: "240px" },
-        { label: "Kategori (id_category_subject)", width: "220px" },
+        { label: "Category", width: "200px" },
         { label: "Status", width: "120px" },
         { label: "Dibuat Pada", width: "170px" },
         { label: "Diperbarui Pada", width: "170px" },

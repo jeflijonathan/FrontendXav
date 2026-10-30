@@ -17,7 +17,7 @@ import {
     Typography,
     Tooltip,
 } from "@mui/material";
-import { Edit, Visibility, Delete } from "@mui/icons-material";
+import { Edit, Visibility } from "@mui/icons-material";
 import { BaseTable, TableHeader } from "@components/Table";
 import TableBody from "@components/Table/TableBody";
 import TableRow from "@components/Table/TableRow";

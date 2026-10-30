@@ -24,7 +24,6 @@ const DetailSubjectContentDialog = ({ detail }: Props) => {
     const statusChip = resolveSubjectStatusChip(detail.status);
     const id = resolveSubjectId(detail);
     const category = resolveSubjectCategory(detail, state.categories);
-    const rawCategoryId = detail.id_category_subject || detail.category_subject_id || "-";
 
     return (
         <Box sx={{ width: "100%", py: 1 }}>
@@ -67,16 +66,11 @@ const DetailSubjectContentDialog = ({ detail }: Props) => {
 
                 <div>
                     <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 500 }}>
-                        Kategori (id_category_subject)
+                        Category
                     </Typography>
                     <Typography variant="body1" sx={{ fontWeight: 600 }} color="primary.main">
-                        {category?.name || rawCategoryId}
+                        {category?.name || "-"}
                     </Typography>
-                    {category?.name && (
-                        <Typography variant="caption" color="text.secondary" sx={{ fontFamily: "monospace" }}>
-                            FK: {rawCategoryId}
-                        </Typography>
-                    )}
                 </div>
 
                 <div>

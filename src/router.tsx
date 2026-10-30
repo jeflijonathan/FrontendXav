@@ -12,6 +12,7 @@ import DashboardRosterJam from "@pages/dashboardRosterJam";
 import DashboardMajor from "@pages/dashboardMajor";
 import DashboardClass from "@pages/dashboardClass";
 import DashboardCategorySubject from "@pages/dashboardCategorySubject";
+import DashboardSubject from "@pages/dashboardSubject";
 
 const routes = createBrowserRouter([
   {
@@ -53,6 +54,10 @@ const routes = createBrowserRouter([
       {
         path: "/category-subjects",
         element: <DashboardCategorySubject />,
+      },
+      {
+        path: "/subjects",
+        element: <DashboardSubject />,
       },
       {
         path: "/school-informations",

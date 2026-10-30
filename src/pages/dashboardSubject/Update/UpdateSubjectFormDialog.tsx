@@ -57,7 +57,7 @@ const UpdateSubjectFormDialog = () => {
                     )}
                 />
 
-                {/* Kategori Mata Pelajaran (FK: id_category_subject) */}
+                {/* Kategori Mata Pelajaran (Category) */}
                 <Controller
                     name="id_category_subject"
                     control={control}
@@ -65,7 +65,7 @@ const UpdateSubjectFormDialog = () => {
                         <TextField
                             {...field}
                             select
-                            label="Kategori Mata Pelajaran (FK)"
+                            label="Category"
                             fullWidth
                             size="small"
                             error={!!errors.id_category_subject}
@@ -75,7 +75,7 @@ const UpdateSubjectFormDialog = () => {
                             }
                         >
                             <MenuItem value="" disabled>
-                                -- Pilih Kategori --
+                                -- Pilih Category --
                             </MenuItem>
                             {state.categories.map((c) => {
                                 const catId = c.id || c.id_category_subject || "";
