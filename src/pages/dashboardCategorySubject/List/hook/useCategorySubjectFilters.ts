@@ -1,10 +1,3 @@
-/**
- * useCategorySubjectFilters — Framework Logic Hook
- *
- * Handles pagination page/limit and search/sort changes.
- *
- * Layer: Framework Logic
- */
 import useDashboardCategorySubjectStore from "../../store";
 
 const useCategorySubjectFilters = () => {

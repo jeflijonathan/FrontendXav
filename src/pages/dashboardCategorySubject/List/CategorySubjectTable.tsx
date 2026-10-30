@@ -34,7 +34,6 @@ import type { CategorySubjectResponseModel } from "@api/categorysubject/model";
 
 import DetailCategorySubjectCardDialog from "../Detail/DetailCategorySubjectCardDialog";
 import UpdateCategorySubjectCardDialog from "../Update/UpdateCategorySubjectCardDialog";
-import DeleteCategorySubjectConfirmDialog from "../Delete/DeleteCategorySubjectConfirmDialog";
 
 const CategorySubjectTable = () => {
     const {
@@ -50,15 +49,11 @@ const CategorySubjectTable = () => {
         handleOrder,
         updateId,
         detailId,
-        deleteTarget,
         isDialogOpen,
         openDetailDialog,
         closeDetailDialog,
         openUpdateDialog,
         closeUpdateDialog,
-        openDeleteDialog,
-        closeDeleteDialog,
-        refresh,
     } = useCategorySubjectTable();
 
     const ListActions: Array<{
@@ -67,25 +62,19 @@ const CategorySubjectTable = () => {
         color: IconButtonProps["color"];
         onClick: (item: CategorySubjectResponseModel) => void;
     }> = [
-        {
-            label: "Detail",
-            icon: <Visibility fontSize="small" />,
-            color: "info",
-            onClick: openDetailDialog,
-        },
-        {
-            label: "Edit",
-            icon: <Edit fontSize="small" />,
-            color: "primary",
-            onClick: openUpdateDialog,
-        },
-        {
-            label: "Delete",
-            icon: <Delete fontSize="small" />,
-            color: "error",
-            onClick: openDeleteDialog,
-        },
-    ];
+            {
+                label: "Detail",
+                icon: <Visibility fontSize="small" />,
+                color: "info",
+                onClick: openDetailDialog,
+            },
+            {
+                label: "Edit",
+                icon: <Edit fontSize="small" />,
+                color: "primary",
+                onClick: openUpdateDialog,
+            },
+        ];
 
     const renderActions = (item: CategorySubjectResponseModel) => (
         <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", alignItems: "center" }}>
@@ -105,7 +94,6 @@ const CategorySubjectTable = () => {
 
     return (
         <div className="flex flex-col gap-4">
-            {/* Table Header: Search, Sort, Order */}
             <TableHeader
                 search={state.search.value}
                 onSearchChange={handleSearch}
@@ -116,7 +104,6 @@ const CategorySubjectTable = () => {
                 onSortDirChange={handleOrder}
             />
 
-            {/* Base Table */}
             <BaseTable breakpoint={1200}>
                 <TableBody
                     header={headers}
@@ -177,24 +164,10 @@ const CategorySubjectTable = () => {
                                     </Typography>
                                 </TableCell>
 
-                                {/* Diperbarui Pada (updated_at) */}
                                 <TableCell sx={{ py: 1 }}>
                                     <Typography variant="body2" color="text.secondary">
                                         {formatCategoryDate(row.updated_at)}
                                     </Typography>
-                                </TableCell>
-
-                                {/* Dihapus Pada (deleted_at) */}
-                                <TableCell sx={{ py: 1 }}>
-                                    {row.deleted_at ? (
-                                        <Typography variant="body2" color="error.main">
-                                            {formatCategoryDate(row.deleted_at)}
-                                        </Typography>
-                                    ) : (
-                                        <Typography variant="caption" color="text.disabled">
-                                            -
-                                        </Typography>
-                                    )}
                                 </TableCell>
                             </TableRow>
                         );
@@ -228,16 +201,6 @@ const CategorySubjectTable = () => {
                     id={updateId}
                     isOpen={isDialogOpen.update}
                     onClose={closeUpdateDialog}
-                />
-            )}
-
-            {/* Delete Confirmation Dialog */}
-            {deleteTarget && isDialogOpen.delete && (
-                <DeleteCategorySubjectConfirmDialog
-                    target={deleteTarget}
-                    isOpen={isDialogOpen.delete}
-                    onClose={closeDeleteDialog}
-                    onDeleted={refresh}
                 />
             )}
         </div>

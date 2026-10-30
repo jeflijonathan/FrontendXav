@@ -1,10 +1,3 @@
-/**
- * FilterCategorySubjectMapper — Business Logic
- *
- * Maps store state into FilterParams for API request.
- *
- * Layer: Business Logic
- */
 import type { FilterParams } from "@common/types";
 import type { DashboardCategorySubjectStoreStateType } from "../../store";
 

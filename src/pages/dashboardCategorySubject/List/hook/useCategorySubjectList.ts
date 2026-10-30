@@ -1,11 +1,3 @@
-/**
- * useCategorySubjectList — Framework Logic Hook
- *
- * Fetches Category Subject data from API and manages store updates.
- * Provides headers, sortOptions, and status metadata.
- *
- * Layer: Framework Logic
- */
 import { useSnackbar } from "notistack";
 import CategorySubjectService from "@api/categorysubject/service";
 import useDashboardCategorySubjectStore from "../../store";
@@ -52,22 +44,21 @@ const useCategorySubjectList = (): ReturnHook => {
 
     const headers: TableHeaderType[] = [
         { label: "ID", width: "220px" },
-        { label: "Nama Kategori", width: "240px" },
+        { label: "Name Category", width: "240px" },
         { label: "Status", width: "120px" },
-        { label: "Dibuat Pada", width: "170px" },
-        { label: "Diperbarui Pada", width: "170px" },
-        { label: "Dihapus Pada", width: "150px" },
+        { label: "Created At", width: "170px" },
+        { label: "Updated At", width: "170px" },
     ];
 
     const sortOptions: SortOptionType[] = [
-        { label: "Nama", value: "name" },
-        { label: "Tanggal Dibuat", value: "created_at" },
-        { label: "Tanggal Diperbarui", value: "updated_at" },
+        { label: "Name", value: "name" },
+        { label: "Created At", value: "created_at" },
+        { label: "Updated At", value: "updated_at" },
     ];
 
     const statusData: Record<number, { label: string; color: "success" | "error" }> = {
-        1: { label: "Aktif", color: "success" },
-        0: { label: "Non Aktif", color: "error" },
+        1: { label: "Active", color: "success" },
+        0: { label: "No Active", color: "error" },
     };
 
     return {

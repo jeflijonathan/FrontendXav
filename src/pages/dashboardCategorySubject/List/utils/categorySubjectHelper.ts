@@ -13,10 +13,6 @@ export interface StatusChipConfig {
     color: "success" | "error";
 }
 
-/**
- * Format date string to Indonesian locale format.
- * Returns "-" if null/empty/invalid.
- */
 export function formatCategoryDate(dateStr?: string | null): string {
     if (!dateStr) return "-";
     const d = new Date(dateStr);
@@ -30,9 +26,6 @@ export function formatCategoryDate(dateStr?: string | null): string {
     });
 }
 
-/**
- * Resolve status chip config (label + color).
- */
 export function resolveCategoryStatusChip(
     status?: boolean | number | null
 ): StatusChipConfig {
@@ -42,9 +35,6 @@ export function resolveCategoryStatusChip(
     return { label: "Non Aktif", color: "error" };
 }
 
-/**
- * Resolve primary key ID from CategorySubjectResponseModel.
- */
 export function resolveCategoryId(row: CategorySubjectResponseModel): string {
     return row.id || row.id_category_subject || "-";
 }

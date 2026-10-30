@@ -42,7 +42,6 @@ export interface CategorySubjectTableHookReturn {
     // Dialog state
     updateId: string | null;
     detailId: string | null;
-    deleteTarget: CategorySubjectResponseModel | null;
     isDialogOpen: DialogState;
 
     // Handlers
@@ -50,8 +49,6 @@ export interface CategorySubjectTableHookReturn {
     closeDetailDialog: () => void;
     openUpdateDialog: (item: CategorySubjectResponseModel) => void;
     closeUpdateDialog: () => void;
-    openDeleteDialog: (item: CategorySubjectResponseModel) => void;
-    closeDeleteDialog: () => void;
 
     refresh: () => Promise<void>;
 }
@@ -64,7 +61,6 @@ const useCategorySubjectTable = (): CategorySubjectTableHookReturn => {
 
     const [updateId, setUpdateId] = useState<string | null>(null);
     const [detailId, setDetailId] = useState<string | null>(null);
-    const [deleteTarget, setDeleteTarget] = useState<CategorySubjectResponseModel | null>(null);
     const [isDialogOpen, setDialogOpen] = useState<DialogState>({
         update: false,
         detail: false,
@@ -120,15 +116,6 @@ const useCategorySubjectTable = (): CategorySubjectTableHookReturn => {
         setState((prev) => ({ ...prev, updateCategorySubjectReqDetails: null }));
     }, [setState]);
 
-    const openDeleteDialog = useCallback((item: CategorySubjectResponseModel) => {
-        setDeleteTarget(item);
-        setDialogOpen((prev) => ({ ...prev, delete: true }));
-    }, []);
-
-    const closeDeleteDialog = useCallback(() => {
-        setDeleteTarget(null);
-        setDialogOpen((prev) => ({ ...prev, delete: false }));
-    }, []);
 
     return {
         state,
@@ -140,14 +127,11 @@ const useCategorySubjectTable = (): CategorySubjectTableHookReturn => {
         ...filterHandlers,
         updateId,
         detailId,
-        deleteTarget,
         isDialogOpen,
         openDetailDialog,
         closeDetailDialog,
         openUpdateDialog,
         closeUpdateDialog,
-        openDeleteDialog,
-        closeDeleteDialog,
         refresh,
     };
 };
