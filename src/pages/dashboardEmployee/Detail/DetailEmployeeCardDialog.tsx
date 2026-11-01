@@ -16,23 +16,25 @@ const DetailEmployeeCardDialog: React.FC<DetailEmployeeCardDialogProps> = ({ id,
 
     const renderComponentDialog = {
         isLoading: <DetailEmployeeSkeleton />,
-        noData: <Box sx={{ textAlign: "center", py: 8 }}>
-            <Typography variant="body2" color="text.secondary">
-                Data tidak ditemukan
-            </Typography>
-        </Box>,
-        data: <DetailEmployeeContent detail={detail} />
-    }
+        noData: (
+            <Box sx={{ textAlign: "center", py: 8 }}>
+                <Typography variant="body2" color="text.secondary">
+                    Data pegawai tidak ditemukan
+                </Typography>
+            </Box>
+        ),
+        data: detail ? <DetailEmployeeContent detail={detail} /> : null,
+    };
 
     const renderContent = (): React.ReactNode => {
-        if (isLoading) return renderComponentDialog.isLoading;
+        if (isLoading && !detail) return renderComponentDialog.isLoading;
         if (!detail) return renderComponentDialog.noData;
         return renderComponentDialog.data;
-    }
+    };
 
     return (
-        <BaseDialog isOpen={isOpen} onClose={onClose}>
-            <DialogHeader title="Detail Karyawan" onClose={onClose} />
+        <BaseDialog isOpen={isOpen} onClose={onClose} maxWidth="md">
+            <DialogHeader title="Detail Lengkap Pegawai" onClose={onClose} />
             <DialogBody>
                 {renderContent()}
             </DialogBody>

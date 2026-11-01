@@ -1,41 +1,32 @@
 export function SessionStorage() {
+    const setItem = <T>(key: string, value: T): void => {
+        if (typeof window != undefined) {
+            window.sessionStorage.setItem(key, JSON.stringify(value));
+        }
+    }
+
+    const getItem = <T>(key: string, initialValue: T): T => {
+        if (typeof window != undefined) {
+            const item = window.sessionStorage.getItem(key)
+            return item ? JSON.parse(item) : initialValue
+        }
+        return initialValue;
+    }
+
+    const removeItem = (key: string): void => {
+        if (typeof window != undefined) {
+            window.sessionStorage.removeItem(key);
+        }
+    }
+
+    const clear = (): void => {
+        if (typeof window != undefined) {
+            window.sessionStorage.clear();
+        }
+    }
+
     return {
-        getItem<T = any>(key: string): T | null {
-            try {
-                const item = window.sessionStorage.getItem(key);
-                if (!item) return null;
-                try {
-                    return JSON.parse(item) as T;
-                } catch {
-                    return item as unknown as T;
-                }
-            } catch (error) {
-                console.error(`Error getting item ${key} from sessionStorage`, error);
-                return null;
-            }
-        },
-        setItem(key: string, value: any): void {
-            try {
-                const val = typeof value === "string" ? value : JSON.stringify(value);
-                window.sessionStorage.setItem(key, val);
-            } catch (error) {
-                console.error(`Error setting item ${key} in sessionStorage`, error);
-            }
-        },
-        removeItem(key: string): void {
-            try {
-                window.sessionStorage.removeItem(key);
-            } catch (error) {
-                console.error(`Error removing item ${key} from sessionStorage`, error);
-            }
-        },
-        clear(): void {
-            try {
-                window.sessionStorage.clear();
-            } catch (error) {
-                console.error("Error clearing sessionStorage", error);
-            }
-        },
+        setItem, getItem, removeItem, clear
     };
 }
 

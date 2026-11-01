@@ -33,10 +33,16 @@ export const useThemeStore = create<ThemeState>((set, get) => ({
   initTheme: () => {
     if (typeof window === "undefined") return;
 
+    // Baca preferensi dark/light mode langsung dari localStorage
+    const storedThemeMode = (window.localStorage.getItem("theme_mode") ||
+      window.localStorage.getItem("theme")) as string | null;
     const storedTheme =
-      (window.localStorage.getItem("theme") as THEMES_TYPE) || DEFAULT_THEME;
+      (window.localStorage.getItem("theme_name") as THEMES_TYPE) || DEFAULT_THEME;
 
-    const initialTheme: Theme = storedTheme.includes("dark") ? "dark" : "light";
+    const isDark =
+      storedThemeMode === "dark" ||
+      (storedThemeMode ? storedThemeMode.includes("dark") : false);
+    const initialTheme: Theme = isDark ? "dark" : "light";
 
     set({ theme: initialTheme, themeToUse: storedTheme });
     applyDOMChanges(initialTheme, storedTheme);
@@ -46,13 +52,18 @@ export const useThemeStore = create<ThemeState>((set, get) => ({
     const nextTheme: Theme = get().theme === "light" ? "dark" : "light";
     set({ theme: nextTheme });
 
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("theme_mode", nextTheme);
+      window.localStorage.setItem("theme", nextTheme);
+    }
+
     applyDOMChanges(nextTheme, get().themeToUse);
   },
 
   applyTheme: (newTheme: string) => {
     set({ themeToUse: newTheme });
     if (typeof window !== "undefined") {
-      window.localStorage.setItem("theme", newTheme);
+      window.localStorage.setItem("theme_name", newTheme);
     }
 
     // Sinkronisasi ke DOM

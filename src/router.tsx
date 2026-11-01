@@ -4,6 +4,8 @@ import DashboardPage from "./pages/Dashboard/DashboardPage";
 import DashboardSchoolInformation from "@pages/dashboardSchoolInformation";
 import Home from "./pages/Home";
 import Login from "./pages/Auth/Login";
+import LoginPegawai from "./pages/Auth/LoginPegawai";
+import LoginSiswa from "./pages/Auth/LoginSiswa";
 import DashboardEmployee from "@pages/dashboardEmployee";
 import DashboardStudent from "@pages/dashboardStudent";
 import DashboardAnnouncement from "@pages/dashboardAnnouncement";
@@ -13,6 +15,7 @@ import DashboardMajor from "@pages/dashboardMajor";
 import DashboardClass from "@pages/dashboardClass";
 import DashboardCategorySubject from "@pages/dashboardCategorySubject";
 import DashboardSubject from "@pages/dashboardSubject";
+import { ProtectedRoute } from "./common/components/Auth/ProtectedRoute";
 
 const routes = createBrowserRouter([
   {
@@ -24,8 +27,20 @@ const routes = createBrowserRouter([
     element: <Login />,
   },
   {
+    path: "/login/pegawai",
+    element: <LoginPegawai />,
+  },
+  {
+    path: "/login/siswa",
+    element: <LoginSiswa />,
+  },
+  {
     path: "/",
-    element: <DashboardLayout />,
+    element: (
+      <ProtectedRoute>
+        <DashboardLayout />
+      </ProtectedRoute>
+    ),
     children: [
       {
         path: "/dashboard",
@@ -33,19 +48,27 @@ const routes = createBrowserRouter([
       },
       {
         path: "/employees",
-        element: <DashboardEmployee />
+        element: (
+          <ProtectedRoute allowedRoles={["TU", "kurikulum"]}>
+            <DashboardEmployee />
+          </ProtectedRoute>
+        ),
       },
       {
         path: "/students",
-        element: <DashboardStudent />
+        element: (
+          <ProtectedRoute allowedRoles={["TU", "kurikulum"]}>
+            <DashboardStudent />
+          </ProtectedRoute>
+        ),
       },
       {
         path: "/majors",
-        element: <DashboardMajor />
+        element: <DashboardMajor />,
       },
       {
         path: "/uploads",
-        element: <DashboardUploadFile />
+        element: <DashboardUploadFile />,
       },
       {
         path: "/classes",
@@ -65,7 +88,7 @@ const routes = createBrowserRouter([
       },
       {
         path: "/announcements",
-        element: <DashboardAnnouncement />
+        element: <DashboardAnnouncement />,
       },
       {
         path: "/roster-jam",

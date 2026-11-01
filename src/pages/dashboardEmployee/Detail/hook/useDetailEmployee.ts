@@ -10,22 +10,23 @@ export const useDetailEmployee = (id: string, isOpen: boolean) => {
 
     useEffect(() => {
         if (id && isOpen) {
-            setIsLoading(true);
-            const employee = state.data.find(emp => emp.id === id);
-
-            if (employee) {
-                setDetail(employee);
-                setIsLoading(false);
-                return;
+            const cached = state.data.find((emp) => emp.id === id);
+            if (cached) {
+                setDetail(cached);
+            } else {
+                setIsLoading(true);
             }
 
+            // Fetch complete and up-to-date data from server
             new EmployeeService().getById(id, {
                 onSuccess: (res) => setDetail(res),
-                onError: () => setDetail(null),
+                onError: () => {
+                    if (!cached) setDetail(null);
+                },
                 onFullfilled: () => setIsLoading(false),
             });
         }
-    }, [id, isOpen, state.data]);
+    }, [id, isOpen]);
 
     return { detail, isLoading };
 };

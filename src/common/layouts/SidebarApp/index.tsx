@@ -8,20 +8,30 @@ import LogoutIcon from "@mui/icons-material/Logout";
 import SchoolIcon from "@mui/icons-material/School";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import BusinessIcon from "@mui/icons-material/Business";
+import Avatar from "@mui/material/Avatar";
+import { useNavigate } from "react-router-dom";
 import useSidebarStore from "../../store/useSidebarStore";
+import useAuthStore from "../../store/useAuthStore";
 import ItemMenu from "./ItemMenu";
 import type { MenuItemType } from "../../types";
 import LogoSidebar from "./LogoSidebar";
 import BaseMenu from "./BaseMenu";
+import getProfilePhotoUrl from "@utils/getProfilePhotoUrl";
 
 const SidebarApp = () => {
   const { isSidebarOpen, handleSidebarToggle } = useSidebarStore();
+  const { user, activeRole, logout } = useAuthStore();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await logout(navigate);
+  };
 
   const menuItems: MenuItemType[] = [
     {
       icon: <DashboardIcon fontSize="small" />,
       label: "Dashboard",
-      href: "/",
+      href: "/dashboard",
     },
     {
       icon: <SchoolIcon fontSize="small" />,
@@ -52,12 +62,12 @@ const SidebarApp = () => {
       label: "Sekolah",
       subItems: [
         { label: "Pengumuman", href: "/announcements" },
-        { label: "informasi Sekolah", href: "/school-informations" },
+        { label: "Informasi Sekolah", href: "/school-informations" },
       ],
     },
     {
       icon: <PeopleIcon fontSize="small" />,
-      label: "Users",
+      label: "Users (TU & Kurikulum)",
       subItems: [
         { label: "Employees", href: "/employees" },
         { label: "Students", href: "/students" },
@@ -68,11 +78,9 @@ const SidebarApp = () => {
       label: "Settings",
       subItems: [
         { label: "Profile", href: "/dashboard-profile" },
-        { label: "Security", href: "/settings/security" },
       ],
     },
     { icon: <HelpIcon fontSize="small" />, label: "Help & Support", href: "#" },
-    { icon: <HelpIcon fontSize="small" />, label: "Test Menu", href: "/test-menu" },
   ];
 
   const textVisibilityClass = clsx(
@@ -116,29 +124,31 @@ const SidebarApp = () => {
           </nav>
         </BaseMenu>
 
-
         <div className="p-4 border-t shrink-0 overflow-hidden border-light-dark bg-theme-secondary/40">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-3 whitespace-nowrap">
-              <img
-                src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=100&auto=format&fit=crop"
-                alt="Profile"
-                className="w-10 h-10 rounded-full object-cover border shrink-0 border-light-dark"
-              />
+              <Avatar
+                src={getProfilePhotoUrl(user?.profile_url)}
+                alt={user?.full_name || "Profile"}
+                sx={{ width: 38, height: 38, bgcolor: "primary.main", fontWeight: 700, fontSize: "0.875rem" }}
+              >
+                {user?.full_name ? user.full_name.charAt(0).toUpperCase() : "U"}
+              </Avatar>
               <div className={clsx("flex flex-col", textVisibilityClass)}>
                 <span className="font-semibold text-sm leading-tight block truncate w-28 text-primary-txt">
-                  Alex Doe
+                  {user?.full_name || "Pengguna"}
                 </span>
                 <span className="text-xs truncate w-28 mt-0.5 text-secondary-txt/70">
-                  alex@ukm.ac.id
+                  {activeRole ? activeRole.toUpperCase() : (user?.identifier || "-")}
                 </span>
               </div>
             </div>
 
             {isSidebarOpen && (
               <button
+                onClick={handleLogout}
                 title="Logout"
-                className="p-2 rounded-xl transition-all shrink-0 text-secondary-txt/60 hover:text-primary hover:bg-primary/10"
+                className="p-2 rounded-xl transition-all shrink-0 text-secondary-txt/60 hover:text-red-500 hover:bg-red-500/10 cursor-pointer"
               >
                 <LogoutIcon fontSize="small" />
               </button>

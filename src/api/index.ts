@@ -3,6 +3,7 @@ import axios, {
   type AxiosRequestConfig,
 } from "axios";
 import LocalStorage from "@utils/localStorage";
+import { getCookie, setCookie, deleteCookie } from "@utils/cookie";
 import { catchError } from "@utils/catchError";
 
 type Headers = Record<string, string>;
@@ -30,13 +31,58 @@ export class API {
 
     this.api.interceptors.request.use(
       (config) => {
-        const token = LocalStorage().getItem<string>("accessToken");
+        const token =
+          getCookie("access_token") ||
+          LocalStorage().getItem<string>("accessToken");
         if (token && config.headers) {
           config.headers.Authorization = `Bearer ${token}`;
         }
         return config;
       },
       (error) => Promise.reject(error)
+    );
+
+    this.api.interceptors.response.use(
+      (response) => response,
+      async (error) => {
+        const originalRequest = error.config;
+        if (
+          error.response?.status === 401 &&
+          originalRequest &&
+          !originalRequest._retry &&
+          !originalRequest.url?.includes("/auth/")
+        ) {
+          originalRequest._retry = true;
+          const refreshToken =
+            getCookie("refresh_token") ||
+            LocalStorage().getItem<string>("refreshToken");
+          if (refreshToken) {
+            try {
+              const refreshRes = await axios.post(
+                `${import.meta.env.VITE_BACKEND_URL}/api/auth/refresh`,
+                { refresh_token: refreshToken },
+                { withCredentials: true }
+              );
+              if (refreshRes.data?.data?.access_token) {
+                const newAccessToken = refreshRes.data.data.access_token;
+                setCookie("access_token", newAccessToken, { maxAge: 3600 });
+                LocalStorage().setItem("accessToken", newAccessToken);
+                originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+                return this.api(originalRequest);
+              }
+            } catch {
+              deleteCookie("access_token");
+              deleteCookie("refresh_token");
+              deleteCookie("active_role");
+              LocalStorage().removeItem("accessToken");
+              LocalStorage().removeItem("refreshToken");
+              LocalStorage().removeItem("user");
+              LocalStorage().removeItem("active_role");
+            }
+          }
+        }
+        return Promise.reject(error);
+      }
     );
   }
 
@@ -45,7 +91,9 @@ export class API {
       "Content-Type": "application/json",
       ...customHeaders,
     };
-    const token = LocalStorage().getItem<string>("accessToken");
+    const token =
+      getCookie("access_token") ||
+      LocalStorage().getItem<string>("accessToken");
     if (token) {
       headers.Authorization = `Bearer ${token}`;
     }
