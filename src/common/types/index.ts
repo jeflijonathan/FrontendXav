@@ -32,21 +32,21 @@ export interface MenuItemType {
   subItems?: SubItemType[];
 }
 
-// ── API Types ──────────────────────────────────────────────
-
 export type PaginationType = {
-  page: number;
-  limit: number;
-  total_data: number;
-  total_pages: number;
+  total_data: number,
+  page: number,
+  limit: number,
+  total_pages: number,
+  has_next: boolean | string,
+  has_prev: boolean | string
 };
 
 export type APIResponse<T = void> = {
   status: string;
-  statusCode: number;
+  status_code: number;
   message: string;
   data: T;
-  pagination: PaginationType;
+  details?: string[];
 };
 
 export type DataWithPagination<T> = {
@@ -56,9 +56,11 @@ export type DataWithPagination<T> = {
 
 export type FetchCallback<T> = {
   onSuccess: (data: T) => void;
-  onError: ({ detail, message }: { detail?: string[], message?: string }) => void;
+  onError: ({ detail, message }: ErrorType) => void;
   onFullfilled?: () => void;
 };
+
+export type ErrorType = { detail?: string[], message?: string }
 
 export type FilterParams = {
   params: {

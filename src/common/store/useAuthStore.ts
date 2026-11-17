@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import type { AuthUserModel } from "@api/auth/model";
 import AuthService from "@api/auth/service";
-import { getCookie, setCookie } from "@utils/cookie";
+import { getCookie, setCookie, deleteCookie } from "@utils/cookie";
 import LocalStorage from "@utils/localStorage";
 
 interface AuthStore {
@@ -65,23 +65,15 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
 
   setLoginSuccess: (user) => {
     LocalStorage().setItem("user", user);
-    const existingActiveRole =
-      getCookie("active_role") || LocalStorage().getItem<string>("active_role");
-    
-    // If user has only 1 role, set it directly or let them choose
-    const hasSingleRole = user.roles && user.roles.length === 1;
-    const determinedRole = existingActiveRole || (hasSingleRole ? user.roles[0].name : null);
 
-    if (determinedRole) {
-      setCookie("active_role", determinedRole, { maxAge: 7 * 24 * 3600 });
-      LocalStorage().setItem("active_role", determinedRole);
-    }
+    deleteCookie("active_role");
+    LocalStorage().removeItem("active_role");
 
     set({
       user,
       isAuthenticated: true,
-      activeRole: determinedRole,
-      isRoleModalOpen: !determinedRole, // Open role selection if active role is not yet selected
+      activeRole: null,        // Selalu null → dialog pilih role wajib muncul
+      isRoleModalOpen: true,   // Buka dialog pilih role segera
     });
   },
 

@@ -1,5 +1,19 @@
 import type { RoleModel } from "@api/role/model";
 
+export interface AcademicTitleModel {
+    id: string;
+    name: string;
+    type: "depan" | "belakang";
+    description?: string | null;
+    order_index: number;
+}
+
+export interface EmployeeTitleModel {
+    id: string;
+    title_name: string;
+    title_type: "depan" | "belakang";
+    order_index: number;
+}
 
 export interface EmployeeResponseModel {
     id: string;
@@ -13,6 +27,8 @@ export interface EmployeeResponseModel {
     created_at: string;
     updated_at: string;
     deleted_at?: string | null;
+    formatted_name?: string;
+    titles?: EmployeeTitleModel[];
     user?: {
         id: string;
         username: string;
@@ -59,6 +75,8 @@ export interface CreateEmployeeRequestModel {
         description?: string;
     };
     role_ids?: string[];
+    titles_depan?: string[];
+    titles_belakang?: string[];
 }
 
 export interface UpdateEmployeeRequestModel {
@@ -82,4 +100,6 @@ export interface UpdateEmployeeRequestModel {
         description?: string | null;
     };
     role_ids?: string[];
+    titles_depan?: string[];
+    titles_belakang?: string[];
 }

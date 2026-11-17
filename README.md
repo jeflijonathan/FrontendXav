@@ -1,54 +1,87 @@
-# unslop
+# FrontendXav — Web Dashboard
 
-Created by Damir Sokolovsky ([@heydamir](https://x.com/heydamir)), who started the [Unslopping series](https://x.com/heydamir/status/2115063463063998736) on X.
+Frontend aplikasi PTA SMK Xaverius Palembang: React 19 + TypeScript + Vite, dengan MUI, Tailwind v4, Zustand, dan React Router.
+Dokumen ini berisi dua bagian:
+
+- **[Skill desain: unslop](#-skill-desain-unslop)** — cara merapikan UI yang terlihat "AI-generated" agar jadi antarmuka yang punya karakter.
+- **[React Template — Struktur Kode Proyek](#-react-template--struktur-kode-proyek)** — arsitektur, konvensi, dan pola kode yang dipakai di repo ini (contoh: halaman `dashboardEmployee`).
+
+Untuk panduan frontend yang lebih operasional (routing, auth, API layer, styling), lihat [docs/frontend-guide.md](../docs/frontend-guide.md).
+
+---
+
+## 🎨 Skill desain: unslop
+
+Skill ini tersimpan di repo pada [`docs/skills/unslop/`](docs/skills/unslop/SKILL.md) — instruksi lengkap ada di [SKILL.md](docs/skills/unslop/SKILL.md), dengan referensi tambahan di folder [`references/`](docs/skills/unslop/references/).
+
+Dibuat oleh Damir Sokolovsky ([@heydamir](https://x.com/heydamir)), yang memulai [Unslopping series](https://x.com/heydamir/status/2115063463063998736) di X. Lisensi [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) — kredit ini wajib dipertahankan pada salinan atau adaptasi apa pun.
 
 ![A vibecoded dashboard unslopping itself, frame by frame](docs/skills/unslop/references/refs/story-dashboard-frames.webp)
 
-unslop is a skill for Claude that turns vibecoded, AI-looking UI into a designed interface with its own character. It finds the slop first, the purple gradients, glows, emoji labels, shouty copy and uneven spacing, then sets a direction from your product and fixes the screen pass by pass like a designer doing a redline review. It works in whatever your screen is built with, like Next.js, React, Vue, Svelte, Tailwind or plain HTML and CSS, on dashboards, apps and landing pages, and even on a live site when all you have is a link.
+unslop adalah skill untuk Claude yang mengubah UI vibecoded yang terlihat AI menjadi antarmuka hasil desain yang punya karakter sendiri. Ia menemukan "slop" lebih dulu — gradien ungu, glow, label emoji, copy yang berteriak, dan spacing yang tidak konsisten — lalu menetapkan arah dari produk kamu dan memperbaiki layar pass demi pass seperti designer yang melakukan redline review. Skill ini bekerja pada apa pun stack layarnya: Next.js, React, Vue, Svelte, Tailwind, atau HTML/CSS biasa; untuk dashboard, aplikasi, maupun landing page, bahkan pada situs live yang cuma kamu punya link-nya.
 
-## Install
+### Install
 
-For Claude Code, copy the skill into your skills folder.
+Skill sudah tersedia di repo ini, jadi tidak perlu clone ulang. Kalau ingin memakainya di Claude Code, salin folder skill ke folder skills:
+
+```bash
+# dari root repo
+mkdir -p ~/.claude/skills && cp -r FrontendXav/docs/skills/unslop ~/.claude/skills/
+```
+
+Untuk satu project saja, salin ke `.claude/skills/` di dalam project tersebut. Kalau ingin versi terbaru dari sumber aslinya:
 
 ```bash
 git clone https://github.com/heydamir/unslop
 mkdir -p ~/.claude/skills && cp -r unslop/skills/unslop ~/.claude/skills/
 ```
 
-For a single project, copy it into `.claude/skills/` inside that project instead.
+### Use
 
-## Use
-
-In Claude Code, type `/unslop` with what you want, or just ask in your own words and Claude picks the skill up by itself.
+Di Claude Code, ketik `/unslop` dengan apa yang kamu mau, atau minta dengan kata-katamu sendiri dan Claude akan memakai skill ini otomatis.
 
 ```
 /unslop this dashboard
+/unslop halaman employee di FrontendXav
 /unslop the hero of https://example.com
 /unslop my landing page and make the story video so I can post it
 ```
 
-It audits the screen and proposes a direction before it edits anything, so you can steer it early. If the screen is already good, it tells you so and suggests a few small refinements instead of redesigning it.
+Ia mengaudit layar dan mengusulkan arah sebelum mengubah apa pun, jadi kamu bisa mengarahkan lebih awal. Kalau layarnya sudah bagus, ia akan bilang begitu dan menyarankan beberapa penyempurnaan kecil, bukan mendesain ulang.
 
-## What it does
+### What it does
 
-- **Audit.** Lists every sign of slop with where it lives.
-- **Direction.** Character, world, the one or two moments that carry the color, and a signature detail, all taken from your product.
-- **Passes.** Spacing, color, icons, copy, type, layout, details, visuals and motion, in that order.
-- **Visuals.** Shows your product instead of a glossy blob. When a hero needs a scene or an object, it can generate one through an image service like fal, Replicate, OpenAI images or Higgsfield. If none is connected, it offers to connect one as an MCP server, and it shows the prompt and asks before every paid generation. Dashboards and apps rarely need one.
-- **Story video.** A square video under 10 seconds of your screen unslopping itself, ready to post. It needs Playwright and ffmpeg.
+- **Audit.** Mendaftar setiap tanda slop beserta lokasinya.
+- **Direction.** Karakter, dunia, satu atau dua momen yang membawa warna, dan detail signature — semuanya diambil dari produk kamu.
+- **Passes.** Spacing, warna, ikon, copy, tipografi, layout, detail, visual, dan motion, dalam urutan itu.
+- **Visuals.** Menampilkan produk kamu, bukan blob mengilap. Saat hero butuh scene atau objek, ia bisa membuatnya lewat layanan gambar seperti fal, Replicate, OpenAI images, atau Higgsfield. Kalau belum ada yang terhubung, ia menawarkan untuk menghubungkan sebagai MCP server, menampilkan prompt, dan bertanya sebelum setiap generasi berbayar. Dashboard dan aplikasi jarang membutuhkannya.
+- **Story video.** Video persegi di bawah 10 detik berisi layarmu yang sedang di-unslop, siap diposting. Butuh Playwright dan ffmpeg.
 
-Try it on the two vibecoded screens in [examples](examples).
+Referensi yang dipakai saat menjalankan skill ini:
 
+| File | Isi |
+|---|---|
+| [SKILL.md](docs/skills/unslop/SKILL.md) | Alur kerja lengkap: audit, direction, sembilan pass, checklist, story video |
+| [references/signs.md](docs/skills/unslop/references/signs.md) | Daftar tanda slop yang dicari saat audit |
+| [references/tokens.md](docs/skills/unslop/references/tokens.md) | Nilai pasti untuk spacing, warna, tipografi, dan motion |
+| [references/visuals.md](docs/skills/unslop/references/visuals.md) | Gaya visual yang berhasil dan yang gagal |
+| [references/effects.md](docs/skills/unslop/references/effects.md) | Treatment kode, misalnya menggambar gambar dengan glyph |
+| [references/refs.md](docs/skills/unslop/references/refs.md) | Contoh hasil jadi untuk dipelajari |
+| [scripts/snapshot.mjs](docs/skills/unslop/scripts/snapshot.mjs) | Simpan halaman live jadi HTML statis + screenshot |
+| [scripts/story.mjs](docs/skills/unslop/scripts/story.mjs) | Render story video (butuh Playwright + ffmpeg) |
 
+> Catatan untuk repo ini: skill ini menyentuh lapisan tampilan (komponen `src/common/components`, layout, dan halaman di `src/pages`). Saat memakainya, tetap ikuti pola yang sudah ada — `BaseDialog`, `BaseTable`, `DashboardHeader`, dan token dari `src/common/consts` — jangan membuat komponen dialog/tabel baru hanya karena redesign.
 
-# 📘 React Template — Struktur Kode Proyek
+---
+
+## 📘 React Template — Struktur Kode Proyek
 
 > Dokumentasi lengkap mengenai arsitektur, konvensi, dan pola kode yang digunakan di proyek **FrontendXav**.
 > Menggunakan halaman **Employee** (`dashboardEmployee`) sebagai sample/contoh.
 
 ---
 
-## 📦 Tech Stack
+### 📦 Tech Stack
 
 | Kategori | Library | Versi |
 |---|---|---|
@@ -66,7 +99,7 @@ Try it on the two vibecoded screens in [examples](examples).
 
 ---
 
-## 🗂️ Struktur Folder Utama
+### 🗂️ Struktur Folder Utama
 
 ```
 src/
@@ -137,9 +170,9 @@ src/
 
 ---
 
-## 🎯 Sample: Halaman Employee (`dashboardEmployee`)
+### 🎯 Sample: Halaman Employee (`dashboardEmployee`)
 
-### Struktur Folder
+#### Struktur Folder
 
 ```
 pages/dashboardEmployee/
@@ -183,7 +216,7 @@ pages/dashboardEmployee/
 
 ---
 
-## 🔄 Alur Data (Data Flow)
+### 🔄 Alur Data (Data Flow)
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -210,9 +243,9 @@ pages/dashboardEmployee/
 
 ---
 
-## 📝 Penjelasan Tiap Layer
+### 📝 Penjelasan Tiap Layer
 
-### 1. Entry Point (`index.tsx`)
+#### 1. Entry Point (`index.tsx`)
 
 File ini adalah komponen utama halaman yang di-import oleh `router.tsx`.
 
@@ -239,7 +272,7 @@ const DashboardEmployee = () => {
 
 ---
 
-### 2. Zustand Store (`store/index.ts`)
+#### 2. Zustand Store (`store/index.ts`)
 
 Setiap page module memiliki **Zustand store sendiri** untuk state lokal.
 
@@ -274,9 +307,9 @@ export const useDashboardEmployeeStore = create<StoreType>((set) => ({
 
 ---
 
-### 3. API Layer (`api/employee/`)
+#### 3. API Layer (`api/employee/`)
 
-#### Model (`model.ts`)
+##### Model (`model.ts`)
 
 Berisi **interface TypeScript** untuk request/response body.
 
@@ -287,7 +320,7 @@ export interface CreateEmployeeRequestModel { ... }     // Body untuk POST
 export interface UpdateEmployeeRequestModel { ... }     // Body untuk PATCH
 ```
 
-#### Service (`service.ts`)
+##### Service (`service.ts`)
 
 Berisi **class** dengan method CRUD yang memanggil base `API` class.
 
@@ -321,9 +354,9 @@ export default class EmployeeService {
 
 ---
 
-### 4. Custom Hooks (`hook/`)
+#### 4. Custom Hooks (`hook/`)
 
-#### `useEmployeeList.ts` — Data Fetching & Table Config
+##### `useEmployeeList.ts` — Data Fetching & Table Config
 
 ```ts
 const useEmployeeList = (): ReturnHook => {
@@ -352,7 +385,7 @@ const useEmployeeList = (): ReturnHook => {
 };
 ```
 
-#### `useEmployeeFilters.ts` — Filter, Search, Sort, Pagination
+##### `useEmployeeFilters.ts` — Filter, Search, Sort, Pagination
 
 ```ts
 const useEmployeeFilters = () => {
@@ -367,7 +400,7 @@ const useEmployeeFilters = () => {
 };
 ```
 
-#### `useCreateEmployee.ts` — Create Logic
+##### `useCreateEmployee.ts` — Create Logic
 
 ```ts
 const useCreateEmployee = () => {
@@ -402,7 +435,7 @@ const useCreateEmployee = () => {
 };
 ```
 
-#### `useDetailEmployee.ts` — Detail Fetching
+##### `useDetailEmployee.ts` — Detail Fetching
 
 ```ts
 export const useDetailEmployee = (id: string, isOpen: boolean) => {
@@ -425,9 +458,9 @@ export const useDetailEmployee = (id: string, isOpen: boolean) => {
 
 ---
 
-### 5. Komponen UI
+#### 5. Komponen UI
 
-#### Dialog Pattern (Create/Update/Detail)
+##### Dialog Pattern (Create/Update/Detail)
 
 Setiap operasi CRUD menggunakan dialog (`BaseDialog`) dengan struktur:
 
@@ -457,7 +490,7 @@ const CreateEmployeeCardDialog = ({ isOpen, onClose }) => {
 };
 ```
 
-#### Tabel Pattern (List)
+##### Tabel Pattern (List)
 
 ```tsx
 const EmployeeTable = () => {
@@ -501,7 +534,7 @@ const EmployeeTable = () => {
 
 ---
 
-### 6. Filter Mapper (`utils/FilterEmployeeMapper.ts`)
+#### 6. Filter Mapper (`utils/FilterEmployeeMapper.ts`)
 
 Mengubah state store menjadi `FilterParams` yang dikirim ke API.
 
@@ -522,7 +555,7 @@ export const filterEmployeeMapper = (state: Partial<StoreStateType>): FilterPara
 
 ---
 
-## 🔧 Path Aliases
+### 🔧 Path Aliases
 
 Dikonfigurasi di `vite.config.ts` dan `tsconfig.app.json`:
 
@@ -538,7 +571,7 @@ Dikonfigurasi di `vite.config.ts` dan `tsconfig.app.json`:
 
 ---
 
-## 🧩 Shared Types Penting (`common/types/index.ts`)
+### 🧩 Shared Types Penting (`common/types/index.ts`)
 
 ```ts
 // Pagination dari API response
@@ -566,7 +599,7 @@ type SortOptionType = { label: string; value: string };
 
 ---
 
-## 🚀 Base API Class (`api/index.ts`)
+### 🚀 Base API Class (`api/index.ts`)
 
 ```ts
 export class API {
@@ -593,7 +626,7 @@ export class API {
 
 ---
 
-## 📋 Routing (`router.tsx`)
+### 📋 Routing (`router.tsx`)
 
 ```tsx
 const routes = createBrowserRouter([
@@ -614,7 +647,7 @@ const routes = createBrowserRouter([
 
 ---
 
-## 📐 App Providers (`App.tsx`)
+### 📐 App Providers (`App.tsx`)
 
 ```tsx
 function App() {
@@ -632,7 +665,7 @@ function App() {
 
 ---
 
-## 📌 Konvensi Penamaan
+### 📌 Konvensi Penamaan
 
 | Elemen | Konvensi | Contoh |
 |---|---|---|
@@ -654,25 +687,25 @@ function App() {
 
 ---
 
-## 🛠️ Checklist Membuat Page Baru
+### 🛠️ Checklist Membuat Page Baru
 
 Saat membuat halaman baru (misal: **dashboardProduct**), buat file berikut:
 
-### Step 1: API Layer
+#### Step 1: API Layer
 - [ ] `src/api/product/model.ts` — Interface request/response
 - [ ] `src/api/product/service.ts` — Service class (extends `API`)
 
-### Step 2: Page Module
+#### Step 2: Page Module
 - [ ] `src/pages/dashboardProduct/index.tsx` — Entry point
 - [ ] `src/pages/dashboardProduct/store/index.ts` — Zustand store
 
-### Step 3: List Feature
+#### Step 3: List Feature
 - [ ] `src/pages/dashboardProduct/List/ProductTable.tsx` — Tabel utama
 - [ ] `src/pages/dashboardProduct/List/hook/useProductList.ts` — Fetch + headers
 - [ ] `src/pages/dashboardProduct/List/hook/useProductFilters.ts` — Filter handlers
 - [ ] `src/pages/dashboardProduct/List/utils/FilterProductMapper.ts` — Mapper
 
-### Step 4: Create Feature
+#### Step 4: Create Feature
 - [ ] `src/pages/dashboardProduct/Create/CreateProductCardDialog.tsx`
 - [ ] `src/pages/dashboardProduct/Create/CreateProductFormDialog.tsx`
 - [ ] `src/pages/dashboardProduct/Create/CreateProductFooterDialog.tsx`
@@ -680,26 +713,26 @@ Saat membuat halaman baru (misal: **dashboardProduct**), buat file berikut:
 - [ ] `src/pages/dashboardProduct/Create/hook/useCreateProductForm.ts`
 - [ ] `src/pages/dashboardProduct/Create/utils/createProductForm.ts` — Yup schema
 
-### Step 5: Detail Feature
+#### Step 5: Detail Feature
 - [ ] `src/pages/dashboardProduct/Detail/DetailProductCardDialog.tsx`
 - [ ] `src/pages/dashboardProduct/Detail/DetailProductContentDialog.tsx`
 - [ ] `src/pages/dashboardProduct/Detail/DetailProductSkeleton.tsx`
 - [ ] `src/pages/dashboardProduct/Detail/hook/useDetailProduct.ts`
 
-### Step 6: Update Feature
+#### Step 6: Update Feature
 - [ ] `src/pages/dashboardProduct/Update/UpdateProductCardDialog.tsx`
 - [ ] `src/pages/dashboardProduct/Update/UpdateProductFormDialog.tsx`
 - [ ] `src/pages/dashboardProduct/Update/UpdateProductFooterDialog.tsx`
 - [ ] `src/pages/dashboardProduct/Update/hook/useUpdateProduct.ts`
 - [ ] `src/pages/dashboardProduct/Update/hook/useUpdateProductForm.ts`
 
-### Step 7: Register Route
+#### Step 7: Register Route
 - [ ] Import di `src/router.tsx`
 - [ ] Tambahkan path di `children` array `DashboardLayout`
 
 ---
 
-## 📎 Catatan Tambahan
+### 📎 Catatan Tambahan
 
 - **Semua dialog** menggunakan `BaseDialog` dari `@components/Dialog` — jangan buat dialog custom
 - **Form validation** menggunakan `Yup` schema yang di-resolve oleh `@hookform/resolvers`
@@ -710,11 +743,11 @@ Saat membuat halaman baru (misal: **dashboardProduct**), buat file berikut:
 - **Environment variable** `VITE_BACKEND_URL` digunakan sebagai base URL API
 
 
-## React Compiler
+### React Compiler
 
 The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
 
-## Expanding the ESLint configuration
+### Expanding the ESLint configuration
 
 If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
 

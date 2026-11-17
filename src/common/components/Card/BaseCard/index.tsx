@@ -63,7 +63,7 @@ const BaseCard: React.FC<BaseCardProps> = ({
                 >
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                         {title && (
-                            <Typography variant="subtitle1" fontWeight={700}>
+                            <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
                                 {title}
                             </Typography>
                         )}

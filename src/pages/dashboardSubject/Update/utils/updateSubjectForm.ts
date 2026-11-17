@@ -10,7 +10,7 @@ import type {
     SubjectResponseModel,
     UpdateSubjectRequestModel,
 } from "@api/subject/model";
-import { calculateFase } from "../../List/utils/subjectHelper";
+import { calculateFase, normalizeGrade } from "../../List/utils/subjectHelper";
 
 export const UpdateSubjectSchema = yup.object().shape({
     name: yup
@@ -25,9 +25,8 @@ export const UpdateSubjectSchema = yup.object().shape({
         .string()
         .required("Grade is required"),
     fase: yup.string().optional(),
-    id_major: yup
-        .string()
-        .required("Major is required"),
+    id_major: yup.string().optional().nullable(),
+    id_majors: yup.array().of(yup.string()).optional(),
     code_subject: yup.string().optional().nullable(),
     status: yup.boolean().required(),
 });
@@ -35,14 +34,18 @@ export const UpdateSubjectSchema = yup.object().shape({
 export const formatSubjectForUpdate = (
     data: SubjectResponseModel | null
 ): UpdateSubjectRequestModel => {
-    const rawKelas = data?.kelas || "10";
+    const rawKelas = normalizeGrade(data?.kelas);
+    const majorId = data?.id_major || (data?.major as any)?.id_major || (data?.major as any)?.id || "";
+    const majorIds = majorId ? [majorId] : [];
+
     return {
         name: data?.name || "",
         id_category_subject:
             data?.id_category_subject || data?.category_subject_id || "",
         category_subject_id:
             data?.category_subject_id || data?.id_category_subject || "",
-        id_major: data?.id_major || null,
+        id_major: majorId || null,
+        id_majors: majorIds,
         kelas: rawKelas,
         fase: data?.fase || calculateFase(rawKelas),
         code_subject: data?.code_subject || "",

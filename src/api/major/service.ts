@@ -16,8 +16,8 @@ export default class MajorService {
                 const rawList: MajorResponseModel[] = Array.isArray(res.data)
                     ? res.data
                     : Array.isArray(res.data?.data)
-                    ? res.data.data
-                    : [];
+                        ? res.data.data
+                        : [];
 
                 let filtered = [...rawList];
 
@@ -60,7 +60,7 @@ export default class MajorService {
                 const pagedData = isBackendPaginated
                     ? filtered
                     : filtered.slice((page - 1) * limit, page * limit);
-
+                console.log(res);
                 callback.onSuccess({
                     data: pagedData,
                     pagination: {

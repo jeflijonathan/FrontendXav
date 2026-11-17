@@ -32,13 +32,26 @@ export interface ResolvedSubjectMajor {
 }
 
 /**
+ * Normalize grade to "10", "11", or "12".
+ * Handles Roman numerals ("X", "XI", "XII") as well as "10", "11", "12", "kelas 10", etc.
+ */
+export function normalizeGrade(raw?: string | null): string {
+    if (!raw) return "10";
+    const s = String(raw).toUpperCase().trim();
+    if (s.includes("XII") || s === "12") return "12";
+    if (s.includes("XI") || s === "11") return "11";
+    if (s.includes("X") || s === "10") return "10";
+    return s;
+}
+
+/**
  * Business Rule for Fase Kurikulum:
- * - Grade 10: Phase E
- * - Grade 11-12: Phase F
+ * - Grade 10 / X: Phase E
+ * - Grade 11-12 / XI-XII: Phase F
  */
 export function calculateFase(kelas?: string | null): string {
     if (!kelas) return "";
-    const k = String(kelas).trim();
+    const k = normalizeGrade(kelas);
     if (k === "10") return "E";
     if (k === "11" || k === "12") return "F";
     return "";

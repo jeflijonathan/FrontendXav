@@ -18,7 +18,7 @@ export const useLoginPegawai = () => {
   const { enqueueSnackbar } = useSnackbar();
   const navigate = useNavigate();
   const location = useLocation();
-  const { setLoginSuccess } = useAuthStore();
+  const { setLoginSuccess, setActiveRole } = useAuthStore();
   const authService = new AuthService();
 
   const form = useForm<EmployeeLoginRequestModel>({
@@ -33,12 +33,24 @@ export const useLoginPegawai = () => {
     await authService.loginEmployee(payload, {
       onSuccess: (res) => {
         setIsLoading(false);
-        setLoginSuccess(res.user);
-        enqueueSnackbar("Login pegawai berhasil!", { variant: "success" });
+        const roles = res.user?.roles ?? [];
 
-        // If user has only 1 role, redirect to dashboard or previous location
-        if (res.user.roles && res.user.roles.length === 1) {
-          const from = (location.state as any)?.from?.pathname || "/dashboard";
+        // Selalu reset activeRole agar dialog pilih role muncul
+        // User harus memilih role sebelum masuk ke dashboard
+        setActiveRole(null);
+        setLoginSuccess(res.user);
+
+        enqueueSnackbar("Login berhasil! Silakan pilih role untuk melanjutkan.", {
+          variant: "success",
+        });
+
+        // Arahkan ke dashboard — ProtectedRoute akan memunculkan dialog pilih role
+        // karena activeRole masih null (mandatory role selection)
+        const from = (location.state as any)?.from?.pathname || "/dashboard";
+        if (roles.length > 0) {
+          navigate(from, { replace: true });
+        } else {
+          // Tidak ada role sama sekali — tetap ke dashboard
           navigate(from, { replace: true });
         }
       },

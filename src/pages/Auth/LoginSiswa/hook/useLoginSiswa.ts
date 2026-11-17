@@ -33,13 +33,15 @@ export const useLoginSiswa = () => {
     await authService.loginStudent(payload, {
       onSuccess: (res) => {
         setIsLoading(false);
-        setLoginSuccess(res.user);
-        enqueueSnackbar("Login siswa berhasil!", { variant: "success" });
 
-        if (res.user.roles && res.user.roles.length === 1) {
-          const from = (location.state as any)?.from?.pathname || "/dashboard";
-          navigate(from, { replace: true });
-        }
+        // Selalu reset activeRole agar user wajib memilih role sebelum masuk dashboard
+        setLoginSuccess(res.user);
+        enqueueSnackbar("Login berhasil! Silakan pilih role untuk melanjutkan.", {
+          variant: "success",
+        });
+
+        const from = (location.state as any)?.from?.pathname || "/dashboard";
+        navigate(from, { replace: true });
       },
       onError: (err) => {
         setIsLoading(false);

@@ -8,6 +8,8 @@ export type SchoolInformationMappedTable = {
     alamat: string;
     id_headmaster: string;
     status: boolean;
+    work_days: number;
+    lesson_duration: number;
     created_at: string;
     updated_at: string;
     headmaster: {
@@ -33,6 +35,8 @@ export function listTableMapper(data: SchoolInformationResponseModel[]): SchoolI
         alamat: item.alamat,
         id_headmaster: item.id_headmaster,
         status: item.status,
+        work_days: item.work_days ?? 5,
+        lesson_duration: item.lesson_duration ?? 45,
         created_at: item.created_at,
         updated_at: item.updated_at,
         headmaster: {

@@ -7,27 +7,35 @@ class AnnouncementService {
     basePath = "/announcement"
 
     async fetchAnnouncementRequest(callback: FetchCallback<DataWithPagination<AnnouncementResponseModel>>, params: FilterParams) {
-        const res = await this.baseAPI.GET(this.basePath, params)
+        try {
+            const res = await this.baseAPI.GET(this.basePath, params)
 
-        if (res.status == "SUCCESS") {
-            callback.onSuccess({ data: res.data.data, pagination: res.data.pagination });
-        } else {
-            callback.onError({ message: res.message });
+            if (res.status == "SUCCESS") {
+                callback.onSuccess({ data: res.data.data, pagination: res.data.pagination });
+            } else {
+                callback.onError({ message: res.message });
+            }
+        } catch (error: any) {
+            callback.onError && callback.onError({ message: error?.message || "Gagal memuat daftar pengumuman" });
+        } finally {
+            callback.onFullfilled && callback.onFullfilled();
         }
-
-        callback.onFullfilled && callback.onFullfilled();
     }
 
     async fetchAnnouncementByIdRequest(id: string, callback: FetchCallback<AnnouncementResponseModel>) {
-        const res = await this.baseAPI.GET(`${this.basePath}/${id}`)
+        try {
+            const res = await this.baseAPI.GET(`${this.basePath}/${id}`)
 
-        if (res.status == "SUCCESS") {
-            callback.onSuccess(res.data)
-        } else {
-            callback.onError({ message: res.message })
+            if (res.status == "SUCCESS") {
+                callback.onSuccess(res.data)
+            } else {
+                callback.onError({ message: res.message })
+            }
+        } catch (error: any) {
+            callback.onError && callback.onError({ message: error?.message || "Gagal memuat rincian pengumuman" });
+        } finally {
+            callback.onFullfilled && callback.onFullfilled();
         }
-
-        callback.onFullfilled && callback.onFullfilled();
     }
 
     async createAnnouncementRequest(payload: AnnouncementCreateModel, callback: FetchCallback<AnnouncementResponseModel>) {

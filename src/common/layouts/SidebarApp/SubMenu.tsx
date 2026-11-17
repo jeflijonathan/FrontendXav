@@ -39,13 +39,12 @@ const SubMenu = ({
     }
   }, [isPopoverVisible, anchorRef]);
 
-  // Expanded sidebar: inline dropdown
   if (isSidebarOpen) {
     return (
       <div
         className={clsx(
           "overflow-hidden transition-all duration-300 ease-in-out pl-9 space-y-1 mt-1",
-          isOpen ? "max-h-40 opacity-100" : "max-h-0 opacity-0",
+          isOpen ? "opacity-100" : "max-h-0 opacity-0",
         )}
       >
         {item.subItems?.map((sub, idx) => {

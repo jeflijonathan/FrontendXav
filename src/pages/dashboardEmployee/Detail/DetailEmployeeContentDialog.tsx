@@ -170,7 +170,15 @@ const SectionCard = ({
 const DetailEmployeeContent: React.FC<DetailEmployeeContentProps> = ({ detail }) => {
     const [isPhotoPreviewOpen, setIsPhotoPreviewOpen] = useState(false);
 
-    const fullName = [detail.first_name, detail.last_name].filter(Boolean).join(" ") || detail.user?.full_name || "-";
+    const titlesDepan = detail.titles?.filter(t => t.title_type === "depan").map(t => t.title_name) || [];
+    const titlesBelakang = detail.titles?.filter(t => t.title_type === "belakang").map(t => t.title_name) || [];
+    const baseName = [detail.first_name, detail.last_name].filter(Boolean).join(" ").trim();
+    const depanStr = titlesDepan.length > 0 ? `${titlesDepan.join(" ")} ` : "";
+    const belakangStr = titlesBelakang.length > 0 ? `, ${titlesBelakang.join(", ")}` : "";
+
+    const fullName = detail.formatted_name || (
+        baseName ? `${depanStr}${baseName}${belakangStr}`.trim() : (detail.user?.full_name || "-")
+    );
     const photoSrc = getProfilePhotoUrl(detail.profile_url);
     const age = getAge(detail.detail?.birth_date);
     const genderLabel = detail.detail?.gender === "L" ? "Laki-laki" : detail.detail?.gender === "P" ? "Perempuan" : "-";
@@ -262,6 +270,22 @@ const DetailEmployeeContent: React.FC<DetailEmployeeContentProps> = ({ detail })
                             justifyContent: { xs: "center", sm: "flex-start" },
                         }}
                     >
+                        {titlesDepan.length > 0 && (
+                            <Chip
+                                label={`Gelar Depan: ${titlesDepan.join(" ")}`}
+                                color="primary"
+                                size="small"
+                                sx={{ fontWeight: 600 }}
+                            />
+                        )}
+                        {titlesBelakang.length > 0 && (
+                            <Chip
+                                label={`Gelar Belakang: ${titlesBelakang.join(", ")}`}
+                                color="secondary"
+                                size="small"
+                                sx={{ fontWeight: 600 }}
+                            />
+                        )}
                         <Chip
                             icon={<BadgeIcon sx={{ "&&": { fontSize: 16 } }} />}
                             label={`NIY: ${detail.niy || "-"}`}
@@ -298,6 +322,30 @@ const DetailEmployeeContent: React.FC<DetailEmployeeContentProps> = ({ detail })
                 {/* 1. Biodata Pribadi */}
                 <SectionCard title="Biodata & Informasi Pribadi" icon={<PersonIcon />}>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <DetailItem
+                            label="Gelar Depan"
+                            value={
+                                titlesDepan.length > 0 ? (
+                                    <div className="flex flex-wrap gap-1 mt-0.5">
+                                        {titlesDepan.map((t, idx) => (
+                                            <Chip key={idx} label={t} size="small" color="primary" variant="filled" sx={{ height: 22, fontSize: "0.75rem" }} />
+                                        ))}
+                                    </div>
+                                ) : "-"
+                            }
+                        />
+                        <DetailItem
+                            label="Gelar Belakang"
+                            value={
+                                titlesBelakang.length > 0 ? (
+                                    <div className="flex flex-wrap gap-1 mt-0.5">
+                                        {titlesBelakang.map((t, idx) => (
+                                            <Chip key={idx} label={t} size="small" color="secondary" variant="filled" sx={{ height: 22, fontSize: "0.75rem" }} />
+                                        ))}
+                                    </div>
+                                ) : "-"
+                            }
+                        />
                         <DetailItem label="Nama Depan" value={detail.first_name} />
                         <DetailItem label="Nama Belakang" value={detail.last_name || "-"} />
                         <DetailItem

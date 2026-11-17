@@ -10,6 +10,7 @@ import SchoolIcon from '@mui/icons-material/School';
 import PersonIcon from '@mui/icons-material/Person';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
 
 interface Headmaster {
     first_name: string;
@@ -23,6 +24,8 @@ interface SchoolDetail {
     alamat?: string;
     headmaster?: Headmaster;
     status: boolean;
+    work_days?: number;
+    lesson_duration?: number;
     created_at: string;
     updated_at: string;
 }
@@ -110,6 +113,39 @@ const DetailSchoolInfoContentDialog: React.FC<DetailSchoolInfoContentDialogProps
                             <Typography variant="body2" sx={{ fontWeight: 500 }}>
                                 {detail.headmaster ? `${detail.headmaster.first_name} ${detail.headmaster.last_name}` : '-'}
                             </Typography>
+                        </Grid>
+                    </Grid>
+
+                    <Grid container spacing={2} sx={{ alignItems: 'center' }}>
+                        <Grid size={{ xs: 12, sm: 4 }}>
+                            <Typography variant="subtitle2" color="text.secondary">Sistem Hari Kerja</Typography>
+                        </Grid>
+                        <Grid size={{ xs: 12, sm: 8 }}>
+                            <Chip
+                                label={detail.work_days === 6 ? '6 Hari Belajar (Senin - Sabtu)' : '5 Hari Belajar (Senin - Jumat)'}
+                                color={detail.work_days === 6 ? 'secondary' : 'primary'}
+                                size="small"
+                                variant="outlined"
+                                sx={{ fontWeight: 600 }}
+                            />
+                        </Grid>
+                    </Grid>
+
+                    <Grid container spacing={2} sx={{ alignItems: 'center' }}>
+                        <Grid size={{ xs: 12, sm: 4 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <AccessTimeIcon color="action" fontSize="small" />
+                                <Typography variant="subtitle2" color="text.secondary">Durasi Jam Pelajaran</Typography>
+                            </Box>
+                        </Grid>
+                        <Grid size={{ xs: 12, sm: 8 }}>
+                            <Chip
+                                label={`${detail.lesson_duration ?? 45} Menit / JP`}
+                                color={detail.lesson_duration === 35 ? 'warning' : 'info'}
+                                size="small"
+                                variant="outlined"
+                                sx={{ fontWeight: 600 }}
+                            />
                         </Grid>
                     </Grid>
 

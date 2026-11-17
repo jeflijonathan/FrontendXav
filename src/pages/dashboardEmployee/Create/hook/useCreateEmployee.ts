@@ -21,6 +21,12 @@ const useCreateEmployee = () => {
         return handleSubmit(async (payload) => {
             setState((prev) => ({ ...prev, isCreateLoading: true }));
 
+            // Pastikan user.full_name terisi format lengkap gelar
+            const baseName = [payload.profile.first_name, payload.profile.last_name].filter(Boolean).join(" ").trim();
+            const depanStr = payload.titles_depan && payload.titles_depan.length > 0 ? `${payload.titles_depan.join(" ")} ` : "";
+            const belakangStr = payload.titles_belakang && payload.titles_belakang.length > 0 ? `, ${payload.titles_belakang.join(", ")}` : "";
+            payload.user.full_name = `${depanStr}${baseName}${belakangStr}`.trim() || baseName;
+
             if (state.profileFile) {
                 const uploadResult = await validateAndUploadFile(state.profileFile, service.service);
                 if (!uploadResult.success) {
@@ -58,6 +64,33 @@ const useCreateEmployee = () => {
                     });
                 },
             });
+        }, (validationErrors) => {
+            // Scroll ke field pertama yang error agar user bisa melihatnya
+            const firstErrorKey = Object.keys(validationErrors)[0];
+            if (firstErrorKey) {
+                const errorMessages: string[] = [];
+                const collectErrors = (obj: any, prefix = '') => {
+                    Object.entries(obj).forEach(([key, val]: [string, any]) => {
+                        if (val?.message) {
+                            errorMessages.push(val.message);
+                        } else if (typeof val === 'object' && val !== null) {
+                            collectErrors(val, `${prefix}${key}.`);
+                        }
+                    });
+                };
+                collectErrors(validationErrors);
+                if (errorMessages.length > 0) {
+                    snackbar.error(`Validasi gagal: ${errorMessages.join(', ')}`);
+                }
+
+                // Scroll to first error element
+                setTimeout(() => {
+                    const errorEl = document.querySelector('[class*="Mui-error"], .text-red-600, [aria-invalid="true"]');
+                    if (errorEl) {
+                        errorEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                }, 100);
+            }
         })();
     };
 
@@ -71,7 +104,7 @@ const useCreateEmployee = () => {
                     console.log(err);
                 },
             },
-            params
+            params || { params: {} }
         )
     }
 

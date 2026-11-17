@@ -10,85 +10,80 @@ export default class StudentService {
         callback: FetchCallback<DataWithPagination<StudentResponseModel[]>>,
         params?: FilterParams
     ) {
-        try {
-            const res = await this.service.GET<any>(this.basePath, params?.params);
-            if (res.status === "SUCCESS" || res.status_code === 200) {
-                const list: StudentResponseModel[] = Array.isArray(res.data)
-                    ? res.data
-                    : Array.isArray(res.data?.data)
-                    ? res.data.data
-                    : [];
-                const pagination = res.data?.pagination || {
-                    page: 1,
-                    limit: list.length || 10,
-                    total_data: list.length,
-                    total_pages: 1,
-                };
-                callback.onSuccess({
-                    data: list,
-                    pagination: pagination,
-                });
-            } else {
-                callback.onError(res.message || "Failed to fetch students");
-            }
-        } catch (err: any) {
-            callback.onError(err.message || "Failed to fetch students");
+        const res = await this.service.GET<DataWithPagination<StudentResponseModel[]>>(this.basePath, params?.params);
+        if (res.status === "SUCCESS") {
+            callback.onSuccess({
+                data: res.data.data,
+                pagination: res.data.pagination,
+            });
+        } else {
+            callback.onError({ message: res.message || "Failed to fetch students", detail: [] });
         }
+
         if (callback.onFullfilled) callback.onFullfilled();
     }
 
     async getById(id: string, callback: FetchCallback<StudentResponseModel>) {
-        try {
-            const res = await this.service.GET<any>(`${this.basePath}${id}`);
-            if (res.status === "SUCCESS" || res.status_code === 200) {
-                callback.onSuccess(res.data);
-            } else {
-                callback.onError(res.message || "Failed to fetch student");
-            }
-        } catch (err: any) {
-            callback.onError(err.message || "Failed to fetch student");
+        const res = await this.service.GET<StudentResponseModel>(`${this.basePath}${id}`);
+        if (res.status === "SUCCESS") {
+            callback.onSuccess(res.data);
+        } else {
+            callback.onError({ message: res.message || "Failed to fetch students", detail: [] });
         }
+
         if (callback.onFullfilled) callback.onFullfilled();
     }
 
     async create(data: CreateStudentRequestModel, callback: FetchCallback<StudentResponseModel>) {
-        try {
-            const res = await this.service.POST<any>(this.basePath, data);
-            if (res.status === "SUCCESS" || res.status_code === 200 || res.status_code === 201) {
-                callback.onSuccess(res.data);
-            } else {
-                callback.onError(res.message || "Failed to create student");
-            }
-        } catch (err: any) {
-            callback.onError(err.message || "Failed to create student");
+        const res = await this.service.POST<StudentResponseModel>(this.basePath, data);
+        if (res.status === "SUCCESS") {
+            callback.onSuccess(res.data);
+        } else {
+            callback.onError({ message: res.message || "Failed to Create students", detail: [] });
         }
         if (callback.onFullfilled) callback.onFullfilled();
     }
 
     async update(id: string, data: UpdateStudentRequestModel, callback: FetchCallback<StudentResponseModel>) {
-        try {
-            const res = await this.service.PUT<any>(`${this.basePath}${id}`, data);
-            if (res.status === "SUCCESS" || res.status_code === 200) {
-                callback.onSuccess(res.data);
-            } else {
-                callback.onError(res.message || "Failed to update student");
-            }
-        } catch (err: any) {
-            callback.onError(err.message || "Failed to update student");
+        const res = await this.service.PUT<StudentResponseModel>(`${this.basePath}${id}`, data);
+        if (res.status === "SUCCESS") {
+            callback.onSuccess(res.data);
+        } else {
+            callback.onError({ detail: res.details, message: res.message || "Failed to update student" });
         }
+
         if (callback.onFullfilled) callback.onFullfilled();
     }
 
     async delete(id: string, callback: FetchCallback<any>) {
-        try {
-            const res = await this.service.DELETE<any>(`${this.basePath}${id}`);
-            if (res.status === "SUCCESS" || res.status_code === 200) {
-                callback.onSuccess(res.data);
-            } else {
-                callback.onError(res.message || "Failed to delete student");
-            }
-        } catch (err: any) {
-            callback.onError(err.message || "Failed to delete student");
+
+        const res = await this.service.DELETE<StudentResponseModel>(`${this.basePath}${id}`);
+
+        if (res.status === "SUCCESS") {
+            callback.onSuccess(res.data);
+        } else {
+            callback.onError({ message: res.message || "Failed to delete student", detail: res.details });
+        }
+
+        if (callback.onFullfilled) callback.onFullfilled();
+    }
+
+    async getMyProfile(callback: FetchCallback<StudentResponseModel>) {
+        const res = await this.service.GET<StudentResponseModel>(`${this.basePath}me`);
+        if (res.status === "SUCCESS") {
+            callback.onSuccess(res.data);
+        } else {
+            callback.onError({ message: res.message || "Gagal memuat profil siswa", detail: res.details || [] });
+        }
+        if (callback.onFullfilled) callback.onFullfilled();
+    }
+
+    async updateMyProfile(data: UpdateStudentRequestModel, callback: FetchCallback<StudentResponseModel>) {
+        const res = await this.service.PUT<StudentResponseModel>(`${this.basePath}me`, data);
+        if (res.status === "SUCCESS") {
+            callback.onSuccess(res.data);
+        } else {
+            callback.onError({ message: res.message || "Gagal memperbarui profil siswa", detail: res.details || [] });
         }
         if (callback.onFullfilled) callback.onFullfilled();
     }

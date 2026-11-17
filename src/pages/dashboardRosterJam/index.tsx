@@ -8,6 +8,7 @@ import RosterSummary from './components/RosterSummary';
 import DayScheduleCard from './components/DayScheduleCard';
 import RosterLegend from './components/RosterLegend';
 import AddSlotDialog from './components/AddSlotDialog';
+import RosterJamSkeleton from './components/RosterJamSkeleton';
 import { useRosterJam } from './hook/useRosterJam';
 import type { DayName } from './store';
 
@@ -15,6 +16,12 @@ const DAYS: DayName[] = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
 
 const DashboardRosterJam: React.FC = () => {
     const { state, handleSaveAll, handleExport } = useRosterJam();
+
+    const activeDays = state.showSabtu
+        ? DAYS
+        : state.hariKerja.includes('5')
+            ? DAYS.filter((d) => d !== 'Sabtu')
+            : DAYS;
 
     return (
         <Box sx={{ p: { xs: 2, sm: 3 } }}>
@@ -30,18 +37,19 @@ const DashboardRosterJam: React.FC = () => {
                 }}
             >
                 <Box>
-                    <Typography variant="h5" fontWeight={800} color="text.primary">
+                    <Typography variant="h5" sx={{ fontWeight: 800 }} color="text.primary">
                         Roster Jam Belajar
                     </Typography>
                     <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                        Konfigurasi struktur jam pembelajaran (JP), durasi alokasi, dan jadwal harian sekolah.
+                        Konfigurasi struktur jam pembelajaran (JP), alokasi durasi menit, serta jadwal harian SMK Xaverius Palembang.
                     </Typography>
                 </Box>
-                <Stack direction="row" spacing={1.5} alignItems="center">
+                <Stack sx={{ flexWrap: "wrap", direction: "row", alignItems: "center" }} spacing={1.5}>
                     <BaseButton
                         variant="outlined"
                         colorScheme="secondary"
                         startIcon={<FileDownloadOutlinedIcon fontSize="small" />}
+                        disabled={state.isLoading}
                         onClick={handleExport}
                         sx={{
                             backgroundColor: '#ffffff',
@@ -61,6 +69,7 @@ const DashboardRosterJam: React.FC = () => {
                         customColor="#4f46e5"
                         startIcon={<CheckIcon fontSize="small" />}
                         isLoading={state.isSaving}
+                        disabled={state.isLoading}
                         onClick={handleSaveAll}
                     >
                         Simpan Perubahan
@@ -68,25 +77,32 @@ const DashboardRosterJam: React.FC = () => {
                 </Stack>
             </Box>
 
-            {/* Top Configuration Controls */}
-            <RosterConfig />
+            {/* Content or Skeleton Loader */}
+            {state.isLoading ? (
+                <RosterJamSkeleton daysCount={activeDays.length} />
+            ) : (
+                <>
+                    {/* Top Configuration Controls */}
+                    <RosterConfig />
 
-            {/* Metric Summary Cards */}
-            <RosterSummary />
+                    {/* Metric Summary Cards */}
+                    <RosterSummary />
 
-            {/* 6-Day Schedule Grid (Senin - Sabtu) */}
-            <Grid container spacing={2.5}>
-                {DAYS.map((day) => (
-                    <Grid size={{ xs: 12, md: 6, lg: 4 }} key={day}>
-                        <DayScheduleCard day={day} />
+                    {/* Daily Schedule Grid */}
+                    <Grid container spacing={2.5}>
+                        {activeDays.map((day) => (
+                            <Grid size={{ xs: 12, md: 6, lg: 4 }} key={day}>
+                                <DayScheduleCard day={day} />
+                            </Grid>
+                        ))}
                     </Grid>
-                ))}
-            </Grid>
 
-            {/* Bottom Legend */}
-            <RosterLegend />
+                    {/* Bottom Legend */}
+                    <RosterLegend />
+                </>
+            )}
 
-            {/* Add Slot Dialog */}
+            {/* Add / Edit Slot Dialog */}
             <AddSlotDialog />
         </Box>
     );

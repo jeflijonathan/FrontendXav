@@ -29,13 +29,17 @@ const UpdateSchoolInfoCardDialogContent = ({
     state: any,
 }) => {
     const { fetchDetail } = useUpdateSchoolInfo();
+    const { setState } = useSchoolInfoStore();
 
     useEffect(function loadDataOnOpen() {
         if (isOpen && id) {
             fetchEmployeeOptions(filterEmployeeMapper(state));
             fetchDetail(id);
         }
-    }, [isOpen, id])
+        return () => {
+            setState(prev => ({ ...prev, updateSchoolInfoReqDetails: null }));
+        };
+    }, [isOpen, id]);
 
     return (
         <BaseDialog isOpen={isOpen} onClose={onClose}>

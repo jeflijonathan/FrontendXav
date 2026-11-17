@@ -69,3 +69,41 @@ export interface UpdateScheduleRequest {
     id_schendule_time?: string;
     status?: boolean;
 }
+
+// ── TeacherScheduleRequest ──────────────────
+export interface TeacherScheduleRequestSlot {
+    day: string;
+    jam: string;
+    timeRange: string;
+    jpStart?: number;
+    jpEnd?: number;
+}
+
+export interface TeacherScheduleRequestResponseModel {
+    id_schedule_request: string;
+    id?: string;
+    id_school_information?: string | null;
+    teacher_code: number;
+    teacher_name: string;
+    subject_name: string;
+    preferred_slots: TeacherScheduleRequestSlot[];
+    status: 'VALID' | 'CONFLICT' | 'PENDING' | string;
+    status_text: string;
+    conflict_reason?: string | null;
+    notes?: string | null;
+    created_at?: string;
+    updated_at?: string;
+}
+
+export interface CreateTeacherScheduleRequestPayload {
+    id_school_information?: string | null;
+    teacher_code: number;
+    teacher_name: string;
+    subject_name: string;
+    preferred_slots: TeacherScheduleRequestSlot[];
+    status?: string;
+    status_text?: string;
+    conflict_reason?: string | null;
+    notes?: string | null;
+}
+

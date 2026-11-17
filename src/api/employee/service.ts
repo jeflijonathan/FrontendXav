@@ -1,5 +1,5 @@
 import type { DataWithPagination, FetchCallback, FilterParams } from "@common/types";
-import type { EmployeeResponseModel, CreateEmployeeRequestModel, UpdateEmployeeRequestModel } from "./model";
+import type { EmployeeResponseModel, CreateEmployeeRequestModel, UpdateEmployeeRequestModel, AcademicTitleModel } from "./model";
 import { API } from "../index";
 
 export default class EmployeeService {
@@ -32,12 +32,18 @@ export default class EmployeeService {
     }
 
     async create(data: CreateEmployeeRequestModel, callback: FetchCallback<EmployeeResponseModel>) {
-        const res = await this.service.POST<EmployeeResponseModel>(this.basePath, data);
+        try {
+            const res = await this.service.POST<EmployeeResponseModel>(this.basePath, data);
 
-        if (res.status == "SUCCESS") {
-            callback.onSuccess(res.data)
-        } else {
-            callback.onError({ message: res.message, detail: res.details })
+            if (res.status == "SUCCESS") {
+                callback.onSuccess(res.data)
+            } else {
+                callback.onError({ message: res.message, detail: res.details })
+            }
+        } catch (err: any) {
+            const message = err?.message || "Gagal membuat data karyawan";
+            const detail = err?.response?.data?.detail;
+            callback.onError({ message, detail: detail || message });
         }
 
         if (callback.onFullfilled) callback.onFullfilled();
@@ -68,5 +74,36 @@ export default class EmployeeService {
         params?: FilterParams
     ) {
         return this.getAll(callback, params);
+    }
+
+    async getAcademicTitles(callback: FetchCallback<AcademicTitleModel[]>, type?: "depan" | "belakang") {
+        const query = type ? `?type=${type}` : "";
+        const res = await this.service.GET<AcademicTitleModel[]>(`${this.basePath}academic-titles${query}`);
+        if (res.status == "SUCCESS") {
+            callback.onSuccess(res.data);
+        } else {
+            callback.onError({ message: res.message, detail: res.details });
+        }
+        if (callback.onFullfilled) callback.onFullfilled();
+    }
+
+    async getMyProfile(callback: FetchCallback<EmployeeResponseModel>) {
+        const res = await this.service.GET<EmployeeResponseModel>(`${this.basePath}me`);
+        if (res.status == "SUCCESS") {
+            callback.onSuccess(res.data);
+        } else {
+            callback.onError({ message: res.message, detail: res.details });
+        }
+        if (callback.onFullfilled) callback.onFullfilled();
+    }
+
+    async updateMyProfile(data: UpdateEmployeeRequestModel, callback: FetchCallback<EmployeeResponseModel>) {
+        const res = await this.service.PATCH<EmployeeResponseModel>(`${this.basePath}me`, data);
+        if (res.status == "SUCCESS") {
+            callback.onSuccess(res.data);
+        } else {
+            callback.onError({ message: res.message, detail: res.details });
+        }
+        if (callback.onFullfilled) callback.onFullfilled();
     }
 }

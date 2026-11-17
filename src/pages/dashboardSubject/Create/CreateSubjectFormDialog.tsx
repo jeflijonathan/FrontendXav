@@ -120,37 +120,6 @@ const CreateSubjectFormDialog = () => {
                     </div>
                 </div>
 
-                {/* Major */}
-                <Controller
-                    name="id_major"
-                    control={control}
-                    render={({ field }) => (
-                        <TextField
-                            {...field}
-                            select
-                            label="Major *"
-                            fullWidth
-                            size="small"
-                            value={field.value || ""}
-                            onChange={(e) => field.onChange(e.target.value)}
-                            error={!!errors.id_major}
-                            helperText={errors.id_major?.message || "Select the major for this subject"}
-                        >
-                            <MenuItem value="" disabled>
-                                <em>Select Major</em>
-                            </MenuItem>
-                            {state.majors.map((m) => {
-                                const mId = m.id_major || m.id || "";
-                                return (
-                                    <MenuItem key={mId} value={mId}>
-                                        {m.name}
-                                    </MenuItem>
-                                );
-                            })}
-                        </TextField>
-                    )}
-                />
-
                 {/* Category */}
                 <Controller
                     name="id_category_subject"

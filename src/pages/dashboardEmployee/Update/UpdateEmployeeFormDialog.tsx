@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { MenuItem, TextField, Autocomplete, Chip } from "@mui/material";
+import { MenuItem, TextField } from "@mui/material";
 import { Controller, useFormContext } from "react-hook-form";
 import { DialogBody } from "@components/Dialog";
 import useDashboardEmployeeStore from "../store";
@@ -8,12 +8,26 @@ import RoleService from "@api/role/service";
 import type { UpdateEmployeeRequestModel } from "@api/employee/model";
 import PhoneNumberInput from "@components/Input/PhoneNumberInput";
 import RoleSelect from "@components/Input/Select";
+import AcademicTitleSelect from "../components/AcademicTitleSelect";
+import { useAcademicTitles } from "../hook/useAcademicTitles";
 
 const UpdateEmployeeFormDialog = () => {
-    const { control, formState: { errors } } = useFormContext<UpdateEmployeeRequestModel>();
+    const { control, formState: { errors }, watch } = useFormContext<UpdateEmployeeRequestModel>();
     const serverErrors = (errors as any)?.root?.serverError?.message as string | undefined;
     const { state, setState } = useDashboardEmployeeStore();
     const [search] = useState<string>("");
+    const { titlesDepanOptions, titlesBelakangOptions, getTitleDescription } = useAcademicTitles();
+
+    const firstName = watch("first_name") || "";
+    const lastName = watch("last_name") || "";
+    const titlesDepan = watch("titles_depan") || [];
+    const titlesBelakang = watch("titles_belakang") || [];
+
+    // Hitung pratinjau nama lengkap bergelar secara realtime
+    const baseName = [firstName, lastName].filter(Boolean).join(" ").trim();
+    const depanStr = titlesDepan.length > 0 ? `${titlesDepan.join(" ")} ` : "";
+    const belakangStr = titlesBelakang.length > 0 ? `, ${titlesBelakang.join(", ")}` : "";
+    const formattedPreview = baseName ? `${depanStr}${baseName}${belakangStr}`.trim() : "";
 
     useEffect(() => {
         new RoleService().getAll(
@@ -48,6 +62,52 @@ const UpdateEmployeeFormDialog = () => {
                     <Controller name="last_name" control={control} render={({ field }) => (
                         <TextField {...field} value={field.value ?? ""} label="Last Name" fullWidth size="small" error={!!errors.last_name} helperText={errors.last_name?.message as string} />
                     )} />
+                </div>
+
+                {/* Gelar Depan & Gelar Belakang Multi-Select */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <Controller
+                        name="titles_depan"
+                        control={control}
+                        render={({ field }) => (
+                            <AcademicTitleSelect
+                                label="Gelar / Jabatan Depan"
+                                placeholder="Pilih gelar depan (Drs., Dr., Prof., Ir., H., dll)"
+                                options={titlesDepanOptions}
+                                value={field.value || []}
+                                onChange={field.onChange}
+                                type="depan"
+                                getDescription={getTitleDescription}
+                                helperText="Pilih satu atau lebih gelar depan"
+                            />
+                        )}
+                    />
+                    <Controller
+                        name="titles_belakang"
+                        control={control}
+                        render={({ field }) => (
+                            <AcademicTitleSelect
+                                label="Gelar / Jabatan Belakang"
+                                placeholder="Pilih gelar belakang (S.Pd., S.Kom., M.M., Gr., dll)"
+                                options={titlesBelakangOptions}
+                                value={field.value || []}
+                                onChange={field.onChange}
+                                type="belakang"
+                                getDescription={getTitleDescription}
+                                helperText="Pilih satu atau lebih gelar belakang"
+                            />
+                        )}
+                    />
+                </div>
+
+                {/* Pratinjau Nama Lengkap Bergelar */}
+                <div className="rounded-lg border border-indigo-200 bg-indigo-50/70 p-3">
+                    <div className="text-xs font-semibold text-indigo-700 uppercase tracking-wide mb-0.5">
+                        Pratinjau Format Nama Lengkap:
+                    </div>
+                    <div className="text-sm sm:text-base font-bold text-slate-900">
+                        {formattedPreview || <span className="font-normal italic text-slate-400">(Ketik nama depan & pilih gelar untuk melihat pratinjau)</span>}
+                    </div>
                 </div>
                 {/* NIY & Username */}
                 <div className="grid grid-cols-2 gap-4">

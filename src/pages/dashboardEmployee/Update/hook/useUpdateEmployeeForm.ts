@@ -14,6 +14,8 @@ const UpdateEmployeeValidations = zodResolver(z.object({
     profile_url: z.string().optional().nullable(),
     status: z.boolean().optional(),
     role_ids: z.array(z.string()).optional(),
+    titles_depan: z.array(z.string()).optional(),
+    titles_belakang: z.array(z.string()).optional(),
     detail: z.object({
         phone_number: z.string().optional().nullable(),
         gender: z.enum(["L", "P"]).optional(),
@@ -41,6 +43,8 @@ const useUpdateEmployeeForm = (): { updateEmployeeForm: UseFormReturn<UpdateEmpl
             profile_url: d?.profile_url || "",
             status: d?.status ?? true,
             role_ids: d?.user?.roles?.map(r => r.id) || [],
+            titles_depan: d?.titles?.filter(t => t.title_type === "depan").map(t => t.title_name) || [],
+            titles_belakang: d?.titles?.filter(t => t.title_type === "belakang").map(t => t.title_name) || [],
             detail: {
                 gender: d?.detail?.gender || "L",
                 phone_number: d?.detail?.phone_number || "",

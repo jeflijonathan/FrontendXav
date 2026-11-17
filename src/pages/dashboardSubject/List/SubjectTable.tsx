@@ -21,7 +21,7 @@ import {
     Select,
     MenuItem,
 } from "@mui/material";
-import { Edit, Visibility, Delete, Category, School } from "@mui/icons-material";
+import { Edit, Visibility, Delete, Category } from "@mui/icons-material";
 import { BaseTable, TableHeader } from "@components/Table";
 import TableBody from "@components/Table/TableBody";
 import TableRow from "@components/Table/TableRow";
@@ -34,7 +34,6 @@ import {
     resolveSubjectStatusChip,
     resolveSubjectId,
     resolveSubjectCategory,
-    resolveSubjectMajor,
     getFaseChipConfig,
 } from "./utils/subjectHelper";
 import type { SubjectResponseModel } from "@api/subject/model";
@@ -61,7 +60,6 @@ const SubjectTable = () => {
         state,
         tableData,
         categories,
-        majors,
         headers,
         sortOptions,
         statusData,
@@ -73,7 +71,6 @@ const SubjectTable = () => {
         handleSort,
         handleOrder,
         handleFilterCategory,
-        handleFilterMajor,
         handleFilterKelas,
         handleFilterStatus,
         handleFilterLimit,
@@ -153,33 +150,6 @@ const SubjectTable = () => {
                     </Select>
                 </FormControl>
 
-                {/* Filter Major */}
-                <FormControl size="small" sx={{ minWidth: 180, flex: { xs: "1 1 auto", sm: "0 0 auto" } }}>
-                    <InputLabel id="filter-major-label">Major</InputLabel>
-                    <Select
-                        labelId="filter-major-label"
-                        label="Major"
-                        value={state.filters.id_major}
-                        onChange={(e) => handleFilterMajor(e.target.value)}
-                        sx={{ borderRadius: "8px" }}
-                        startAdornment={
-                            <School sx={{ color: "primary.main", mr: 1, fontSize: 20 }} />
-                        }
-                    >
-                        <MenuItem value="">
-                            <em>All Majors</em>
-                        </MenuItem>
-                        {majors.map((m) => {
-                            const mId = m.id_major || m.id || "";
-                            return (
-                                <MenuItem key={mId} value={mId}>
-                                    {m.name}
-                                </MenuItem>
-                            );
-                        })}
-                    </Select>
-                </FormControl>
-
                 {/* Filter Category */}
                 <FormControl size="small" sx={{ minWidth: 180, flex: { xs: "1 1 auto", sm: "0 0 auto" } }}>
                     <InputLabel id="filter-category-label">Category</InputLabel>
@@ -249,7 +219,6 @@ const SubjectTable = () => {
                         const id = resolveSubjectId(row);
                         const statusChip = resolveSubjectStatusChip(row.status);
                         const category = resolveSubjectCategory(row, categories);
-                        const major = resolveSubjectMajor(row, majors);
                         const faseChip = getFaseChipConfig(row.fase, row.kelas);
 
                         return (
@@ -318,19 +287,6 @@ const SubjectTable = () => {
                                             sx={{ fontWeight: 600 }}
                                         />
                                     </Tooltip>
-                                </TableCell>
-
-                                {/* Major */}
-                                <TableCell sx={{ py: 1 }}>
-                                    {major?.name ? (
-                                        <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                                            {major.name}
-                                        </Typography>
-                                    ) : (
-                                        <Typography variant="caption" color="text.secondary">
-                                            General (All Majors)
-                                        </Typography>
-                                    )}
                                 </TableCell>
 
                                 {/* Category */}

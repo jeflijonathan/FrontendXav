@@ -113,6 +113,24 @@ const SchoolInformationTable = () => {
                                 <TableCell sx={{ py: 1 }}>{row.headmaster.name}</TableCell>
                                 <TableCell sx={{ py: 1 }}>
                                     <Chip
+                                        label={row.work_days === 6 ? "6 Hari (Sen-Sab)" : "5 Hari (Sen-Jum)"}
+                                        color={row.work_days === 6 ? "secondary" : "primary"}
+                                        size="small"
+                                        variant="outlined"
+                                        sx={{ fontWeight: 600 }}
+                                    />
+                                </TableCell>
+                                <TableCell sx={{ py: 1 }}>
+                                    <Chip
+                                        label={`${row.lesson_duration ?? 45} Menit`}
+                                        color={row.lesson_duration === 35 ? "warning" : "info"}
+                                        size="small"
+                                        variant="outlined"
+                                        sx={{ fontWeight: 600 }}
+                                    />
+                                </TableCell>
+                                <TableCell sx={{ py: 1 }}>
+                                    <Chip
                                         label={statusData[Number(row.status)].label}
                                         color={statusData[Number(row.status)].color}
                                         size="small"

@@ -1,5 +1,4 @@
 import clsx from "clsx";
-import MenuBookIcon from "@mui/icons-material/MenuBook";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import PeopleIcon from "@mui/icons-material/People";
 import SettingsIcon from "@mui/icons-material/Settings";
@@ -8,6 +7,7 @@ import LogoutIcon from "@mui/icons-material/Logout";
 import SchoolIcon from "@mui/icons-material/School";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import BusinessIcon from "@mui/icons-material/Business";
+import PersonIcon from "@mui/icons-material/Person";
 import Avatar from "@mui/material/Avatar";
 import { useNavigate } from "react-router-dom";
 import useSidebarStore from "../../store/useSidebarStore";
@@ -39,22 +39,19 @@ const SidebarApp = () => {
       subItems: [
         { label: "Jurusan", href: "/majors" },
         { label: "Kelas", href: "/classes" },
-      ],
-    },
-    {
-      icon: <MenuBookIcon fontSize="small" />,
-      label: "Kurikulum",
-      subItems: [
-        { label: "Category Subjects", href: "/category-subjects" },
-        { label: "Subjects", href: "/subjects" },
-        { label: "Teacher Subjects", href: "/teacher-subjects" },
+        { label: "Kategori Mapel", href: "/category-subjects" },
+        { label: "Mapel", href: "/subjects" },
       ],
     },
     {
       icon: <CalendarMonthIcon fontSize="small" />,
       label: "Jadwal",
       subItems: [
+        { label: "Kalender Akademik", href: "/kalender-akademik" },
+        { label: "Alokasi Jam & JP", href: "/alokasi-jp" },
+        { label: "Pengajar", href: "/teaching-staff" },
         { label: "Roster Jam Belajar", href: "/roster-jam" },
+        { label: "Jadwal Pelajaran", href: "/jadwal-pelajaran" },
       ],
     },
     {
@@ -67,15 +64,15 @@ const SidebarApp = () => {
     },
     {
       icon: <PeopleIcon fontSize="small" />,
-      label: "Users (TU & Kurikulum)",
+      label: "Pengguna",
       subItems: [
-        { label: "Employees", href: "/employees" },
-        { label: "Students", href: "/students" },
+        { label: "Pegawai", href: "/employees" },
+        { label: "Siswa", href: "/students" },
       ],
     },
     {
       icon: <SettingsIcon fontSize="small" />,
-      label: "Settings",
+      label: "Pengaturan",
       subItems: [
         { label: "Profile", href: "/dashboard-profile" },
       ],
@@ -126,7 +123,11 @@ const SidebarApp = () => {
 
         <div className="p-4 border-t shrink-0 overflow-hidden border-light-dark bg-theme-secondary/40">
           <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-3 whitespace-nowrap">
+            <div
+              onClick={() => navigate("/dashboard-profile")}
+              className="flex items-center gap-3 whitespace-nowrap cursor-pointer hover:opacity-80 transition-opacity"
+              title="Lihat Profil Saya"
+            >
               <Avatar
                 src={getProfilePhotoUrl(user?.profile_url)}
                 alt={user?.full_name || "Profile"}

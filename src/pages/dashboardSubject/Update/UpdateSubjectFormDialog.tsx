@@ -1,28 +1,15 @@
-/**
- * UpdateSubjectFormDialog — Representation Logic
- *
- * Form fields for editing a Subject (English):
- * - Subject Name
- * - Grade (10, 11, 12)
- * - Phase (Auto Phase E / Phase F preview)
- * - Major (id_major FK)
- * - Category (id_category_subject FK)
- * - Status
- *
- * Layer: Representation Logic
- */
 import { TextField, MenuItem, Chip } from "@mui/material";
 import { Controller, useFormContext } from "react-hook-form";
 import { DialogBody } from "@components/Dialog";
 import useDashboardSubjectStore from "../store";
-import { calculateFase, getFaseChipConfig } from "../List/utils/subjectHelper";
+import { calculateFase, getFaseChipConfig, normalizeGrade } from "../List/utils/subjectHelper";
 import type { UpdateSubjectRequestModel } from "@api/subject/model";
 import UpdateSubjectSkeleton from "./UpdateSubjectSkeleton";
 
 const KELAS_OPTIONS = [
-    { label: "Grade 10", value: "10" },
-    { label: "Grade 11", value: "11" },
-    { label: "Grade 12", value: "12" },
+    { label: "Grade 10 (Fase E)", value: "10" },
+    { label: "Grade 11 (Fase F)", value: "11" },
+    { label: "Grade 12 (Fase F)", value: "12" },
 ];
 
 const UpdateSubjectFormDialog = () => {
@@ -38,7 +25,8 @@ const UpdateSubjectFormDialog = () => {
         return <UpdateSubjectSkeleton />;
     }
 
-    const selectedKelas = watch("kelas") || "10";
+    const rawKelasValue = watch("kelas");
+    const selectedKelas = normalizeGrade(rawKelasValue) || "10";
     const derivedFase = calculateFase(selectedKelas);
     const faseChip = getFaseChipConfig(derivedFase, selectedKelas);
 
@@ -88,10 +76,11 @@ const UpdateSubjectFormDialog = () => {
                                 label="Grade"
                                 fullWidth
                                 size="small"
+                                value={normalizeGrade(field.value) || "10"}
                                 error={!!errors.kelas}
                                 helperText={errors.kelas?.message}
                                 onChange={(e) => {
-                                    field.onChange(e);
+                                    field.onChange(e.target.value);
                                     const nextFase = calculateFase(e.target.value);
                                     setValue("fase", nextFase);
                                 }}
@@ -123,37 +112,6 @@ const UpdateSubjectFormDialog = () => {
                         />
                     </div>
                 </div>
-
-                {/* Major */}
-                <Controller
-                    name="id_major"
-                    control={control}
-                    render={({ field }) => (
-                        <TextField
-                            {...field}
-                            select
-                            label="Major *"
-                            fullWidth
-                            size="small"
-                            value={field.value || ""}
-                            onChange={(e) => field.onChange(e.target.value)}
-                            error={!!errors.id_major}
-                            helperText={errors.id_major?.message || "Select the major for this subject"}
-                        >
-                            <MenuItem value="" disabled>
-                                <em>Select Major</em>
-                            </MenuItem>
-                            {state.majors.map((m) => {
-                                const mId = m.id_major || m.id || "";
-                                return (
-                                    <MenuItem key={mId} value={mId}>
-                                        {m.name}
-                                    </MenuItem>
-                                );
-                            })}
-                        </TextField>
-                    )}
-                />
 
                 {/* Category */}
                 <Controller

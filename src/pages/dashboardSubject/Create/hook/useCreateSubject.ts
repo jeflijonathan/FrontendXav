@@ -26,7 +26,6 @@ const useCreateSubject = () => {
         return handleSubmit(async (payload) => {
             setState((prev) => ({ ...prev, isCreateLoading: true }));
 
-            // Map both id_category_subject & category_subject_id for backend compatibility
             const body: CreateSubjectRequestModel = {
                 ...payload,
                 category_subject_id: payload.id_category_subject,
@@ -39,7 +38,6 @@ const useCreateSubject = () => {
                     });
                     setState((prev) => ({ ...prev, isCreateLoading: false }));
                     reset();
-                    // Refresh data table
                     fetchSubjectList(filterSubjectMapper(state));
                     if (onSuccessCallback) onSuccessCallback();
                 },

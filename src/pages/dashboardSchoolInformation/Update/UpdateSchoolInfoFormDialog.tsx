@@ -148,6 +148,50 @@ const UpdateSchoolInfoFormDialog = () => {
                     )}
                 />
 
+                {/* Hari Kerja */}
+                <Controller
+                    name="work_days"
+                    control={control}
+                    render={({ field }) => (
+                        <TextField
+                            {...field}
+                            value={field.value !== undefined ? Number(field.value) : 5}
+                            label="Sistem Hari Kerja / Belajar"
+                            select
+                            fullWidth
+                            size="small"
+                            error={!!errors.work_days}
+                            helperText={(errors.work_days?.message as string) || "5 hari: Senin-Jumat efektif (Sabtu libur). 6 hari: Senin-Sabtu efektif."}
+                            onChange={(e) => field.onChange(Number(e.target.value))}
+                        >
+                            <MenuItem value={5}>5 Hari Belajar (Senin - Jumat)</MenuItem>
+                            <MenuItem value={6}>6 Hari Belajar (Senin - Sabtu)</MenuItem>
+                        </TextField>
+                    )}
+                />
+
+                {/* Durasi Jam Pelajaran */}
+                <Controller
+                    name="lesson_duration"
+                    control={control}
+                    render={({ field }) => (
+                        <TextField
+                            {...field}
+                            value={field.value !== undefined ? Number(field.value) : 45}
+                            label="Durasi Jam Pelajaran"
+                            select
+                            fullWidth
+                            size="small"
+                            error={!!errors.lesson_duration}
+                            helperText={(errors.lesson_duration?.message as string) || "Durasi setiap 1 jam pelajaran (JP) dalam menit."}
+                            onChange={(e) => field.onChange(Number(e.target.value))}
+                        >
+                            <MenuItem value={45}>45 Menit / Jam Pelajaran</MenuItem>
+                            <MenuItem value={35}>35 Menit / Jam Pelajaran</MenuItem>
+                        </TextField>
+                    )}
+                />
+
                 {/* Status */}
                 <Controller
                     name="status"

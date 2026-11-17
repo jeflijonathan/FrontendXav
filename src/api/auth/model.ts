@@ -63,6 +63,7 @@ export interface ProfileResponseModel {
   user_type: "employee" | "student" | "user";
   identifier: string; // NIY or NIS
   nisn?: string | null;
+  nik?: string | null;
   email?: string | null;
   profile_url?: string | null;
   status: boolean;
@@ -71,6 +72,9 @@ export interface ProfileResponseModel {
 }
 
 export interface ProfileUpdateRequestModel {
+  first_name?: string;
+  last_name?: string;
+  nik?: string;
   email?: string;
   password?: string;
   profile_url?: string | null;

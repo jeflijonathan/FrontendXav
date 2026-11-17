@@ -44,6 +44,8 @@ body {
   --header: #09090b;
 }
 
+:root.dark,
+.dark,
 .dark-theme {
   --primary: #3b82f6;       
   --btn-primary: #2563eb;    

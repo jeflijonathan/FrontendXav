@@ -1,5 +1,6 @@
 import EmployeeService from "@api/employee/service";
 import type { UpdateEmployeeRequestModel } from "@api/employee/model";
+import type { ErrorType } from "@common/types";
 import { useFormContext } from "react-hook-form";
 import useDashboardEmployeeStore from "@pages/dashboardEmployee/store";
 import useEmployeeList from "@pages/dashboardEmployee/List/hook/useEmployeeList";
@@ -25,21 +26,12 @@ const useUpdateEmployee = () => {
                 }
             },
             onError: ({ message }) => {
-                snackbar.error(message)
+                snackbar.error(message || "Terjadi kesalahan saat memuat data");
             },
         });
 
     };
-    const handleUploadFile = async () => {
-        const payload = handleSubmit(async (payload) => {
-            const formData = new FormData();
-            formData.append("file", state.profileFile);
-            const uploadRes = await service.service.POSTFORMDATA("/upload", formData);
-            if (uploadRes.data?.id) {
-                payload.profile_url = uploadRes.data.id;
-            }
-        })()
-    }
+
     const handleUpdate = (id: string, onSuccessCallback?: () => void) => {
         return handleSubmit(
             async (payload) => {
@@ -142,7 +134,7 @@ const useUpdateEmployee = () => {
                         snackbar.success("Employee updated successfully");
                         onSuccessCallback?.();
                     },
-                    onError: ({ message, detail }: { message: string; detail?: any }) => {
+                    onError: ({ message, detail }: ErrorType) => {
                         // Parse detail errors dari backend → simpan ke state
                         let parsedErrors: { field?: string; message: string }[] = [];
 

@@ -94,7 +94,6 @@ const useSubjectList = (): ReturnHook => {
         { label: "Subject Name", width: "220px" },
         { label: "Grade", width: "110px" },
         { label: "Phase", width: "100px" },
-        { label: "Major", width: "180px" },
         { label: "Category", width: "160px" },
         { label: "Status", width: "110px" },
         { label: "Created At", width: "160px" },

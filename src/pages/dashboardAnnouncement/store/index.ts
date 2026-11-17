@@ -27,6 +27,7 @@ export type DashboardAnnouncementStoreStateType = {
     isLoading: boolean;
     isCreateLoading: boolean;
     isUpdateLoading: boolean;
+    errorUpdateDetail: string[];
     filters: FilterType;
     search: SearchType;
     pagination: PaginationType;
@@ -45,6 +46,7 @@ export const useDashboardAnnouncementStore = create<StoreType>((set) => ({
         isLoading: false,
         isCreateLoading: false,
         isUpdateLoading: false,
+        errorUpdateDetail: [],
         filters: { page: 1, limit: 10, sort: "created_at", order_by: "desc", status: "" },
         search: { value: "" },
         pagination: { total_data: 0, total_pages: 1, page: 1, limit: 10 },

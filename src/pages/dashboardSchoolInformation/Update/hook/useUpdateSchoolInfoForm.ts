@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useForm, type Resolver, type UseFormReturn } from "react-hook-form";
 import useDashboardSchoolInformationStore from "../../store";
 import type { UpdateSchoolInformationRequest } from "@api/schoolinformation/model";
@@ -9,16 +10,21 @@ type HookReturn = {
 
 const useUpdateSchoolInfoForm = (): HookReturn => {
     const { state } = useDashboardSchoolInformationStore();
+
+    const formValues = useMemo(() => {
+        return state.updateSchoolInfoReqDetails
+            ? UpdateSchoolInfoDetailsFormatter(state.updateSchoolInfoReqDetails)
+            : UpdateSchoolInformationReqDefaultValues;
+    }, [state.updateSchoolInfoReqDetails]);
+
     const updateSchoolInfoReqForm = useForm<UpdateSchoolInformationRequest>({
         defaultValues: UpdateSchoolInformationReqDefaultValues,
-        values: state.updateSchoolInfoReqDetails
-            ? UpdateSchoolInfoDetailsFormatter(state.updateSchoolInfoReqDetails)
-            : UpdateSchoolInformationReqDefaultValues,
+        values: formValues,
         resolver: UpdateSchoolInfoValidations as Resolver<UpdateSchoolInformationRequest>,
     });
 
     return {
         updateSchoolInfoReqForm,
     };
-}
+};
 export default useUpdateSchoolInfoForm;

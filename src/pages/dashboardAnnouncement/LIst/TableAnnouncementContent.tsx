@@ -4,7 +4,7 @@ import TableBody from "@components/Table/TableBody";
 import TableRow from "@components/Table/TableRow";
 import TableFooter from "@components/Table/TableFooter";
 import TablePagination from "@components/Table/TablePagination";
-import { TableCell, Chip, IconButton, type IconButtonProps } from "@mui/material";
+import { TableCell, Chip, IconButton, type IconButtonProps, Box, Typography, Tooltip } from "@mui/material";
 import useAnnouncementList from "./hooks/useAnnouncementList";
 import useAnnouncementFilter from "./hooks/useAnnouncementFilter";
 import useDashboardAnnouncementStore from "../store";
@@ -105,9 +105,31 @@ const AnnouncementTable = () => {
                                 header={tableHeader}
                                 actions={renderActions(row)}
                             >
-                                <TableCell sx={{ py: 1 }}>{row.title}</TableCell>
                                 <TableCell sx={{ py: 1 }}>
-                                    {row.description && row.description.length > 50 ? `${row.description.substring(0, 50)}...` : row.description || "-"}
+                                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                                        <Typography variant="body2" sx={{ fontWeight: 600 }}>{row.title}</Typography>
+                                        {row.url_drive && (
+                                            <Tooltip title={`Lampiran Google Drive: ${row.url_drive}`}>
+                                                <Chip
+                                                    label="G-Drive"
+                                                    size="small"
+                                                    color="primary"
+                                                    variant="outlined"
+                                                    sx={{ height: 20, fontSize: "10px", fontWeight: 700 }}
+                                                />
+                                            </Tooltip>
+                                        )}
+                                    </Box>
+                                </TableCell>
+                                <TableCell sx={{ py: 1 }}>
+                                    {(() => {
+                                        const cleanText = (row.description || "")
+                                            .replace(/<[^>]*>/g, "")
+                                            .replace(/[*_~`#•>]/g, "")
+                                            .trim();
+                                        if (!cleanText) return "-";
+                                        return cleanText.length > 50 ? `${cleanText.substring(0, 50)}...` : cleanText;
+                                    })()}
                                 </TableCell>
                                 <TableCell sx={{ py: 1 }}>
                                     <Chip

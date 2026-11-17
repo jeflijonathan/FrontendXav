@@ -124,7 +124,11 @@ const EmployeeTable = () => {
                                     <div style={{ width: 40, height: 40, borderRadius: '50%', backgroundColor: '#eee', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>-</div>
                                 )}
                             </TableCell>
-                            <TableCell sx={{ py: 1 }}>{`${row.first_name} ${row.last_name || ''}`}</TableCell>
+                            <TableCell sx={{ py: 1 }}>
+                                <div style={{ fontWeight: 600, color: '#1e293b' }}>
+                                    {row.formatted_name || `${row.first_name} ${row.last_name || ''}`}
+                                </div>
+                            </TableCell>
                             <TableCell sx={{ py: 1 }}>
                                 <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                                     {row.user?.roles?.length ? row.user.roles.map(r => (

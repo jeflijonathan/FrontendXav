@@ -21,9 +21,8 @@ export const CreateSubjectSchema = yup.object().shape({
         .string()
         .required("Grade is required"),
     fase: yup.string().optional(),
-    id_major: yup
-        .string()
-        .required("Major is required"),
+    id_major: yup.string().optional().nullable(),
+    id_majors: yup.array().of(yup.string()).optional(),
     code_subject: yup.string().optional().nullable(),
     status: yup.boolean().required(),
 });
@@ -32,6 +31,7 @@ export const defaultCreateSubjectValues: CreateSubjectRequestModel = {
     name: "",
     id_category_subject: "",
     id_major: "",
+    id_majors: [],
     kelas: "10",
     fase: "E",
     code_subject: "",

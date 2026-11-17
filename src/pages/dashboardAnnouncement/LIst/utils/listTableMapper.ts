@@ -1,4 +1,4 @@
-import type { AnnouncementResponseModel, AnnouncementUserLogModel } from "@api/announcement/model";
+import type { AnnouncementResponseModel } from "@api/announcement/model";
 import { parseDateTime } from "@utils/dateParse";
 import type { Moment } from "moment";
 import moment from "moment";
@@ -8,7 +8,7 @@ export type AnnouncementTableItem = {
     title: string;
     description: string;
     url_drive: string;
-    status: boolean;
+    status: number;
     logs: {
         id_log: string;
         action: string;
@@ -23,14 +23,14 @@ export type AnnouncementTableItem = {
 const listTableAnnouncementMapper = (
     data: AnnouncementResponseModel[]
 ): AnnouncementTableItem[] => {
-    return data.map((item) => {
+    return (data || []).map((item) => {
         return {
             id: item.id_announcement,
             title: item.title,
             description: item.description,
             url_drive: item.url_drive,
-            status: Boolean(item.status),
-            logs: item.user_logs.map((log) => ({
+            status: typeof item.status === "number" ? item.status : Number(item.status || 0),
+            logs: (item.user_logs || []).map((log) => ({
                 id_log: log.id_log,
                 action: log.action,
                 created_at: moment(parseDateTime(log.created_at)) || moment(),

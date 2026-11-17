@@ -5,16 +5,10 @@ import axios, {
 import LocalStorage from "@utils/localStorage";
 import { getCookie, setCookie, deleteCookie } from "@utils/cookie";
 import { catchError } from "@utils/catchError";
+import type { APIResponse } from "@common/types/index";
 
 type Headers = Record<string, string>;
 
-export interface ApiResponse<T = any> {
-  status: string;
-  status_code: number;
-  message: string;
-  data: T;
-  details?: string[];
-}
 
 export class API {
   protected api: AxiosInstance;
@@ -100,19 +94,19 @@ export class API {
     return headers;
   }
 
-  async GET<T = any, U = ApiResponse<T>>(path: string, params?: any): Promise<U> {
+  async GET<T = any, U = APIResponse<T>>(path: string, params?: any): Promise<U> {
     const headers = this.getHeaders();
     const res = this.api.get(path, { params, headers });
     return await catchError<U>(res);
   }
 
-  async POST<T = any, U = ApiResponse<T>>(path: string, data?: any): Promise<U> {
+  async POST<T = any, U = APIResponse<T>>(path: string, data?: any): Promise<U> {
     const headers = this.getHeaders();
     const res = this.api.post(path, data, { headers });
     return await catchError<U>(res);
   }
 
-  async POSTFORMDATA<T = any, U = ApiResponse<T>>(path: string, data: FormData): Promise<U> {
+  async POSTFORMDATA<T = any, U = APIResponse<T>>(path: string, data: FormData): Promise<U> {
     const headers = this.getHeaders();
     // Override the instance's application/json content type to let Axios handle FormData
     headers["Content-Type"] = "multipart/form-data";
@@ -120,19 +114,19 @@ export class API {
     return await catchError<U>(res);
   }
 
-  async PUT<T = any, U = ApiResponse<T>>(path: string, data?: any): Promise<U> {
+  async PUT<T = any, U = APIResponse<T>>(path: string, data?: any): Promise<U> {
     const headers = this.getHeaders();
     const res = this.api.put(path, data, { headers });
     return await catchError<U>(res);
   }
 
-  async PATCH<T = any, U = ApiResponse<T>>(path: string, data?: any): Promise<U> {
+  async PATCH<T = any, U = APIResponse<T>>(path: string, data?: any): Promise<U> {
     const headers = this.getHeaders();
     const res = this.api.patch(path, data, { headers });
     return await catchError<U>(res);
   }
 
-  async DELETE<T = any, U = ApiResponse<T>>(path: string): Promise<U> {
+  async DELETE<T = any, U = APIResponse<T>>(path: string): Promise<U> {
     const headers = this.getHeaders();
     const res = this.api.delete(path, { headers });
     return await catchError<U>(res);

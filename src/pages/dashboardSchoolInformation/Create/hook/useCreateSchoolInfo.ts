@@ -13,29 +13,39 @@ const useCreateSchoolInfo = () => {
     const service = new SchoolInformationService();
 
     const handleCreate = (onSuccessCallback?: () => void) => {
-        return handleSubmit(async (payload) => {
-            setState(prev => ({ ...prev, isCreateLoading: true }))
-            const data: CreateSchoolInformationRequest = {
-                id_headmaster: payload.id_headmaster,
-                name_school: payload.name_school,
-                NPSN: payload.NPSN,
-                alamat: payload.alamat,
-                status: payload.status,
-                periode: payload.periode,
-            };
+        return handleSubmit(
+            async (payload) => {
+                setState(prev => ({ ...prev, isCreateLoading: true }));
+                const data: CreateSchoolInformationRequest = {
+                    id_headmaster: payload.id_headmaster,
+                    name_school: payload.name_school,
+                    NPSN: payload.NPSN,
+                    alamat: payload.alamat,
+                    status: typeof payload.status === "string" ? payload.status === "true" : Boolean(payload.status),
+                    periode: payload.periode,
+                    work_days: payload.work_days ? Number(payload.work_days) : 5,
+                    lesson_duration: payload.lesson_duration ? Number(payload.lesson_duration) : 45,
+                };
 
-            service.create(data, {
-                onSuccess: () => {
-                    setState(prev => ({ ...prev, isCreateLoading: false }))
-                    fetchSchoolInfoList(filterSchoolInformationMapper(state));
-                    snackbar.success("School information created successfully");
-                    onSuccessCallback?.();
-                }, onError: (err: any) => {
-                    setState(prev => ({ ...prev, isCreateLoading: false }))
-                    snackbar.error(err.message || "Failed to create school information");
-                }
-            });
-        })();
+                service.create(data, {
+                    onSuccess: () => {
+                        setState(prev => ({ ...prev, isCreateLoading: false }));
+                        fetchSchoolInfoList(filterSchoolInformationMapper(useDashboardSchoolInformationStore.getState().state));
+                        snackbar.success("Informasi sekolah berhasil ditambahkan");
+                        onSuccessCallback?.();
+                    },
+                    onError: (err: any) => {
+                        setState(prev => ({ ...prev, isCreateLoading: false }));
+                        snackbar.error(err.message || "Gagal menambahkan informasi sekolah");
+                    }
+                });
+            },
+            (errors) => {
+                console.error("Form validation errors on create:", errors);
+                const firstError = Object.values(errors)[0]?.message;
+                snackbar.error((firstError as string) || "Mohon lengkapi formulir dengan benar.");
+            }
+        )();
     };
 
     return { handleCreate };

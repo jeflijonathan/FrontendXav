@@ -18,6 +18,10 @@ const BaseDialog: React.FC<BaseDialogProps> = ({ isOpen, onClose, children, maxW
                 // Menargetkan kontainer kertas internal MUI secara langsung
                 '& .MuiPaper-root': {
                     borderRadius: '25px',
+                    overflowX: 'hidden',
+                },
+                '& .MuiDialogContent-root': {
+                    overflowX: 'hidden',
                 },
             }}
             fullWidth

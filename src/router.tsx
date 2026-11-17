@@ -13,8 +13,13 @@ import DashboardUploadFile from "@pages/dashboardUploadFile";
 import DashboardRosterJam from "@pages/dashboardRosterJam";
 import DashboardMajor from "@pages/dashboardMajor";
 import DashboardClass from "@pages/dashboardClass";
+import DashboardTeaching from "@pages/dashboardTeaching";
 import DashboardCategorySubject from "@pages/dashboardCategorySubject";
 import DashboardSubject from "@pages/dashboardSubject";
+import DashboardAcademicCalendar from "@pages/dashboardAcademicCalendar";
+import DashboardEffectiveHours from "@pages/dashboardEffectiveHours";
+import DashboardSchedule from "@pages/dashboardSchedule";
+import DashboardProfile from "@pages/dashboardProfile";
 import { ProtectedRoute } from "./common/components/Auth/ProtectedRoute";
 
 const routes = createBrowserRouter([
@@ -75,6 +80,14 @@ const routes = createBrowserRouter([
         element: <DashboardClass />,
       },
       {
+        path: "/teaching-staff",
+        element: (
+          <ProtectedRoute allowedRoles={["TU", "kurikulum"]}>
+            <DashboardTeaching />
+          </ProtectedRoute>
+        ),
+      },
+      {
         path: "/category-subjects",
         element: <DashboardCategorySubject />,
       },
@@ -93,6 +106,30 @@ const routes = createBrowserRouter([
       {
         path: "/roster-jam",
         element: <DashboardRosterJam />,
+      },
+      {
+        path: "/kalender-akademik",
+        element: <DashboardAcademicCalendar />,
+      },
+      {
+        path: "/alokasi-jp",
+        element: <DashboardEffectiveHours />,
+      },
+      {
+        path: "/jadwal-pelajaran",
+        element: <DashboardSchedule />,
+      },
+      {
+        path: "/dashboard-profile",
+        element: <DashboardProfile />,
+      },
+      {
+        path: "/dashboardProfile",
+        element: <DashboardProfile />,
+      },
+      {
+        path: "/profile",
+        element: <DashboardProfile />,
       },
     ],
   },

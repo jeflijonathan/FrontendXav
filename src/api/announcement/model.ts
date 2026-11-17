@@ -5,6 +5,9 @@ export type AnnouncementUserLogModel = {
     action: string;
     created_at: Moment;
     id_user: string;
+    user_name?: string;
+    identifier?: string;
+    profile_url?: string;
 }
 
 export type AnnouncementResponseModel = {
@@ -13,7 +16,7 @@ export type AnnouncementResponseModel = {
     description: string;
     url_drive: string;
     user_logs: AnnouncementUserLogModel[];
-    status: string;
+    status: number;
     created_at: Moment;
     updated_at: Moment;
 }
@@ -22,6 +25,7 @@ export type AnnouncementCreateModel = {
     title: string;
     description: string;
     url_drive: string;
+    status: number;
 }
 
 export type AnnouncementUpdateModel = {
@@ -29,4 +33,6 @@ export type AnnouncementUpdateModel = {
     title: string;
     description: string;
     url_drive: string;
+    status?: number;
+    id_user: string;
 }

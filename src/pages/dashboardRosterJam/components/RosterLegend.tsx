@@ -4,10 +4,12 @@ import { BaseCard } from '@components/Card';
 
 const RosterLegend: React.FC = () => {
     const legends = [
-        { label: 'Upacara / Apel Pagi', color: '#9333ea' },
-        { label: 'KBM (Kegiatan Belajar Mengajar)', color: '#2563eb' },
-        { label: 'Istirahat', color: '#f59e0b' },
-        { label: 'Ekstrakurikuler / Kegiatan Mandiri', color: '#10b981' },
+        { label: 'Upacara / Pembinaan (Jam ke-0)', color: '#9333ea' },
+        { label: 'Senam Bersama (Jam ke-0)', color: '#e11d48' },
+        { label: 'Literasi / Rohani (Jam ke-0)', color: '#4338ca' },
+        { label: 'KBM Tatap Muka (Jam 1 s/d 10)', color: '#2563eb' },
+        { label: 'Istirahat / Ishoma (-)', color: '#f59e0b' },
+        { label: 'Ekstrakurikuler / Pramuka (-)', color: '#059669' },
     ];
 
     return (
@@ -15,15 +17,18 @@ const RosterLegend: React.FC = () => {
             <Box
                 sx={{
                     display: 'flex',
-                    flexWrap: 'wrap',
-                    alignItems: 'center',
-                    gap: 3,
+                    flexDirection: { xs: 'column', md: 'row' },
+                    alignItems: { xs: 'flex-start', md: 'center' },
+                    justifyContent: 'space-between',
+                    gap: 2,
                 }}
             >
-                <Typography variant="body2" fontWeight={700}>
-                    Keterangan Jenis Jam:
-                </Typography>
-                <Stack direction="row" flexWrap="wrap" spacing={3} alignItems="center">
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Typography variant="body2" sx={{ fontWeight: 800 }} color="text.primary">
+                        Keterangan Kategori Jam Belajar:
+                    </Typography>
+                </Box>
+                <Stack sx={{ flexWrap: "wrap", direction: "row", alignItems: "center" }} spacing={2.5} >
                     {legends.map((item, idx) => (
                         <Box key={idx} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                             <Box
@@ -32,17 +37,18 @@ const RosterLegend: React.FC = () => {
                                     height: 10,
                                     borderRadius: '50%',
                                     backgroundColor: item.color,
+                                    flexShrink: 0,
                                 }}
                             />
-                            <Typography variant="caption" color="text.secondary" fontWeight={500}>
+                            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, fontSize: '0.73rem' }}>
                                 {item.label}
                             </Typography>
                         </Box>
                     ))}
                 </Stack>
             </Box>
-            <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                Terakhir diselaraskan: Hari ini, {new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB
+            <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block', fontSize: '0.7rem' }}>
+                * Jam awal pembuka otomatis ditetapkan sebagai <strong>Jam ke-0</strong>. Ekstrakurikuler dan Istirahat bertanda strip <strong>(-)</strong>. Beban belajar diselaraskan dengan Alokasi Jam & Kalender Akademik.
             </Typography>
         </BaseCard>
     );

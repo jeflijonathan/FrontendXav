@@ -57,6 +57,8 @@ const useSchoolInfoList = (): ReturnHook => {
         { label: "School Name", width: "200px" },
         { label: "NPSN", width: "150px" },
         { label: "Headmaster", width: "180px" },
+        { label: "Hari Kerja", width: "140px" },
+        { label: "Jam Pelajaran", width: "140px" },
         { label: "Status", width: "120px" },
         { label: "Created At", width: "150px" },
         { label: "Updated At", width: "150px" },

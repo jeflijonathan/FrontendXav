@@ -20,6 +20,8 @@ export interface SchoolInformationResponseModel {
   id_headmaster: string | null;
   alamat: string | null;
   status: boolean;
+  work_days: number; // 5 = Senin-Jumat, 6 = Senin-Sabtu
+  lesson_duration: number; // Durasi jam pelajaran: 45 atau 35 menit
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
@@ -51,6 +53,8 @@ export interface CreateSchoolInformationRequest {
   id_headmaster: string;
   alamat: string;
   status: boolean;
+  work_days: number; // 5 atau 6
+  lesson_duration: number; // 45 atau 35 menit
 }
 
 export interface UpdateSchoolInformationRequest {
@@ -60,6 +64,8 @@ export interface UpdateSchoolInformationRequest {
   id_headmaster?: string | null;
   alamat?: string;
   status?: boolean;
+  work_days?: number; // 5 atau 6
+  lesson_duration?: number; // 45 atau 35 menit
 }
 
 export type EmployeeOptionsModel = {

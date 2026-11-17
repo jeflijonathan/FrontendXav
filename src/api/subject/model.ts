@@ -33,6 +33,7 @@ export interface CreateSubjectRequestModel {
     id_category_subject: string;
     category_subject_id?: string;
     id_major?: string | null;
+    id_majors?: string[];
     code_subject?: string | null;
     kelas?: string | null;
     fase?: string | null;
@@ -44,6 +45,7 @@ export interface UpdateSubjectRequestModel {
     id_category_subject?: string;
     category_subject_id?: string;
     id_major?: string | null;
+    id_majors?: string[];
     code_subject?: string | null;
     kelas?: string | null;
     fase?: string | null;
