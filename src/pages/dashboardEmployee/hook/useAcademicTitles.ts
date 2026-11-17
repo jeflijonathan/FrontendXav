@@ -64,3 +64,4 @@ export const useAcademicTitles = () => {
         isLoading
     };
 };
+

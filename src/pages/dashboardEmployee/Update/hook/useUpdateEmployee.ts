@@ -150,8 +150,8 @@ const useUpdateEmployee = () => {
                             });
                         } else if (typeof detail === "string") {
                             parsedErrors = [{ message: detail }];
-                        } else if (detail && typeof detail.message === "string") {
-                            parsedErrors = [{ message: detail.message }];
+                        } else if (detail && typeof (detail as any).message === "string") {
+                            parsedErrors = [{ message: (detail as any).message }];
                         } else {
                             parsedErrors = [{ message: message || "Failed to update employee" }];
                         }
