@@ -437,11 +437,6 @@ const DashboardPage: React.FC = () => {
                         }}
                     >
                         {displayedAnnouncements.map((item) => {
-                            const cleanText = (item.description || "")
-                                .replace(/<[^>]*>/g, "")
-                                .replace(/[*_~`#•>]/g, "")
-                                .trim();
-
                             return (
                                 <Card
                                     key={item.id_announcement}
@@ -471,75 +466,58 @@ const DashboardPage: React.FC = () => {
                                             variant="subtitle1"
                                             sx={{
                                                 fontWeight: 800,
-                                                color: isDark ? "#f4f4f5" : "#0f172a",
+                                                color: isDark ? "#60a5fa" : "#2563eb",
                                                 lineHeight: 1.35,
                                                 display: "-webkit-box",
                                                 WebkitLineClamp: 2,
                                                 WebkitBoxOrient: "vertical",
                                                 overflow: "hidden",
-                                                minHeight: 44,
+                                                minHeight: 36,
                                             }}
                                         >
                                             {item.title}
                                         </Typography>
                                     </Box>
 
-                                    {/* Card Content: Clean Excerpt & Google Drive Indicator */}
-                                    <Box sx={{ px: 2.5, flex: 1, display: "flex", flexDirection: "column" }}>
-                                        <Box
-                                            sx={{
-                                                minHeight: 160,
-                                                p: 2,
-                                                borderRadius: 2,
-                                                bgcolor: isDark ? "#18181b" : "#f8fafc",
-                                                border: isDark ? "1px solid #27272a" : "1px solid #f1f5f9",
-                                                display: "flex",
-                                                flexDirection: "column",
-                                                justifyContent: "space-between",
-                                            }}
-                                        >
-                                            <Typography
-                                                variant="body2"
+                                    {/* Card Content: Preview Google Drive Langsung (Deskripsi tidak perlu) */}
+                                    <Box sx={{ px: 2, flex: 1, display: "flex", flexDirection: "column" }}>
+                                        {item.url_drive ? (
+                                            <Box
                                                 sx={{
-                                                    color: isDark ? "#cbd5e1" : "#334155",
-                                                    lineHeight: 1.6,
-                                                    display: "-webkit-box",
-                                                    WebkitLineClamp: item.url_drive ? 4 : 6,
-                                                    WebkitBoxOrient: "vertical",
+                                                    borderRadius: 2,
                                                     overflow: "hidden",
-                                                    fontSize: "13.5px",
+                                                    border: isDark ? "1px solid #27272a" : "1px solid #e2e8f0",
+                                                    bgcolor: isDark ? "#18181b" : "#f8fafc",
                                                 }}
                                             >
-                                                {cleanText || "Tidak ada deskripsi rinci untuk pengumuman ini."}
-                                            </Typography>
-
-                                            {item.url_drive && (
-                                                <Box
-                                                    sx={{
-                                                        mt: 1.5,
-                                                        p: 1.2,
-                                                        px: 1.5,
-                                                        borderRadius: 1.5,
-                                                        bgcolor: isDark ? "rgba(37,99,235,0.12)" : "#eff6ff",
-                                                        border: isDark ? "1px solid rgba(59,130,246,0.25)" : "1px solid #bfdbfe",
-                                                        display: "flex",
-                                                        alignItems: "center",
-                                                        gap: 1,
-                                                    }}
-                                                >
-                                                    <OpenInNewIcon sx={{ fontSize: 16, color: "#2563eb" }} />
-                                                    <Typography
-                                                        variant="caption"
-                                                        sx={{ fontWeight: 700, color: isDark ? "#93c5fd" : "#1d4ed8" }}
-                                                    >
-                                                        Lampiran Google Drive Tersedia (Klik untuk Membuka)
-                                                    </Typography>
-                                                </Box>
-                                            )}
-                                        </Box>
+                                                <GoogleDrivePreview
+                                                    url={item.url_drive}
+                                                    height={260}
+                                                    showEmptyState={false}
+                                                    title={item.title}
+                                                />
+                                            </Box>
+                                        ) : (
+                                            <Box
+                                                sx={{
+                                                    minHeight: 180,
+                                                    p: 2,
+                                                    borderRadius: 2,
+                                                    bgcolor: isDark ? "#18181b" : "#f8fafc",
+                                                    border: isDark ? "1px solid #27272a" : "1px solid #f1f5f9",
+                                                    display: "flex",
+                                                    alignItems: "center",
+                                                    justifyContent: "center",
+                                                }}
+                                            >
+                                                <Typography variant="body2" sx={{ color: isDark ? "#71717a" : "#94a3b8", fontStyle: "italic" }}>
+                                                    Tidak ada berkas lampiran Google Drive
+                                                </Typography>
+                                            </Box>
+                                        )}
                                     </Box>
 
-                                    {/* Card Footer: Date */}
+                                    {/* Card Footer: Date & Baca */}
                                     <Box
                                         sx={{
                                             p: 2.5,
@@ -565,10 +543,9 @@ const DashboardPage: React.FC = () => {
                                                 color: isDark ? "#60a5fa" : "#2563eb",
                                                 display: "flex",
                                                 alignItems: "center",
-                                                gap: 0.5,
                                             }}
                                         >
-                                            Buka Detail &rarr;
+                                            Baca
                                         </Typography>
                                     </Box>
                                 </Card>

@@ -38,9 +38,9 @@ export const LoginPegawai: React.FC = () => {
           p: 0.5,
           mb: 4,
           borderRadius: 2.5,
-          bgcolor: "grey.100",
+          bgcolor: (theme) => theme.palette.mode === "dark" ? "#18181b" : "grey.100",
           border: "1px solid",
-          borderColor: "grey.200",
+          borderColor: (theme) => theme.palette.mode === "dark" ? "#27272a" : "grey.200",
         }}
       >
         <Button

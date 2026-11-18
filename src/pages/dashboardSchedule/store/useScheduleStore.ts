@@ -10,6 +10,7 @@ import type {
     DragPayload,
     GuruPiketEntry,
     JpRecommendationRule,
+    ScheduleApprovalData,
     ScheduleCell,
     ScheduleConflict,
     ScheduleRow,
@@ -23,20 +24,26 @@ import {
     MatrixScheduleService,
     TeacherScheduleRequestService,
     RosterScheduleService,
+    CategoryExtraService,
+    type CategoryExtraResponseModel,
 } from '@api/schedule/service';
 import TeachingService from '@api/teaching/service';
 import type { TeachingTeacherRowModel } from '@api/teaching/model';
 import SchoolInformationService from '@api/schoolinformation/service';
 import type { SchoolInformationResponseModel } from '@api/schoolinformation/model';
 import ClassService from '@api/class/service';
+import EffectiveWeekService from '@api/effectiveweek/service';
+import type { EffectiveWeekResponseModel } from '@api/effectiveweek/model';
 import { snackbar } from '@utils/snackbar';
 
 const matrixService = new MatrixScheduleService();
 const teacherRequestService = new TeacherScheduleRequestService();
 const rosterScheduleService = new RosterScheduleService();
+const categoryExtraService = new CategoryExtraService();
 const teachingService = new TeachingService();
 const schoolInfoService = new SchoolInformationService();
 const classService = new ClassService();
+const effectiveWeekService = new EffectiveWeekService();
 
 export const DEFAULT_TEACHER_REQUESTS: TeacherScheduleRequest[] = [
     {
@@ -70,6 +77,7 @@ export interface ScheduleState {
     teachers: TeacherCodeEntry[];
     rows: ScheduleRow[];
     guruPiket: GuruPiketEntry[];
+    approvalData: ScheduleApprovalData;
     recommendations: JpRecommendationRule[];
 
     // View mode: Matriks Semua Kelas vs Input Per-Kelas
@@ -112,6 +120,12 @@ export interface ScheduleState {
     isRequestDialogOpen: boolean;
     editingRequest: TeacherScheduleRequest | null;
     isGenerateScheduleDialogOpen: boolean;
+
+    // Category Extras
+    categoryExtras: CategoryExtraResponseModel[];
+
+    // Alokasi Jam & JP Berbasis Jurusan dari Kurikulum (Effective Weeks)
+    effectiveWeekAllocations: EffectiveWeekResponseModel[];
 }
 
 export interface ScheduleActions {
@@ -128,6 +142,17 @@ export interface ScheduleActions {
     ) => void;
     setRecommendationModalOpen: (open: boolean) => void;
     setPrintDialogOpen: (open: boolean) => void;
+
+    // Guru Piket Actions
+    setGuruPiket: (guruPiket: GuruPiketEntry[]) => void;
+    addGuruPiket: (entry: Omit<GuruPiketEntry, 'id'>) => void;
+    updateGuruPiket: (index: number, entry: Partial<GuruPiketEntry>) => void;
+    deleteGuruPiket: (index: number) => void;
+
+    // Approval / Pengesahan Kepala Sekolah Actions
+    setApprovalData: (data: Partial<ScheduleApprovalData>) => void;
+    confirmApproval: (googleDriveUrl: string, notes?: string) => Promise<boolean>;
+    revokeApproval: () => Promise<boolean>;
 
     // Request Dialog Actions
     setIsRequestDialogOpen: (open: boolean) => void;
@@ -185,6 +210,8 @@ export interface ScheduleActions {
         title: string
     ) => void;
     removeSpecialActivityFromRow: (rowId: string) => void;
+    updateRowExtraCategory: (rowId: string, extraName: string) => void;
+    setClassExtraActivity: (rowId: string, className: string, extraName: string) => void;
 
     // Teacher Operations
     updateTeacher: (code: number, updates: Partial<TeacherCodeEntry>) => void;
@@ -194,6 +221,8 @@ export interface ScheduleActions {
     // Generator & Database Integration
     setSchoolInformationId: (id: string) => Promise<void>;
     fetchSchoolInformations: () => Promise<void>;
+    fetchCategoryExtras: () => Promise<void>;
+    fetchEffectiveWeekAllocations: () => Promise<void>;
     fetchClassesFromDatabase: (schoolInfoId?: string) => Promise<void>;
     loadScheduleFromDatabase: (customSchoolInfoId?: string) => Promise<void>;
     syncFromDatabaseTeachingStaff: () => Promise<void>;
@@ -213,9 +242,11 @@ const findTeacherByCode = (
 
 const calculateConflicts = (
     rows: ScheduleRow[],
-    teachers: TeacherCodeEntry[]
+    teachers: TeacherCodeEntry[],
+    guruPiket?: GuruPiketEntry[]
 ): ScheduleConflict[] => {
     const conflicts: ScheduleConflict[] = [];
+    const activeGuruPiket = guruPiket ?? (useScheduleStore?.getState ? useScheduleStore.getState().guruPiket : []);
 
     rows.forEach((row) => {
         if (row.specialActivity) return;
@@ -232,17 +263,57 @@ const calculateConflicts = (
         });
 
         Object.entries(teacherClassesMap).forEach(([codeStr, classList]) => {
+            const code = Number(codeStr);
+            const teacher = findTeacherByCode(teachers, code);
+            const teacherName = teacher?.name || `Guru #${code}`;
+
+            // 1. Bentrok Mengajar Ganda (Double Booking)
             if (classList.length > 1) {
-                const code = Number(codeStr);
-                const teacher = findTeacherByCode(teachers, code);
                 conflicts.push({
                     day: row.day,
                     jp: row.jp,
                     timeRange: row.timeRange,
                     teacherCode: code,
-                    teacherName: teacher?.name || `Guru #${code}`,
+                    teacherName,
                     conflictedClasses: classList,
+                    conflictType: 'TEACHER_DOUBLE_BOOKING',
+                    conflictReason: `Bentrok Mengajar Ganda: Guru #${code} (${teacherName}) mengajar bersamaan di kelas ${classList.join(' & ')}`,
                 });
+            }
+
+            // 2. Bentrok Tugas Piket (Piket Conflict)
+            // Aturan user: misal 4 JP berarti slot KBM 1-4 bentrok jika mengajar.
+            // Sisanya (> 4 JP) TIDAK BENTROK jika dia guru.
+            const rowJpNum = typeof row.jp === 'number' ? row.jp : parseInt(String(row.jp), 10);
+            if (!isNaN(rowJpNum) && rowJpNum > 0 && activeGuruPiket && activeGuruPiket.length > 0) {
+                const matchingPiket = activeGuruPiket.find((p) => {
+                    if (p.hari !== row.day) return false;
+                    if (p.teacherCode && p.teacherCode === code) return true;
+                    if (teacher?.name && p.name) {
+                        const pClean = p.name.toLowerCase().trim();
+                        const tClean = teacher.name.toLowerCase().trim();
+                        return pClean.includes(tClean) || tClean.includes(pClean);
+                    }
+                    return false;
+                });
+
+                if (matchingPiket) {
+                    const piketMaxJp = Number(matchingPiket.jumlahJp) || 4;
+                    // Bentrok hanya jika mengajar di slot KBM 1 s/d piketMaxJp
+                    if (rowJpNum <= piketMaxJp) {
+                        conflicts.push({
+                            day: row.day,
+                            jp: row.jp,
+                            timeRange: row.timeRange,
+                            teacherCode: code,
+                            teacherName,
+                            conflictedClasses: classList,
+                            conflictType: 'PIKET_CONFLICT',
+                            conflictReason: `Bentrok Tugas Piket: ${teacherName} bertugas piket hari ${row.day} (Slot KBM 1-${piketMaxJp}), tidak dapat mengajar di ${classList.join(', ')}`,
+                        });
+                    }
+                    // Jika rowJpNum > piketMaxJp: TIDAK BENTROK (sisanya bebas mengajar)
+                }
             }
         });
     });
@@ -310,10 +381,12 @@ const buildScheduleRowsFromRoster = (
                         else if (jenisRaw.includes('PILIHAN')) activityType = 'EKSTRA_PILIHAN';
                         else if (jenisRaw.includes('EKSTRA')) activityType = 'EKSTRA_WAJIB';
 
+                        const isEkstra = activityType === 'EKSTRA_WAJIB' || activityType === 'EKSTRA_PILIHAN' || activityType === 'PRAMUKA';
                         specialActivity = {
                             isSpecial: true as const,
                             activityType,
-                            title: slot.jenisJam || jenisRaw,
+                            title: isEkstra ? 'EKSTRA' : (slot.jenisJam || jenisRaw),
+                            subtitle: isEkstra ? (slot.extraCategory || slot.kategoriEkstra || (jenisRaw.includes('PRAMUKA') ? 'Pramuka' : 'Pramuka')) : undefined,
                             fullSpan: true,
                             colorScheme: specialColorMap[activityType] || specialColorMap.UPACARA,
                         };
@@ -420,6 +493,14 @@ export const useScheduleStore = create<ScheduleState & ScheduleActions>(
         teachers: [],
         rows: [],
         guruPiket: DEFAULT_GURU_PIKET,
+        approvalData: {
+            isApproved: false,
+            googleDriveUrl: '',
+            approvedBy: 'Merly Puspita, S.Pd.',
+            headmasterNiy: '19840214 200801 2 001',
+            approvedAt: '',
+            notes: 'Lampiran Roster Jam Belajar & Jadwal Pelajaran Resmi SMK Xaverius Palembang',
+        },
         recommendations: JP_RECOMMENDATION_RULES,
 
         viewMode: 'matrix',
@@ -451,6 +532,9 @@ export const useScheduleStore = create<ScheduleState & ScheduleActions>(
         editingRequest: null,
         isGenerateScheduleDialogOpen: false,
 
+        // Category Extras Initial State
+        categoryExtras: [],
+
         setViewMode: (viewMode) => set({ viewMode }),
         setSelectedClassForInput: (selectedClassForInput) => set({ selectedClassForInput }),
         setSelectedDayFilter: (day) => set({ selectedDayFilter: day }),
@@ -469,6 +553,135 @@ export const useScheduleStore = create<ScheduleState & ScheduleActions>(
         setEditingRequest: (editingRequest) => set({ editingRequest }),
         setIsGenerateScheduleDialogOpen: (isGenerateScheduleDialogOpen) => set({ isGenerateScheduleDialogOpen }),
 
+        // Guru Piket Actions
+        setGuruPiket: (guruPiket) => {
+            set((state) => ({
+                guruPiket,
+                conflicts: calculateConflicts(state.rows, state.teachers, guruPiket),
+            }));
+            get().triggerAutoSave();
+        },
+
+        addGuruPiket: (entry) => {
+            set((state) => {
+                const newEntry: GuruPiketEntry = {
+                    ...entry,
+                    id: `piket-${Date.now()}`,
+                };
+                const updated = [...state.guruPiket, newEntry];
+                return {
+                    guruPiket: updated,
+                    conflicts: calculateConflicts(state.rows, state.teachers, updated),
+                };
+            });
+            get().triggerAutoSave();
+        },
+
+        updateGuruPiket: (index, updates) => {
+            set((state) => {
+                const updated = [...state.guruPiket];
+                if (updated[index]) {
+                    updated[index] = { ...updated[index], ...updates };
+                }
+                return {
+                    guruPiket: updated,
+                    conflicts: calculateConflicts(state.rows, state.teachers, updated),
+                };
+            });
+            get().triggerAutoSave();
+        },
+
+        deleteGuruPiket: (index) => {
+            set((state) => {
+                const updated = state.guruPiket.filter((_, i) => i !== index);
+                return {
+                    guruPiket: updated,
+                    conflicts: calculateConflicts(state.rows, state.teachers, updated),
+                };
+            });
+            get().triggerAutoSave();
+        },
+
+        // Approval / Pengesahan Kepala Sekolah Actions
+        setApprovalData: (data) => {
+            set((state) => ({
+                approvalData: { ...state.approvalData, ...data },
+            }));
+            get().triggerAutoSave();
+        },
+
+        confirmApproval: async (googleDriveUrl, notes) => {
+            const state = get();
+            const schoolInfoId = state.idSchoolInformation;
+            const updatedApproval: ScheduleApprovalData = {
+                ...state.approvalData,
+                isApproved: true,
+                googleDriveUrl: googleDriveUrl || state.approvalData.googleDriveUrl,
+                approvedAt: new Date().toISOString(),
+                notes: notes || state.approvalData.notes || 'Disahkan oleh Kepala Sekolah SMK Xaverius Palembang',
+            };
+
+            set({ approvalData: updatedApproval });
+
+            if (schoolInfoId) {
+                await matrixService.saveBySchoolInformation(
+                    schoolInfoId,
+                    {
+                        matrix_data: state.rows,
+                        teachers_data: state.teachers,
+                        guru_piket_data: state.guruPiket,
+                        classes_data: state.classes,
+                        approval_data: updatedApproval,
+                        is_synced: true,
+                    },
+                    {
+                        onSuccess: () => {
+                            snackbar.success('Dokumen jadwal resmi berhasil dikonfirmasi & disahkan oleh Kepala Sekolah!');
+                        },
+                        onError: (err) => {
+                            snackbar.error(err.message || 'Gagal menyimpan pengesahan ke database.');
+                        },
+                    }
+                );
+            }
+            return true;
+        },
+
+        revokeApproval: async () => {
+            const state = get();
+            const schoolInfoId = state.idSchoolInformation;
+            const updatedApproval: ScheduleApprovalData = {
+                ...state.approvalData,
+                isApproved: false,
+                approvedAt: '',
+            };
+
+            set({ approvalData: updatedApproval });
+
+            if (schoolInfoId) {
+                await matrixService.saveBySchoolInformation(
+                    schoolInfoId,
+                    {
+                        matrix_data: state.rows,
+                        teachers_data: state.teachers,
+                        guru_piket_data: state.guruPiket,
+                        classes_data: state.classes,
+                        approval_data: updatedApproval,
+                        is_synced: true,
+                    },
+                    {
+                        onSuccess: () => {
+                            snackbar.info('Status pengesahan dokumen jadwal berhasil dibatalkan.');
+                        },
+                        onError: (err) => {
+                            snackbar.error(err.message || 'Gagal memperbarui status pengesahan.');
+                        },
+                    }
+                );
+            }
+            return true;
+        },
+
         triggerAutoSave: () => {
             if (autoSaveScheduleTimer) clearTimeout(autoSaveScheduleTimer);
             autoSaveScheduleTimer = setTimeout(() => {
@@ -482,6 +695,7 @@ export const useScheduleStore = create<ScheduleState & ScheduleActions>(
                             teachers_data: state.teachers,
                             guru_piket_data: state.guruPiket,
                             classes_data: state.classes,
+                            approval_data: state.approvalData,
                             is_synced: true,
                         },
                         {
@@ -682,17 +896,36 @@ export const useScheduleStore = create<ScheduleState & ScheduleActions>(
                     },
                 };
 
+                // Check if this is an EKSTRA type activity
+                const isEkstraType = activityType.toString().includes('EKSTRA') ||
+                    activityType === 'PRAMUKA' ||
+                    title.toUpperCase().includes('EKSTRA');
+
                 const newRows = state.rows.map((row) => {
                     if (row.id !== rowId) return row;
+
+                    // For Ekstra: initialize per-class extra activities with default
+                    let classExtraActivities: Record<string, string> | undefined;
+                    if (isEkstraType) {
+                        classExtraActivities = {};
+                        const defaultExtra = state.categoryExtras.length > 0
+                            ? state.categoryExtras[0].name
+                            : 'Pramuka';
+                        state.classes.forEach((cls) => {
+                            classExtraActivities![cls.name] = defaultExtra;
+                        });
+                    }
+
                     return {
                         ...row,
                         specialActivity: {
                             isSpecial: true as const,
                             activityType,
                             title,
-                            fullSpan: true,
+                            fullSpan: !isEkstraType, // Ekstra = per-class, NOT full span
                             colorScheme: colors[activityType] || colors.UPACARA,
                         },
+                        ...(isEkstraType ? { classExtraActivities } : {}),
                     };
                 });
 
@@ -710,14 +943,80 @@ export const useScheduleStore = create<ScheduleState & ScheduleActions>(
                     return {
                         ...row,
                         specialActivity: null,
+                        classExtraActivities: undefined,
                     };
                 });
 
                 return {
                     rows: newRows,
-                    conflicts: calculateConflicts(newRows, state.teachers),
+                    conflicts: calculateConflicts(newRows, state.teachers, state.guruPiket),
                 };
             });
+            get().triggerAutoSave();
+        },
+
+        updateRowExtraCategory: (rowId, extraName) => {
+            set((state) => {
+                const newRows = state.rows.map((row) => {
+                    if (row.id !== rowId) return row;
+                    const existing = row.specialActivity;
+                    // Update all classes to the same extra category
+                    const classExtraActivities: Record<string, string> = {};
+                    state.classes.forEach((cls) => {
+                        classExtraActivities[cls.name] = extraName;
+                    });
+                    return {
+                        ...row,
+                        classExtraActivities,
+                        specialActivity: existing
+                            ? {
+                                  ...existing,
+                                  title: 'EKSTRA',
+                                  subtitle: extraName,
+                                  fullSpan: false,
+                              }
+                            : {
+                                  isSpecial: true as const,
+                                  activityType: 'EKSTRA_WAJIB' as const,
+                                  title: 'EKSTRA',
+                                  subtitle: extraName,
+                                  fullSpan: false,
+                                  colorScheme: {
+                                      bg: '#dcfce7',
+                                      text: '#15803d',
+                                      border: '#bbf7d0',
+                                  },
+                              },
+                    };
+                });
+
+                return {
+                    rows: newRows,
+                    conflicts: calculateConflicts(newRows, state.teachers, state.guruPiket),
+                };
+            });
+            get().triggerAutoSave();
+        },
+
+        setClassExtraActivity: (rowId, className, extraName) => {
+            set((state) => {
+                const newRows = state.rows.map((row) => {
+                    if (row.id !== rowId) return row;
+                    return {
+                        ...row,
+                        classExtraActivities: {
+                            ...(row.classExtraActivities || {}),
+                            [className]: extraName,
+                        },
+                    };
+                });
+
+                return {
+                    rows: newRows,
+                    conflicts: calculateConflicts(newRows, state.teachers, state.guruPiket),
+                };
+            });
+            get().triggerAutoSave();
         },
 
         updateTeacher: (code, updates) => {
@@ -806,7 +1105,7 @@ export const useScheduleStore = create<ScheduleState & ScheduleActions>(
                 }
                 if (!rosterData) {
                     const activeInfo = get().schoolInformations.find((i) => i.id_school_information === schoolInfoId);
-                    rosterData = getStoredRosterData(schoolInfoId, activeInfo?.periode);
+                    rosterData = getStoredRosterData(schoolInfoId, activeInfo?.periode || undefined);
                 }
 
                 const currentClasses = get().classes;
@@ -902,6 +1201,19 @@ export const useScheduleStore = create<ScheduleState & ScheduleActions>(
             }
         },
 
+        fetchCategoryExtras: async () => {
+            try {
+                await categoryExtraService.getAll({
+                    onSuccess: (data) => {
+                        set({ categoryExtras: data || [] });
+                    },
+                    onError: () => {},
+                });
+            } catch (err) {
+                console.error('Error fetching category extras:', err);
+            }
+        },
+
         fetchClassesFromDatabase: async (schoolInfoId?: string) => {
             try {
                 await classService.getAll(
@@ -981,8 +1293,9 @@ export const useScheduleStore = create<ScheduleState & ScheduleActions>(
             try {
                 let schoolInfoId = customSchoolInfoId || get().idSchoolInformation;
 
-                // 1. Ambil daftar informasi sekolah
+                // 1. Ambil daftar informasi sekolah & kategori ekstra
                 await get().fetchSchoolInformations();
+                await get().fetchCategoryExtras();
                 schoolInfoId = get().idSchoolInformation;
 
                 // 2. Ambil data kelas murni dari database MySQL (classes table)
@@ -1009,7 +1322,7 @@ export const useScheduleStore = create<ScheduleState & ScheduleActions>(
                 // Fallback ke localStorage jika belum ada di database
                 if (!rosterData) {
                     const activeInfo = get().schoolInformations.find((i) => i.id_school_information === schoolInfoId);
-                    rosterData = getStoredRosterData(schoolInfoId, activeInfo?.periode);
+                    rosterData = getStoredRosterData(schoolInfoId, activeInfo?.periode || undefined);
                     if (rosterData && schoolInfoId) {
                         // Simpan ke database MySQL di background
                         rosterScheduleService.saveBySchoolInformation(
@@ -1030,6 +1343,12 @@ export const useScheduleStore = create<ScheduleState & ScheduleActions>(
                         onSuccess: (res) => {
                             if (res && res.matrix_data && Array.isArray(res.matrix_data) && res.matrix_data.length > 0) {
                                 savedRows = res.matrix_data;
+                            }
+                            if (res && res.guru_piket_data && Array.isArray(res.guru_piket_data) && res.guru_piket_data.length > 0) {
+                                set({ guruPiket: res.guru_piket_data });
+                            }
+                            if (res && res.approval_data) {
+                                set({ approvalData: res.approval_data });
                             }
                         },
                         onError: () => {},
@@ -1097,6 +1416,7 @@ export const useScheduleStore = create<ScheduleState & ScheduleActions>(
                             teachers_data: state.teachers,
                             guru_piket_data: state.guruPiket,
                             classes_data: state.classes,
+                            approval_data: state.approvalData,
                             is_synced: true,
                         },
                         {
@@ -1332,24 +1652,57 @@ export const useScheduleStore = create<ScheduleState & ScheduleActions>(
                 };
             });
 
-            // Tracking occupied teacher in each slot
+            // Tracking occupied teacher in each slot (baris) untuk mencegah bentrok double-booking
             const slotTeacherOccupied: Record<string, Set<number>> = {};
             const teacherAssignedHours: Record<number, number> = {};
+            // Tracking jam per mata pelajaran per kelas: classSubjectAssigned[className][subjectCode] = jam
+            const classSubjectAssigned: Record<string, Record<string, number>> = {};
+
             currentTeachers.forEach((t) => {
                 teacherAssignedHours[t.code] = 0;
+            });
+            classNames.forEach((cn) => {
+                classSubjectAssigned[cn] = {};
             });
             generatedRows.forEach((row) => {
                 slotTeacherOccupied[row.id] = new Set<number>();
             });
 
+            // Helper: Dapatkan target JP mingguan per kelas untuk mata pelajaran guru
+            const getSubjectTargetJp = (t: TeacherCodeEntry, subjectCode?: string): number => {
+                if (t.subjects && t.subjects.length > 0) {
+                    const matched = t.subjects.find((s) => s.subjectCode === subjectCode);
+                    if (matched && matched.targetJp) return matched.targetJp;
+                    if (t.subjects[0]?.targetJp) return t.subjects[0].targetJp;
+                }
+                return 4; // Standar 4 JP per minggu per kelas
+            };
+
             let requestsFulfilled = 0;
 
-            // Step 1: Lock in Teacher Requests if enabled
+            // Step 1: Prioritas Request Pengajar dari Panel (Maksimal target JP per kelas)
             if (prioritizeRequests && requests.length > 0) {
                 requests.forEach((req) => {
-                    if (req.status !== 'CONFLICT' && req.preferredSlots) {
+                    if (req.status !== 'CONFLICT' && req.preferredSlots && req.preferredSlots.length > 0) {
+                        const teacherInfo = currentTeachers.find((t) => t.code === req.teacherCode);
+                        const subjCode = teacherInfo?.subjectCode || `SUBJ-${req.teacherCode}`;
+                        const targetJp = teacherInfo ? getSubjectTargetJp(teacherInfo, subjCode) : 4;
+
                         let fulfilledForThisTeacher = false;
+
+                        // Cari kelas yang alokasi mapel ini masih kurang dari target JP
+                        const candidateClasses = classNames.filter(
+                            (cn) => (classSubjectAssigned[cn][subjCode] || 0) < targetJp
+                        );
+                        if (candidateClasses.length === 0) return;
+
+                        const targetClass = candidateClasses[Math.floor(Math.random() * candidateClasses.length)];
+
                         req.preferredSlots.forEach((slot) => {
+                            // Cek jika kuota JP mapel ini di kelas target sudah penuh, stop alokasi
+                            const currentClassJp = classSubjectAssigned[targetClass][subjCode] || 0;
+                            if (currentClassJp >= targetJp) return;
+
                             const matchingRows = generatedRows.filter((r) => {
                                 if (r.specialActivity) return false;
                                 if (r.day !== slot.day) return false;
@@ -1363,35 +1716,40 @@ export const useScheduleStore = create<ScheduleState & ScheduleActions>(
                                 return false;
                             });
 
-                            if (matchingRows.length > 0) {
-                                const targetClass = classNames[Math.floor(Math.random() * classNames.length)];
-                                matchingRows.forEach((row) => {
-                                    if (!slotTeacherOccupied[row.id].has(req.teacherCode)) {
-                                        const teacherInfo = currentTeachers.find((t) => t.code === req.teacherCode);
+                            matchingRows.forEach((row) => {
+                                const currentJpNow = classSubjectAssigned[targetClass][subjCode] || 0;
+                                if (currentJpNow >= targetJp) return;
+
+                                // Pastikan guru belum bentrok mengajar di kelas lain pada baris/slot ini
+                                if (!slotTeacherOccupied[row.id].has(req.teacherCode)) {
+                                    const existingCell = row.classCells[targetClass];
+                                    if (!existingCell || !existingCell.teacherCode) {
                                         row.classCells[targetClass] = {
                                             teacherCode: req.teacherCode,
                                             teacherName: req.teacherName,
                                             subjectName: req.subjectName,
+                                            subjectCode: subjCode,
                                             category: teacherInfo?.category || 'UMUM',
                                         };
                                         slotTeacherOccupied[row.id].add(req.teacherCode);
                                         teacherAssignedHours[req.teacherCode] = (teacherAssignedHours[req.teacherCode] || 0) + 1;
+                                        classSubjectAssigned[targetClass][subjCode] = currentJpNow + 1;
                                         fulfilledForThisTeacher = true;
                                     }
-                                });
-                            }
+                                }
+                            });
                         });
+
                         if (fulfilledForThisTeacher) requestsFulfilled++;
                     }
                 });
             }
 
-            // Step 2: Strict Zero-Conflict Allocation for KBM slots
-            const kejuruanTeachers = currentTeachers.filter((t) => t.category === 'KEJURUAN');
-            const umumTeachers = currentTeachers.filter((t) => t.category === 'UMUM');
+            // Step 2: Strict Zero-Conflict & Target JP Enforcement Allocation untuk KBM slots
+            const currentGuruPiket = get().guruPiket || [];
 
             generatedRows.forEach((row) => {
-                if (row.specialActivity) return; // Non-KBM slot
+                if (row.specialActivity) return; // Non-KBM slot (Istirahat, Upacara, dll)
 
                 const jpNum = Number(row.jp) || 1;
                 const isAfternoonSlot = jpNum >= 5;
@@ -1402,43 +1760,98 @@ export const useScheduleStore = create<ScheduleState & ScheduleActions>(
 
                 shuffledClassNames.forEach((className) => {
                     const existing = row.classCells[className];
-                    if (existing && existing.teacherCode) return; // already locked
+                    if (existing && existing.teacherCode) return; // Slot ini sudah terisi
 
-                    let candidatePool: TeacherCodeEntry[] = isAfternoonSlot
-                        ? [...kejuruanTeachers, ...umumTeachers]
-                        : [...umumTeachers, ...kejuruanTeachers];
+                    // Filter kandidat guru:
+                    // 1. Belum bentrok mengajar di kelas lain pada jam/slot yang sama
+                    // 2. Tidak sedang bertugas piket (KBM 1 s/d jumlahJp piket)
+                    // 3. Mapelnya di kelas ini BELUM memenuhi kuota target JP (misal 4 JP)
+                    const eligibleCandidates = currentTeachers.filter((t) => {
+                        // Cek bentrok slot
+                        if (slotTeacherOccupied[row.id].has(t.code)) return false;
+
+                        // Cek bentrok tugas piket
+                        const isPiketBusy = currentGuruPiket.some((p) => {
+                            if (p.hari !== row.day) return false;
+                            const matches =
+                                (p.teacherCode && p.teacherCode === t.code) ||
+                                (p.name &&
+                                    (p.name.toLowerCase().includes(t.name.toLowerCase()) ||
+                                        t.name.toLowerCase().includes(p.name.toLowerCase())));
+                            if (!matches) return false;
+                            const maxJp = Number(p.jumlahJp) || 4;
+                            return jpNum <= maxJp;
+                        });
+                        if (isPiketBusy) return false;
+
+                        // Cek pemenuhan target JP mapel di kelas ini (TIDAK BOLEH LEBIH dari targetJp)
+                        const subjCode = t.subjectCode || `SUBJ-${t.code}`;
+                        const targetJp = getSubjectTargetJp(t, subjCode);
+                        const assignedJpInThisClass = classSubjectAssigned[className][subjCode] || 0;
+
+                        return assignedJpInThisClass < targetJp;
+                    });
+
+                    // Urutkan prioritas:
+                    // - Siang prioritaskan kejuruan, pagi prioritaskan umum
+                    // - Prioritaskan mapel yang masih paling banyak sisa JP-nya
+                    let candidatePool = [...eligibleCandidates];
 
                     if (candidatePool.length === 0) {
-                        candidatePool = [...currentTeachers];
-                    }
-
-                    if (randomizeTeachers) {
-                        candidatePool = [...candidatePool].sort(() => Math.random() - 0.5);
-                    }
-
-                    if (balanceDistribution) {
-                        candidatePool.sort((a, b) => {
-                            const diffA = (a.targetJp || 24) - (teacherAssignedHours[a.code] || 0);
-                            const diffB = (b.targetJp || 24) - (teacherAssignedHours[b.code] || 0);
-                            return diffB - diffA;
+                        // Jika semua mapel di kelas ini sudah mencapai target JP, cari guru yang paling sedikit total jam mengajarnya
+                        // dan tidak bentrok (sebagai rekomendasi pengisi slot sisa)
+                        const nonConflictTeachers = currentTeachers.filter((t) => {
+                            if (slotTeacherOccupied[row.id].has(t.code)) return false;
+                            const isPiketBusy = currentGuruPiket.some((p) => {
+                                if (p.hari !== row.day) return false;
+                                const matches =
+                                    (p.teacherCode && p.teacherCode === t.code) ||
+                                    (p.name &&
+                                        (p.name.toLowerCase().includes(t.name.toLowerCase()) ||
+                                            t.name.toLowerCase().includes(p.name.toLowerCase())));
+                                if (!matches) return false;
+                                return jpNum <= (Number(p.jumlahJp) || 4);
+                            });
+                            return !isPiketBusy;
                         });
+
+                        candidatePool = nonConflictTeachers;
                     }
 
-                    // Choose teacher who is NOT yet occupied in this row/slot
-                    const chosenTeacher = candidatePool.find(
-                        (t) => !slotTeacherOccupied[row.id].has(t.code)
-                    );
+                    if (candidatePool.length > 0) {
+                        if (randomizeTeachers) {
+                            candidatePool.sort(() => Math.random() - 0.5);
+                        }
 
-                    if (chosenTeacher) {
-                        row.classCells[className] = {
-                            teacherCode: chosenTeacher.code,
-                            teacherName: chosenTeacher.name,
-                            subjectName: chosenTeacher.subjectName,
-                            subjectCode: chosenTeacher.subjectCode,
-                            category: chosenTeacher.category,
-                        };
-                        slotTeacherOccupied[row.id].add(chosenTeacher.code);
-                        teacherAssignedHours[chosenTeacher.code] = (teacherAssignedHours[chosenTeacher.code] || 0) + 1;
+                        if (balanceDistribution) {
+                            candidatePool.sort((a, b) => {
+                                const diffA = (a.targetJp || 24) - (teacherAssignedHours[a.code] || 0);
+                                const diffB = (b.targetJp || 24) - (teacherAssignedHours[b.code] || 0);
+                                return diffB - diffA;
+                            });
+                        }
+
+                        // Preferensi jam: kejuruan di jam siang, umum di jam pagi
+                        if (isAfternoonSlot) {
+                            candidatePool.sort((a, b) => (b.category === 'KEJURUAN' ? 1 : 0) - (a.category === 'KEJURUAN' ? 1 : 0));
+                        } else {
+                            candidatePool.sort((a, b) => (b.category === 'UMUM' ? 1 : 0) - (a.category === 'UMUM' ? 1 : 0));
+                        }
+
+                        const chosenTeacher = candidatePool[0];
+                        if (chosenTeacher) {
+                            const subjCode = chosenTeacher.subjectCode || `SUBJ-${chosenTeacher.code}`;
+                            row.classCells[className] = {
+                                teacherCode: chosenTeacher.code,
+                                teacherName: chosenTeacher.name,
+                                subjectName: chosenTeacher.subjectName,
+                                subjectCode: subjCode,
+                                category: chosenTeacher.category,
+                            };
+                            slotTeacherOccupied[row.id].add(chosenTeacher.code);
+                            teacherAssignedHours[chosenTeacher.code] = (teacherAssignedHours[chosenTeacher.code] || 0) + 1;
+                            classSubjectAssigned[className][subjCode] = (classSubjectAssigned[className][subjCode] || 0) + 1;
+                        }
                     }
                 });
             });

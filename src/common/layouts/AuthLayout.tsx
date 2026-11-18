@@ -1,5 +1,6 @@
 import { Box, Grid } from '@mui/material';
 import React from 'react';
+import ThemeToggle from '@components/Theme/ThemeToggle';
 
 interface AuthLayoutProps {
     brandContent: React.ReactNode;
@@ -8,7 +9,7 @@ interface AuthLayoutProps {
 
 const AuthLayout: React.FC<AuthLayoutProps> = ({ brandContent, formContent }) => {
     return (
-        <Box sx={{ minHeight: '100vh', display: 'flex', bgcolor: '#090d16' }}>
+        <Box sx={{ minHeight: '100vh', display: 'flex', bgcolor: (theme) => theme.palette.mode === 'dark' ? '#09090b' : '#090d16' }}>
             <Grid container sx={{ width: '100%' }}>
                 <Grid size={{ xs: 12, md: 6 }} sx={{
                     background: 'radial-gradient(circle at 50% 50%, #1e293b 0%, #0f172a 100%)',
@@ -28,9 +29,14 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ brandContent, formContent }) =>
                     display: 'flex',
                     justifyContent: 'center',
                     alignItems: 'center',
-                    background: '#ffffff',
-                    p: { xs: 3, sm: 6 }
+                    bgcolor: (theme) => theme.palette.mode === 'dark' ? '#09090b' : '#ffffff',
+                    color: (theme) => theme.palette.mode === 'dark' ? '#fafafa' : '#09090b',
+                    p: { xs: 3, sm: 6 },
+                    position: 'relative',
                 }}>
+                    <Box sx={{ position: 'absolute', top: 16, right: 16 }}>
+                        <ThemeToggle />
+                    </Box>
                     {formContent}
                 </Grid>
             </Grid>

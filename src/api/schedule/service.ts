@@ -220,6 +220,7 @@ export interface MatrixSchedulePayload {
     teachers_data?: any;
     guru_piket_data?: any;
     classes_data?: any;
+    approval_data?: any;
     is_synced?: boolean;
 }
 
@@ -320,5 +321,83 @@ export class TeacherScheduleRequestService {
         if (callback.onFullfilled) callback.onFullfilled();
     }
 }
+
+// ── Category Extra Service ───────────────────────────
+export interface CategoryExtraResponseModel {
+    id_category_extra: string;
+    id?: string;
+    name: string;
+    description?: string;
+    status: boolean;
+    created_at?: string;
+    updated_at?: string;
+}
+
+export interface CategoryExtraCreateRequest {
+    name: string;
+    description?: string;
+    status?: boolean;
+}
+
+export interface CategoryExtraUpdateRequest {
+    name?: string;
+    description?: string;
+    status?: boolean;
+}
+
+export class CategoryExtraService {
+    basePath = "/category-extras";
+    service = new API();
+
+    async getAll(callback: FetchCallback<CategoryExtraResponseModel[]>) {
+        try {
+            const res = await this.service.GET<CategoryExtraResponseModel[]>(this.basePath);
+            const dataList = Array.isArray(res?.data) ? res.data : [];
+            callback.onSuccess(dataList);
+        } catch (err: any) {
+            callback.onError(err?.message || "Gagal mengambil daftar kategori ekstra");
+        }
+        if (callback.onFullfilled) callback.onFullfilled();
+    }
+
+    async create(data: CategoryExtraCreateRequest, callback: FetchCallback<CategoryExtraResponseModel>) {
+        try {
+            const res = await this.service.POST<CategoryExtraResponseModel>(this.basePath, data);
+            if (res?.data) {
+                callback.onSuccess(res.data);
+            } else {
+                callback.onError("Gagal menambahkan kategori ekstra");
+            }
+        } catch (err: any) {
+            callback.onError(err?.message || "Gagal menambahkan kategori ekstra");
+        }
+        if (callback.onFullfilled) callback.onFullfilled();
+    }
+
+    async update(id: string, data: CategoryExtraUpdateRequest, callback: FetchCallback<CategoryExtraResponseModel>) {
+        try {
+            const res = await this.service.PUT<CategoryExtraResponseModel>(`${this.basePath}/${id}`, data);
+            if (res?.data) {
+                callback.onSuccess(res.data);
+            } else {
+                callback.onError("Gagal memperbarui kategori ekstra");
+            }
+        } catch (err: any) {
+            callback.onError(err?.message || "Gagal memperbarui kategori ekstra");
+        }
+        if (callback.onFullfilled) callback.onFullfilled();
+    }
+
+    async delete(id: string, callback: FetchCallback<any>) {
+        try {
+            const res = await this.service.DELETE<any>(`${this.basePath}/${id}`);
+            callback.onSuccess(res?.data || { success: true });
+        } catch (err: any) {
+            callback.onError(err?.message || "Gagal menghapus kategori ekstra");
+        }
+        if (callback.onFullfilled) callback.onFullfilled();
+    }
+}
+
 
 

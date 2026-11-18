@@ -9,7 +9,6 @@ import {
     DialogTitle,
     Divider,
     IconButton,
-    Stack,
     Tooltip,
     Typography,
 } from '@mui/material';
@@ -54,11 +53,13 @@ const ClassListConflictDialog: React.FC = () => {
             onClose={() => setIsClassListModalOpen(false)}
             maxWidth="md"
             fullWidth
-            PaperProps={{
-                sx: {
-                    borderRadius: 3,
-                    p: 1,
-                    boxShadow: '0 20px 40px rgba(0,0,0,0.15)',
+            slotProps={{
+                paper: {
+                    sx: {
+                        borderRadius: 3,
+                        p: 1,
+                        boxShadow: '0 20px 40px rgba(0,0,0,0.15)',
+                    },
                 },
             }}
         >
@@ -70,7 +71,7 @@ const ClassListConflictDialog: React.FC = () => {
                     pb: 1,
                 }}
             >
-                <Stack direction="row" spacing={1.5} alignItems="center">
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                     <Box
                         sx={{
                             width: 42,
@@ -93,7 +94,7 @@ const ClassListConflictDialog: React.FC = () => {
                             Periode: TP {activeSchoolInfo?.periode || 'Aktif'} • Total {classes.length} Ruang Kelas Terdaftar di Database
                         </Typography>
                     </Box>
-                </Stack>
+                </Box>
                 <IconButton onClick={() => setIsClassListModalOpen(false)} size="small">
                     <CloseIcon />
                 </IconButton>
@@ -245,24 +246,24 @@ const ClassListConflictDialog: React.FC = () => {
 
                                     <Box sx={{ pt: 1, borderTop: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                         {hasConflict ? (
-                                            <Stack direction="row" spacing={0.5} alignItems="center">
+                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                                                 <WarningAmberIcon sx={{ fontSize: 14, color: '#ef4444' }} />
                                                 <Typography variant="caption" sx={{ color: '#ef4444', fontWeight: 700, fontSize: '11px' }}>
                                                     {classConflicts.length} Bentrok
                                                 </Typography>
-                                            </Stack>
+                                            </Box>
                                         ) : (
                                             <Typography variant="caption" sx={{ color: '#10b981', fontWeight: 600, fontSize: '11px' }}>
                                                 Bebas Bentrok (0)
                                             </Typography>
                                         )}
 
-                                        <Stack direction="row" spacing={0.5} alignItems="center">
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                                             <Typography variant="caption" sx={{ color: isSelected ? '#1d4ed8' : '#3b82f6', fontWeight: 700, fontSize: '11px' }}>
                                                 {isSelected ? 'Sedang Aktif' : 'Pilih Kelas'}
                                             </Typography>
                                             <ArrowForwardIosIcon sx={{ fontSize: 10, color: isSelected ? '#1d4ed8' : '#3b82f6' }} />
-                                        </Stack>
+                                        </Box>
                                     </Box>
                                 </Card>
                             );

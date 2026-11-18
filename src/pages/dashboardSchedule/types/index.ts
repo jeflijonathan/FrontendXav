@@ -57,6 +57,9 @@ export interface TeacherSubjectOption {
     subjectCode: string;
     category: 'KEJURUAN' | 'UMUM';
     targetJp?: number;
+    assignedClassNames?: string[];
+    allowedMajors?: string[];
+    allowedGrades?: string[];
 }
 
 export interface TeacherCodeEntry {
@@ -67,6 +70,9 @@ export interface TeacherCodeEntry {
     subjectName: string;
     subjectCode: string;
     subjects?: TeacherSubjectOption[];
+    assignedClassNames?: string[];
+    allowedMajors?: string[];
+    allowedGrades?: string[];
     category: 'KEJURUAN' | 'UMUM';
     /** Rekomendasi pedagogik penempatan JP (misal: "JP 6-8 (Blok Praktik Siang)", "JP 1-3 (Pagi)") */
     recommendedJp: string;
@@ -114,6 +120,8 @@ export interface ScheduleRow {
     durasiMenit: number;
     specialActivity?: SpecialActivityRow | null;
     classCells: Record<string, ScheduleCell>; // Keyed by ClassColumn.name
+    /** Per-class extracurricular assignment, keyed by ClassColumn.name */
+    classExtraActivities?: Record<string, string>;
 }
 
 export interface ScheduleConflict {
@@ -123,11 +131,28 @@ export interface ScheduleConflict {
     teacherCode: number;
     teacherName: string;
     conflictedClasses: string[]; // classes where this teacher is assigned at the same slot
+    conflictType?: 'TEACHER_DOUBLE_BOOKING' | 'PIKET_CONFLICT';
+    conflictReason?: string;
+}
+
+export interface ScheduleApprovalData {
+    isApproved: boolean;
+    googleDriveUrl?: string;
+    approvedBy?: string;
+    headmasterNiy?: string;
+    approvedAt?: string;
+    notes?: string;
 }
 
 export interface GuruPiketEntry {
+    id?: string;
+    teacherId?: string;
+    teacherCode?: number;
     name: string;
+    hari: DayName;
+    jumlahJp: number; // e.g. 4 means slot KBM 1 s/d 4
     role?: string;
+    notes?: string;
 }
 
 export interface JpRecommendationRule {

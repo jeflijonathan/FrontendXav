@@ -10,7 +10,6 @@ import {
     Tooltip,
     CircularProgress,
 } from '@mui/material';
-import { useTheme } from '@mui/material/styles';
 import EditNoteIcon from '@mui/icons-material/EditNote';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import EventAvailableIcon from '@mui/icons-material/EventAvailable';
@@ -22,8 +21,6 @@ import { useScheduleStore } from '../store/useScheduleStore';
 import type { TeacherScheduleRequest } from '../types';
 
 const TeacherScheduleRequestPanel: React.FC = () => {
-    const theme = useTheme();
-    const isDark = theme.palette.mode === 'dark';
     const {
         teacherRequests,
         isLoadingRequests,

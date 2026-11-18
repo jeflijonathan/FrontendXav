@@ -11,7 +11,6 @@ import {
     TextField,
     ToggleButton,
     ToggleButtonGroup,
-    Tooltip,
     Typography,
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
@@ -33,7 +32,6 @@ const ScheduleControlBar: React.FC = () => {
     const {
         viewMode,
         setViewMode,
-        selectedClassForInput,
         setSelectedClassForInput,
         selectedDayFilter,
         setSelectedDayFilter,

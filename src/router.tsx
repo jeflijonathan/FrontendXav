@@ -15,6 +15,7 @@ import DashboardMajor from "@pages/dashboardMajor";
 import DashboardClass from "@pages/dashboardClass";
 import DashboardTeaching from "@pages/dashboardTeaching";
 import DashboardCategorySubject from "@pages/dashboardCategorySubject";
+import DashboardCategoryExtra from "@pages/dashboardCategoryExtra";
 import DashboardSubject from "@pages/dashboardSubject";
 import DashboardAcademicCalendar from "@pages/dashboardAcademicCalendar";
 import DashboardEffectiveHours from "@pages/dashboardEffectiveHours";
@@ -90,6 +91,10 @@ const routes = createBrowserRouter([
       {
         path: "/category-subjects",
         element: <DashboardCategorySubject />,
+      },
+      {
+        path: "/category-extras",
+        element: <DashboardCategoryExtra />,
       },
       {
         path: "/subjects",

@@ -4,22 +4,12 @@ import {
     Box,
     Button,
     Card,
-    Chip,
     CircularProgress,
-    IconButton,
-    Stack,
-    Tooltip,
     Typography,
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
-import RefreshIcon from '@mui/icons-material/Refresh';
-import DescriptionIcon from '@mui/icons-material/Description';
-import FolderIcon from '@mui/icons-material/Folder';
-import TableChartIcon from '@mui/icons-material/TableChart';
-import SlideshowIcon from '@mui/icons-material/Slideshow';
 import CloudQueueIcon from '@mui/icons-material/CloudQueue';
-import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutlined';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import { parseGoogleDriveUrl } from '@utils/googleDrive';
 
@@ -38,8 +28,8 @@ export const GoogleDrivePreview: React.FC<GoogleDrivePreviewProps> = ({
 }) => {
     const theme = useTheme();
     const isDark = theme.palette.mode === 'dark';
-    const [iframeKey, setIframeKey] = useState(0);
     const [isLoading, setIsLoading] = useState(true);
+    const [iframeError, setIframeError] = useState(false);
 
     if (!url || !url.trim()) {
         if (!showEmptyState) return null;
@@ -88,21 +78,6 @@ export const GoogleDrivePreview: React.FC<GoogleDrivePreviewProps> = ({
         );
     }
 
-    const getTypeIcon = () => {
-        switch (parsed.type) {
-            case 'document':
-                return <DescriptionIcon fontSize="small" sx={{ color: '#2563eb' }} />;
-            case 'spreadsheet':
-                return <TableChartIcon fontSize="small" sx={{ color: '#16a34a' }} />;
-            case 'presentation':
-                return <SlideshowIcon fontSize="small" sx={{ color: '#ea580c' }} />;
-            case 'folder':
-                return <FolderIcon fontSize="small" sx={{ color: '#ca8a04' }} />;
-            default:
-                return <DescriptionIcon fontSize="small" sx={{ color: '#4f46e5' }} />;
-        }
-    };
-
     return (
         <Card
             elevation={0}
@@ -114,67 +89,20 @@ export const GoogleDrivePreview: React.FC<GoogleDrivePreviewProps> = ({
                 boxShadow: isDark ? '0 4px 12px rgba(0,0,0,0.5)' : '0 1px 3px 0 rgba(0, 0, 0, 0.05)',
             }}
         >
-            {/* Header bar */}
+            {/* Header: Judul saja */}
             <Box
                 sx={{
                     px: 2,
-                    py: 1.5,
+                    py: 1.2,
                     bgcolor: isDark ? '#18181b' : '#f8fafc',
                     borderBottom: isDark ? '1px solid #27272a' : '1px solid #e2e8f0',
                     display: 'flex',
-                    flexWrap: 'wrap',
                     alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: 1.5,
                 }}
             >
-                <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-                    {getTypeIcon()}
-                    <Typography variant="subtitle2" sx={{ fontWeight: 800, color: isDark ? '#f4f4f5' : '#0f172a' }}>
-                        {title}
-                    </Typography>
-                    <Chip
-                        icon={<CheckCircleOutlineIcon sx={{ fontSize: '13px !important' }} />}
-                        label={parsed.typeLabel}
-                        size="small"
-                        color="primary"
-                        variant="outlined"
-                        sx={{ height: 22, fontSize: '11px', fontWeight: 700 }}
-                    />
-                </Stack>
-
-                <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-                    <Tooltip title="Muat Ulang Pratinjau Dokumen">
-                        <IconButton
-                            size="small"
-                            onClick={() => {
-                                setIsLoading(true);
-                                setIframeKey((k) => k + 1);
-                            }}
-                            sx={{ color: isDark ? '#a1a1aa' : '#64748b' }}
-                        >
-                            <RefreshIcon fontSize="small" />
-                        </IconButton>
-                    </Tooltip>
-
-                    <Button
-                        size="small"
-                        variant="contained"
-                        color="primary"
-                        startIcon={<OpenInNewIcon />}
-                        href={parsed.originalUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        sx={{
-                            textTransform: 'none',
-                            fontWeight: 700,
-                            borderRadius: 1.5,
-                            boxShadow: 'none',
-                        }}
-                    >
-                        Buka di Google Drive
-                    </Button>
-                </Stack>
+                <Typography variant="subtitle2" sx={{ fontWeight: 800, color: isDark ? '#f4f4f5' : '#0f172a' }}>
+                    {title}
+                </Typography>
             </Box>
 
             {/* Embedded Iframe Container */}
@@ -201,38 +129,45 @@ export const GoogleDrivePreview: React.FC<GoogleDrivePreviewProps> = ({
                 )}
 
                 <iframe
-                    key={iframeKey}
                     src={parsed.embedUrl}
                     title="Pratinjau Dokumen Google Drive"
                     width="100%"
                     height="100%"
                     style={{ border: 0 }}
                     allow="autoplay"
-                    onLoad={() => setIsLoading(false)}
+                    onLoad={() => {
+                        setIsLoading(false);
+                        setIframeError(false);
+                    }}
+                    onError={() => {
+                        setIsLoading(false);
+                        setIframeError(true);
+                    }}
                 />
             </Box>
 
-            {/* Permissions hint footer */}
-            <Box
-                sx={{
-                    px: 2,
-                    py: 1,
-                    bgcolor: isDark ? 'rgba(217, 119, 6, 0.15)' : '#fffbeb',
-                    borderTop: isDark ? '1px solid rgba(217, 119, 6, 0.3)' : '1px solid #fef3c7',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 1,
-                }}
-            >
-                <InfoOutlinedIcon sx={{ fontSize: 16, color: isDark ? '#fbbf24' : '#b45309', flexShrink: 0 }} />
-                <Typography variant="caption" sx={{ color: isDark ? '#fde68a' : '#92400e', fontSize: '11px', lineHeight: 1.3 }}>
-                    <b>Tips Akses:</b> Pastikan izin berbagi file di Google Drive diatur ke{' '}
-                    <b>&quot;Siapa saja yang memiliki link&quot; (Anyone with the link)</b> agar siswa dan pegawai dapat membaca dokumen ini tanpa terkendala izin akses.
-                </Typography>
-            </Box>
+            {/* Tips Akses: hanya tampil jika gagal load */}
+            {iframeError && (
+                <Box
+                    sx={{
+                        px: 2,
+                        py: 1,
+                        bgcolor: isDark ? 'rgba(217, 119, 6, 0.15)' : '#fffbeb',
+                        borderTop: isDark ? '1px solid rgba(217, 119, 6, 0.3)' : '1px solid #fef3c7',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1,
+                    }}
+                >
+                    <InfoOutlinedIcon sx={{ fontSize: 16, color: isDark ? '#fbbf24' : '#b45309', flexShrink: 0 }} />
+                    <Typography variant="caption" sx={{ color: isDark ? '#fde68a' : '#92400e', fontSize: '11px', lineHeight: 1.3 }}>
+                        <b>Tips Akses:</b> Pastikan izin berbagi file di Google Drive diatur ke{' '}
+                        <b>&quot;Siapa saja yang memiliki link&quot; (Anyone with the link)</b> agar siswa dan pegawai dapat membaca dokumen ini tanpa terkendala izin akses.
+                    </Typography>
+                </Box>
+            )}
         </Card>
     );
 };
 
 export default GoogleDrivePreview;
-

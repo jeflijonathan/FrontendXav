@@ -17,7 +17,6 @@ import {
     FormHelperText,
     Tabs,
     Tab,
-    Paper,
     InputAdornment,
     IconButton,
 } from "@mui/material";
@@ -102,7 +101,7 @@ const EmployeeProfile: React.FC = () => {
     return (
         <Box sx={{ maxWidth: 1200, mx: "auto", p: { xs: 2, md: 3 } }}>
             {/* Header Profil Card */}
-            <Paper
+            <Card
                 elevation={0}
                 sx={{
                     p: 3,
@@ -110,7 +109,12 @@ const EmployeeProfile: React.FC = () => {
                     borderRadius: 3,
                     border: "1px solid",
                     borderColor: "divider",
-                    background: "linear-gradient(135deg, #f8fafc 0%, #edf2f7 100%)",
+                    bgcolor: (theme) => theme.palette.mode === "dark" ? "#141416" : "#ffffff",
+                    backgroundImage: "none",
+                    boxShadow: (theme) =>
+                        theme.palette.mode === "dark"
+                            ? "0 4px 20px rgba(0,0,0,0.5)"
+                            : "0 2px 8px rgba(0,0,0,0.04)",
                 }}
             >
                 <Box
@@ -130,7 +134,10 @@ const EmployeeProfile: React.FC = () => {
                             bgcolor: "secondary.main",
                             fontSize: "2rem",
                             fontWeight: "bold",
-                            boxShadow: "0 4px 14px rgba(0,0,0,0.1)",
+                            boxShadow: (theme) =>
+                                theme.palette.mode === "dark"
+                                    ? "0 4px 14px rgba(0,0,0,0.4)"
+                                    : "0 4px 14px rgba(0,0,0,0.1)",
                         }}
                     >
                         {initialName}
@@ -174,7 +181,7 @@ const EmployeeProfile: React.FC = () => {
                         Muat Ulang
                     </Button>
                 </Box>
-            </Paper>
+            </Card>
 
             {/* Form Section */}
             <Card
@@ -183,7 +190,11 @@ const EmployeeProfile: React.FC = () => {
                     borderRadius: 3,
                     border: "1px solid",
                     borderColor: "divider",
-                    boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+                    bgcolor: "background.paper",
+                    boxShadow: (theme) =>
+                        theme.palette.mode === "dark"
+                            ? "0 4px 20px rgba(0,0,0,0.5)"
+                            : "0 2px 8px rgba(0,0,0,0.04)",
                 }}
             >
                 <Box sx={{ borderBottom: 1, borderColor: "divider", px: 2 }}>

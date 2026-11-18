@@ -51,6 +51,7 @@ const SidebarApp = () => {
         { label: "Alokasi Jam & JP", href: "/alokasi-jp" },
         { label: "Pengajar", href: "/teaching-staff" },
         { label: "Roster Jam Belajar", href: "/roster-jam" },
+        { label: "Kategori Ekstra", href: "/category-extras" },
         { label: "Jadwal Pelajaran", href: "/jadwal-pelajaran" },
       ],
     },

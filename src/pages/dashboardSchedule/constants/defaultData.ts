@@ -404,11 +404,48 @@ export const JP_RECOMMENDATION_RULES: JpRecommendationRule[] = [
 ];
 
 export const DEFAULT_GURU_PIKET: GuruPiketEntry[] = [
-    { name: 'Martince Sirait, S.Pd.', role: 'Koordinator Piket' },
-    { name: 'Magdalena Sri Asih, S.Pd.', role: 'Anggota Piket' },
-    { name: 'Anastasia Maria Rosa, S.E.', role: 'Anggota Piket' },
-    { name: 'Ester Dhame Chaterine, S.Pd.', role: 'Anggota Piket' },
-    { name: 'Yohanes Purwanto, S.Pd.', role: 'Anggota Piket' },
+    {
+        id: 'piket-1',
+        name: 'Admin Xaverius',
+        teacherCode: 1,
+        hari: 'Senin',
+        jumlahJp: 4,
+        role: 'Koordinator Piket',
+        notes: 'Piket gerbang & koordinasi KBM 1-4',
+    },
+    {
+        id: 'piket-2',
+        name: 'Jefli Jonathan',
+        teacherCode: 2,
+        hari: 'Selasa',
+        jumlahJp: 4,
+        role: 'Anggota Piket',
+        notes: 'Piket ketertiban & presensi KBM 1-4',
+    },
+    {
+        id: 'piket-3',
+        name: 'Martince Sirait, S.Pd.',
+        hari: 'Rabu',
+        jumlahJp: 4,
+        role: 'Anggota Piket',
+        notes: 'Piket keliling KBM 1-4',
+    },
+    {
+        id: 'piket-4',
+        name: 'Magdalena Sri Asih, S.Pd.',
+        hari: 'Kamis',
+        jumlahJp: 4,
+        role: 'Anggota Piket',
+        notes: 'Piket perizinan & piket harian KBM 1-4',
+    },
+    {
+        id: 'piket-5',
+        name: 'Anastasia Maria Rosa, S.E.',
+        hari: 'Jumat',
+        jumlahJp: 3,
+        role: 'Anggota Piket',
+        notes: 'Piket Jumat bersih & literasi KBM 1-3',
+    },
 ];
 
 /**
