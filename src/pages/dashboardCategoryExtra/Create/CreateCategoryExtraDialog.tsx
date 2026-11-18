@@ -63,8 +63,8 @@ export const CreateCategoryExtraDialog: React.FC<CreateCategoryExtraDialogProps>
                     handleClose();
                     onSuccess(data);
                 },
-                onError: (err) => {
-                    setErrorMsg(err || "Gagal menambahkan kategori ekstra");
+                onError: (err: any) => {
+                    setErrorMsg(String(err) || "Gagal menambahkan kategori ekstra");
                     setIsLoading(false);
                 },
                 onFullfilled: () => {

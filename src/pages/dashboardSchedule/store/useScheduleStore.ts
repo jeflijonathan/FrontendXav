@@ -232,6 +232,28 @@ export interface ScheduleActions {
     saveSchedule: () => Promise<void>;
 }
 
+/**
+ * Helper untuk mengurutkan kelas secara logis dan standar:
+ * 1. Urutan Tingkat / Kelas: X (10) -> XI (11) -> XII (12)
+ * 2. Urutan Jurusan / Nama: AKL -> DKV -> MP -> TKJT, dsb.
+ */
+export const sortClassesByGradeAndName = (a: ClassColumn, b: ClassColumn): number => {
+    const getGradeWeight = (cls: ClassColumn): number => {
+        const g = (cls.grade || '').trim().toUpperCase();
+        const n = (cls.name || '').trim().toUpperCase();
+        if (g === 'X' || g === '10' || n.startsWith('10') || n.startsWith('X ') || n.startsWith('X-')) return 10;
+        if (g === 'XI' || g === '11' || n.startsWith('11') || n.startsWith('XI ') || n.startsWith('XI-')) return 11;
+        if (g === 'XII' || g === '12' || n.startsWith('12') || n.startsWith('XII ') || n.startsWith('XII-')) return 12;
+        return 99;
+    };
+
+    const weightA = getGradeWeight(a);
+    const weightB = getGradeWeight(b);
+    if (weightA !== weightB) return weightA - weightB;
+
+    return a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' });
+};
+
 const findTeacherByCode = (
     teachers: TeacherCodeEntry[],
     code: number | null
@@ -438,6 +460,10 @@ const mapTeachingStaffToTeacherEntries = (staffList: TeachingTeacherRowModel[]):
     staffList.forEach((teacher) => {
         const fullName = `${teacher.first_name || ''} ${teacher.last_name || ''}`.trim() || 'Guru Pengajar';
 
+        const allAssignedClasses: string[] = [];
+        const allAllowedMajors = new Set<string>();
+        const allAllowedGrades = new Set<string>();
+
         // Petakan semua mapel yang diajar guru ini dari menu Pengajaran
         const teacherSubjects: TeacherSubjectOption[] = (teacher.subjects || []).map((subj, sIdx) => {
             const isKejuruan =
@@ -448,12 +474,37 @@ const mapTeachingStaffToTeacherEntries = (staffList: TeachingTeacherRowModel[]):
                 (subj.subject_name || '').toLowerCase().includes('dkv') ||
                 (subj.subject_name || '').toLowerCase().includes('tkj');
 
+            const assignedClassNames: string[] = (subj.classes || [])
+                .map((c) => c.class_name || '')
+                .filter(Boolean);
+
+            const allowedMajorsSet = new Set<string>();
+            const allowedGradesSet = new Set<string>();
+
+            assignedClassNames.forEach((cn) => {
+                allAssignedClasses.push(cn);
+                const parts = cn.trim().split(/\s+/);
+                if (parts.length > 1) {
+                    allowedGradesSet.add(parts[0].toUpperCase());
+                    allAllowedGrades.add(parts[0].toUpperCase());
+                    const m = parts.slice(1).join(' ').toUpperCase();
+                    allowedMajorsSet.add(m);
+                    allAllowedMajors.add(m);
+                } else if (parts.length === 1) {
+                    allowedMajorsSet.add(parts[0].toUpperCase());
+                    allAllowedGrades.add(parts[0].toUpperCase());
+                }
+            });
+
             return {
                 idSubject: subj.id_subject || subj.id_teacher_subject,
                 subjectName: subj.subject_name || 'Mata Pelajaran',
                 subjectCode: subj.code_subject || `MP-${sIdx + 1}`,
                 category: isKejuruan ? 'KEJURUAN' : 'UMUM',
                 targetJp: subj.jp_amount || 4,
+                assignedClassNames,
+                allowedMajors: Array.from(allowedMajorsSet),
+                allowedGrades: Array.from(allowedGradesSet),
             };
         });
 
@@ -475,6 +526,9 @@ const mapTeachingStaffToTeacherEntries = (staffList: TeachingTeacherRowModel[]):
             subjectName: primarySubj.subjectName,
             subjectCode: primarySubj.subjectCode,
             subjects: teacherSubjects,
+            assignedClassNames: allAssignedClasses,
+            allowedMajors: Array.from(allAllowedMajors),
+            allowedGrades: Array.from(allAllowedGrades),
             category: primarySubj.category,
             recommendedJp: primarySubj.category === 'KEJURUAN' ? 'JP 6-8 (Blok Praktik Siang)' : 'JP 1-3 (Pagi)',
             recommendedJpRange: primarySubj.category === 'KEJURUAN' ? [6, 8] : [1, 3],
@@ -534,6 +588,7 @@ export const useScheduleStore = create<ScheduleState & ScheduleActions>(
 
         // Category Extras Initial State
         categoryExtras: [],
+        effectiveWeekAllocations: [],
 
         setViewMode: (viewMode) => set({ viewMode }),
         setSelectedClassForInput: (selectedClassForInput) => set({ selectedClassForInput }),
@@ -1214,6 +1269,26 @@ export const useScheduleStore = create<ScheduleState & ScheduleActions>(
             }
         },
 
+        fetchEffectiveWeekAllocations: async () => {
+            try {
+                const schoolInfoId = get().idSchoolInformation;
+                await effectiveWeekService.getAll(
+                    {
+                        onSuccess: (res) => {
+                            const allocs = res.data || [];
+                            set({ effectiveWeekAllocations: allocs });
+                        },
+                        onError: () => {},
+                    },
+                    schoolInfoId
+                        ? { params: { id_school_information: schoolInfoId, limit: 200 } }
+                        : { params: { limit: 200 } }
+                );
+            } catch (err) {
+                console.error('Error fetching effective week allocations:', err);
+            }
+        },
+
         fetchClassesFromDatabase: async (schoolInfoId?: string) => {
             try {
                 await classService.getAll(
@@ -1223,8 +1298,9 @@ export const useScheduleStore = create<ScheduleState & ScheduleActions>(
                             const dbClasses: ClassColumn[] = classList.map((c) => {
                                 let grade: 'X' | 'XI' | 'XII' = 'X';
                                 const k = (c.kelas || '').trim().toUpperCase();
-                                if (k === '11' || k === 'XI') grade = 'XI';
-                                else if (k === '12' || k === 'XII') grade = 'XII';
+                                const n = (c.name || '').trim().toUpperCase();
+                                if (k === '12' || k === 'XII' || n.startsWith('12') || n.startsWith('XII')) grade = 'XII';
+                                else if (k === '11' || k === 'XI' || n.startsWith('11') || n.startsWith('XI')) grade = 'XI';
                                 else grade = 'X';
 
                                 return {
@@ -1234,6 +1310,9 @@ export const useScheduleStore = create<ScheduleState & ScheduleActions>(
                                     major: c.major?.name || '',
                                 };
                             });
+
+                            // Urutkan kelas sesuai kaidah pedagogik: Kelas X -> XI -> XII, lalu menurut jurusan
+                            dbClasses.sort(sortClassesByGradeAndName);
 
                             set({ classes: dbClasses });
                             if (!dbClasses.some((m) => m.name === get().selectedClassForInput)) {
@@ -1293,9 +1372,10 @@ export const useScheduleStore = create<ScheduleState & ScheduleActions>(
             try {
                 let schoolInfoId = customSchoolInfoId || get().idSchoolInformation;
 
-                // 1. Ambil daftar informasi sekolah & kategori ekstra
+                // 1. Ambil daftar informasi sekolah & kategori ekstra & alokasi mapel per-jurusan
                 await get().fetchSchoolInformations();
                 await get().fetchCategoryExtras();
+                await get().fetchEffectiveWeekAllocations();
                 schoolInfoId = get().idSchoolInformation;
 
                 // 2. Ambil data kelas murni dari database MySQL (classes table)
@@ -1625,6 +1705,7 @@ export const useScheduleStore = create<ScheduleState & ScheduleActions>(
             const currentClasses = get().classes;
             const currentTeachers = get().teachers;
             const requests = get().teacherRequests;
+            const effectiveAllocations = get().effectiveWeekAllocations || [];
 
             if (currentClasses.length === 0 || currentTeachers.length === 0) {
                 snackbar.error('Data kelas atau pengajar dari database belum tersedia!');
@@ -1636,6 +1717,97 @@ export const useScheduleStore = create<ScheduleState & ScheduleActions>(
                     generatedRows: get().rows,
                 };
             }
+
+            // Helper validasi kecocokan jurusan & tingkat kelas
+            const isTeacherEligibleForClass = (
+                teacher: TeacherCodeEntry,
+                targetClass: ClassColumn,
+                allocations: EffectiveWeekResponseModel[],
+                subjectCode?: string
+            ): boolean => {
+                const classRawName = (targetClass.name || '').trim().toUpperCase();
+                const classMajor = (targetClass.major || '').trim().toUpperCase();
+                const classGrade = (targetClass.grade || '').trim().toUpperCase(); // 'X', 'XI', 'XII'
+                const classGradeNum = classGrade === 'X' ? '10' : classGrade === 'XI' ? '11' : '12';
+
+                const nameParts = classRawName.split(/\s+/);
+                const extractedMajorFromName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
+                const effectiveClassMajors = [classMajor, extractedMajorFromName]
+                    .map((m) => m.trim().toUpperCase())
+                    .filter(Boolean);
+
+                const subj = teacher.subjects?.find((s) => s.subjectCode === subjectCode) || teacher.subjects?.[0];
+                const subjCodeToTest = subjectCode || teacher.subjectCode;
+                const subjNameToTest = subj?.subjectName || teacher.subjectName;
+
+                // 1. Cek penugasan spesifik dari database Pengajaran (Teaching Staff)
+                if (subj?.assignedClassNames && subj.assignedClassNames.length > 0) {
+                    const matchesAssigned = subj.assignedClassNames.some((assignedCn) => {
+                        const cleanAssigned = assignedCn.trim().toUpperCase();
+                        return (
+                            cleanAssigned === classRawName ||
+                            cleanAssigned.includes(classRawName) ||
+                            classRawName.includes(cleanAssigned)
+                        );
+                    });
+                    if (matchesAssigned) return true;
+                    // Jika mapel guru ini sudah terdata kelas-kelas spesifik, jangan masuk ke kelas lain
+                    return false;
+                }
+
+                // 2. Cek alokasi per-jurusan dari Alokasi Jam & JP (Kurikulum Effective Weeks)
+                if (allocations && allocations.length > 0) {
+                    const matchingAlloc = allocations.find((alloc) => {
+                        const codeMatches =
+                            alloc.code_subject &&
+                            subjCodeToTest &&
+                            alloc.code_subject.trim().toUpperCase() === subjCodeToTest.trim().toUpperCase();
+                        const nameMatches =
+                            alloc.subject_name &&
+                            subjNameToTest &&
+                            alloc.subject_name.trim().toLowerCase() === subjNameToTest.trim().toLowerCase();
+                        return codeMatches || nameMatches;
+                    });
+
+                    if (matchingAlloc) {
+                        // Cek tingkat kelas (X, XI, XII)
+                        if (matchingAlloc.kelas) {
+                            const allocKelas = matchingAlloc.kelas.trim().toUpperCase();
+                            const gradeMatches =
+                                allocKelas === classGrade ||
+                                allocKelas === classGradeNum ||
+                                allocKelas.includes(classGrade) ||
+                                allocKelas.includes(classGradeNum) ||
+                                classRawName.startsWith(allocKelas);
+                            if (!gradeMatches) return false;
+                        }
+
+                        // Cek daftar jurusan (Misal: SMP saja, atau AKL/DKV/TKJT)
+                        const allocMajors = (matchingAlloc.major_names || []).map((m) => m.trim().toUpperCase());
+                        if (allocMajors.length > 0) {
+                            // Wajib cocok dengan salah satu jurusan kelas target
+                            const majorMatches = allocMajors.some((allocM) => {
+                                return effectiveClassMajors.some(
+                                    (cm) => cm === allocM || cm.includes(allocM) || allocM.includes(cm)
+                                );
+                            });
+                            if (!majorMatches) return false;
+                        }
+                    }
+                }
+
+                // 3. Cek allowedMajors dari mapel guru jika ada
+                if (subj?.allowedMajors && subj.allowedMajors.length > 0) {
+                    const majorMatches = subj.allowedMajors.some((am) => {
+                        return effectiveClassMajors.some(
+                            (cm) => cm === am || cm.includes(am) || am.includes(cm)
+                        );
+                    });
+                    if (!majorMatches) return false;
+                }
+
+                return true;
+            };
 
             const classNames = currentClasses.map((c) => c.name);
             const sourceRows = get().rows;
@@ -1690,10 +1862,15 @@ export const useScheduleStore = create<ScheduleState & ScheduleActions>(
 
                         let fulfilledForThisTeacher = false;
 
-                        // Cari kelas yang alokasi mapel ini masih kurang dari target JP
-                        const candidateClasses = classNames.filter(
-                            (cn) => (classSubjectAssigned[cn][subjCode] || 0) < targetJp
-                        );
+                        // Cari kelas yang alokasi mapel ini masih kurang dari target JP dan sesuai jurusannya
+                        const candidateClasses = classNames.filter((cn) => {
+                            const classObj = currentClasses.find((c) => c.name === cn);
+                            if (!classObj) return false;
+                            if (teacherInfo && !isTeacherEligibleForClass(teacherInfo, classObj, effectiveAllocations, subjCode)) {
+                                return false;
+                            }
+                            return (classSubjectAssigned[cn][subjCode] || 0) < targetJp;
+                        });
                         if (candidateClasses.length === 0) return;
 
                         const targetClass = candidateClasses[Math.floor(Math.random() * candidateClasses.length)];
@@ -1763,14 +1940,24 @@ export const useScheduleStore = create<ScheduleState & ScheduleActions>(
                     if (existing && existing.teacherCode) return; // Slot ini sudah terisi
 
                     // Filter kandidat guru:
-                    // 1. Belum bentrok mengajar di kelas lain pada jam/slot yang sama
-                    // 2. Tidak sedang bertugas piket (KBM 1 s/d jumlahJp piket)
-                    // 3. Mapelnya di kelas ini BELUM memenuhi kuota target JP (misal 4 JP)
+                    // 1. Jurusan & tingkat kelas sesuai aturan Alokasi JP (jangan masuk ke jurusan lain jika tidak tercantum)
+                    // 2. Belum bentrok mengajar di kelas lain pada jam/slot yang sama
+                    // 3. Tidak sedang bertugas piket (KBM 1 s/d jumlahJp piket)
+                    // 4. Mapelnya di kelas ini BELUM memenuhi kuota target JP (misal 4 JP)
+                    const classObj = currentClasses.find((c) => c.name === className);
+
                     const eligibleCandidates = currentTeachers.filter((t) => {
-                        // Cek bentrok slot
+                        const subjCode = t.subjectCode || `SUBJ-${t.code}`;
+
+                        // 1. Validasi kesesuaian jurusan & tingkat
+                        if (classObj && !isTeacherEligibleForClass(t, classObj, effectiveAllocations, subjCode)) {
+                            return false;
+                        }
+
+                        // 2. Cek bentrok slot
                         if (slotTeacherOccupied[row.id].has(t.code)) return false;
 
-                        // Cek bentrok tugas piket
+                        // 3. Cek bentrok tugas piket
                         const isPiketBusy = currentGuruPiket.some((p) => {
                             if (p.hari !== row.day) return false;
                             const matches =
@@ -1784,8 +1971,7 @@ export const useScheduleStore = create<ScheduleState & ScheduleActions>(
                         });
                         if (isPiketBusy) return false;
 
-                        // Cek pemenuhan target JP mapel di kelas ini (TIDAK BOLEH LEBIH dari targetJp)
-                        const subjCode = t.subjectCode || `SUBJ-${t.code}`;
+                        // 4. Cek pemenuhan target JP mapel di kelas ini (TIDAK BOLEH LEBIH dari targetJp)
                         const targetJp = getSubjectTargetJp(t, subjCode);
                         const assignedJpInThisClass = classSubjectAssigned[className][subjCode] || 0;
 
@@ -1798,9 +1984,13 @@ export const useScheduleStore = create<ScheduleState & ScheduleActions>(
                     let candidatePool = [...eligibleCandidates];
 
                     if (candidatePool.length === 0) {
-                        // Jika semua mapel di kelas ini sudah mencapai target JP, cari guru yang paling sedikit total jam mengajarnya
+                        // Jika semua mapel di kelas ini sudah mencapai target JP, cari guru yang jurusannya cocok
                         // dan tidak bentrok (sebagai rekomendasi pengisi slot sisa)
                         const nonConflictTeachers = currentTeachers.filter((t) => {
+                            const subjCode = t.subjectCode || `SUBJ-${t.code}`;
+                            if (classObj && !isTeacherEligibleForClass(t, classObj, effectiveAllocations, subjCode)) {
+                                return false;
+                            }
                             if (slotTeacherOccupied[row.id].has(t.code)) return false;
                             const isPiketBusy = currentGuruPiket.some((p) => {
                                 if (p.hari !== row.day) return false;

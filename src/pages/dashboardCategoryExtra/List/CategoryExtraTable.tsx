@@ -9,7 +9,7 @@ import {
 } from "@mui/material";
 import { Edit, Visibility, Delete } from "@mui/icons-material";
 import { BaseTable, TableHeader } from "@components/Table";
-import TableBody from "@components/Table/TableBody";
+import TableBody, { type TableHeaderType } from "@components/Table/TableBody";
 import TableRow from "@components/Table/TableRow";
 import TableFooter from "@components/Table/TableFooter";
 import TablePagination from "@components/Table/TablePagination";
@@ -66,8 +66,8 @@ export const CategoryExtraTable: React.FC<Props> = ({
                 setRawData(data);
                 setIsLoading(false);
             },
-            onError: (err) => {
-                snackbar.error(err || "Gagal memuat kategori ekstra");
+            onError: (err: any) => {
+                snackbar.error(String(err) || "Gagal memuat kategori ekstra");
                 setIsLoading(false);
             },
             onFullfilled: () => {
@@ -136,13 +136,13 @@ export const CategoryExtraTable: React.FC<Props> = ({
         { label: "ID Kategori", value: "id" },
     ];
 
-    const headers = [
-        "ID Kategori",
-        "Nama Kategori Ekstrakurikuler",
-        "Deskripsi",
-        "Status",
-        "Dibuat Pada",
-        "Diperbarui Pada",
+    const headers: TableHeaderType[] = [
+        { label: "ID Kategori", width: "160px" },
+        { label: "Nama Kategori Ekstrakurikuler", width: "220px" },
+        { label: "Deskripsi", width: "220px" },
+        { label: "Status", width: "120px" },
+        { label: "Dibuat Pada", width: "150px" },
+        { label: "Diperbarui Pada", width: "150px" },
     ];
 
     const formatDate = (dateStr?: string | null) => {
@@ -168,8 +168,8 @@ export const CategoryExtraTable: React.FC<Props> = ({
                     fetchCategories();
                     if (onDataChanged) onDataChanged();
                 },
-                onError: (err) => {
-                    snackbar.error(err || "Gagal menghapus kategori");
+                onError: (err: any) => {
+                    snackbar.error(String(err) || "Gagal menghapus kategori");
                 },
             });
         }
@@ -328,18 +328,18 @@ export const CategoryExtraTable: React.FC<Props> = ({
                 </TableBody>
             </BaseTable>
 
-            <TableFooter
-                totalData={totalData}
-                limit={limit}
-                onLimitChange={(newLimit) => {
-                    setLimit(newLimit);
-                    setPage(1);
-                }}
-            >
+            <TableFooter>
                 <TablePagination
                     currentPage={page}
-                    totalPages={Math.ceil(totalData / limit) || 1}
-                    onPageChange={(newPage) => setPage(newPage)}
+                    totalPage={Math.ceil(totalData / limit) || 1}
+                    totalData={totalData}
+                    limit={limit}
+                    onLimitChange={(newLimit: number) => {
+                        setLimit(newLimit);
+                        setPage(1);
+                    }}
+                    limitOptions={[5, 10, 25, 50, 100]}
+                    onChange={(newPage: number) => setPage(newPage)}
                 />
             </TableFooter>
 

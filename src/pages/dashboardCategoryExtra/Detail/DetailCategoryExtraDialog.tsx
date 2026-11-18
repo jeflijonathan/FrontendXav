@@ -4,7 +4,6 @@ import {
     Box,
     Typography,
     Chip,
-    Grid,
     Divider,
 } from "@mui/material";
 import { BaseDialog, DialogHeader, DialogBody, DialogFooter } from "@components/Dialog";
@@ -55,8 +54,8 @@ export const DetailCategoryExtraDialog: React.FC<DetailCategoryExtraDialogProps>
 
                     <Divider />
 
-                    <Grid container spacing={2}>
-                        <Grid item xs={12}>
+                    <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
+                        <Box sx={{ gridColumn: { xs: "1", sm: "span 2" } }}>
                             <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.5 }}>
                                 ID Kategori (UUID)
                             </Typography>
@@ -72,44 +71,44 @@ export const DetailCategoryExtraDialog: React.FC<DetailCategoryExtraDialogProps>
                             >
                                 {data.id_category_extra || data.id || "-"}
                             </Typography>
-                        </Grid>
+                        </Box>
 
-                        <Grid item xs={12}>
+                        <Box sx={{ gridColumn: { xs: "1", sm: "span 2" } }}>
                             <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.5 }}>
                                 Nama Kategori Ekstrakurikuler
                             </Typography>
                             <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
                                 {data.name}
                             </Typography>
-                        </Grid>
+                        </Box>
 
-                        <Grid item xs={12}>
+                        <Box sx={{ gridColumn: { xs: "1", sm: "span 2" } }}>
                             <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.5 }}>
                                 Deskripsi Kegiatan
                             </Typography>
                             <Typography variant="body2" color="text.secondary">
                                 {data.description || "Tidak ada deskripsi tambahan"}
                             </Typography>
-                        </Grid>
+                        </Box>
 
-                        <Grid item xs={6}>
+                        <Box>
                             <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.5 }}>
                                 Dibuat Pada
                             </Typography>
                             <Typography variant="body2">
                                 {formatDate(data.created_at)}
                             </Typography>
-                        </Grid>
+                        </Box>
 
-                        <Grid item xs={6}>
+                        <Box>
                             <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.5 }}>
                                 Terakhir Diperbarui
                             </Typography>
                             <Typography variant="body2">
                                 {formatDate(data.updated_at)}
                             </Typography>
-                        </Grid>
-                    </Grid>
+                        </Box>
+                    </Box>
                 </Box>
             </DialogBody>
             <DialogFooter>

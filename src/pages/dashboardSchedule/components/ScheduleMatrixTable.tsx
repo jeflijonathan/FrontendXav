@@ -27,7 +27,7 @@ import {
 } from '@mui/material';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutlined';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
-import { useScheduleStore } from '../store/useScheduleStore';
+import { useScheduleStore, sortClassesByGradeAndName } from '../store/useScheduleStore';
 import type {
     ClassColumn,
     DragPayload,
@@ -123,14 +123,19 @@ const ScheduleMatrixTable: React.FC = () => {
         ? getKbmRowsAfter(selectedCellTarget.rowId, selectedCellTarget.className)
         : [];
 
-    // Filtered classes according to selected room/class or grade
-    const filteredClasses = classes.filter((c) => {
-        if (selectedClassFilter && selectedClassFilter !== 'Semua') {
-            return c.name === selectedClassFilter || c.id === selectedClassFilter;
-        }
-        if (selectedGradeFilter === 'Semua') return true;
-        return c.grade === selectedGradeFilter;
-    });
+    // Filtered and properly sorted classes according to selected room/class or grade
+    // Mengurutkan secara konsisten: Kelas X (10) -> Kelas XI (11) -> Kelas XII (12), lalu menurut Jurusan/Nama
+    const filteredClasses = useMemo(() => {
+        return classes
+            .filter((c) => {
+                if (selectedClassFilter && selectedClassFilter !== 'Semua') {
+                    return c.name === selectedClassFilter || c.id === selectedClassFilter;
+                }
+                if (selectedGradeFilter === 'Semua') return true;
+                return c.grade === selectedGradeFilter;
+            })
+            .sort(sortClassesByGradeAndName);
+    }, [classes, selectedClassFilter, selectedGradeFilter]);
 
     // Filtered rows according to selected day
     const filteredRows = rows.filter((r) => {
@@ -300,14 +305,23 @@ const ScheduleMatrixTable: React.FC = () => {
     };
 
     // Calculate grouping by Grade for the top table header
-    const gradeGroups: { grade: string; count: number; classes: ClassColumn[] }[] =
-        [];
-    ['X', 'XI', 'XII'].forEach((g) => {
-        const cls = filteredClasses.filter((c) => c.grade === g);
-        if (cls.length > 0) {
-            gradeGroups.push({ grade: `KELAS ${g}`, count: cls.length, classes: cls });
-        }
-    });
+    const gradeGroups = useMemo(() => {
+        const groups: { grade: string; count: number; classes: ClassColumn[] }[] = [];
+        ['X', 'XI', 'XII'].forEach((g) => {
+            const cls = filteredClasses.filter((c) => {
+                const k = (c.grade || '').toUpperCase();
+                const n = (c.name || '').toUpperCase();
+                if (g === 'X') return k === 'X' || k === '10' || n.startsWith('10') || n.startsWith('X');
+                if (g === 'XI') return k === 'XI' || k === '11' || n.startsWith('11') || n.startsWith('XI');
+                if (g === 'XII') return k === 'XII' || k === '12' || n.startsWith('12') || n.startsWith('XII');
+                return false;
+            });
+            if (cls.length > 0) {
+                groups.push({ grade: `KELAS ${g}`, count: cls.length, classes: cls });
+            }
+        });
+        return groups;
+    }, [filteredClasses]);
 
     return (
         <Card

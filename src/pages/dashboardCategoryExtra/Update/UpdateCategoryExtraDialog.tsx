@@ -74,8 +74,8 @@ export const UpdateCategoryExtraDialog: React.FC<UpdateCategoryExtraDialogProps>
                     handleClose();
                     onSuccess(resData);
                 },
-                onError: (err) => {
-                    setErrorMsg(err || "Gagal memperbarui kategori ekstra");
+                onError: (err: any) => {
+                    setErrorMsg(String(err) || "Gagal memperbarui kategori ekstra");
                     setIsLoading(false);
                 },
                 onFullfilled: () => {
