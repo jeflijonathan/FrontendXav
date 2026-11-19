@@ -366,10 +366,10 @@ export class CategoryExtraService {
             if (res?.data) {
                 callback.onSuccess(res.data);
             } else {
-                callback.onError("Gagal menambahkan kategori ekstra");
+                callback.onError({ message: "Gagal menambahkan kategori ekstra" } as any);
             }
         } catch (err: any) {
-            callback.onError(err?.message || "Gagal menambahkan kategori ekstra");
+            callback.onError({ message: err?.message || "Gagal menambahkan kategori ekstra" } as any);
         }
         if (callback.onFullfilled) callback.onFullfilled();
     }
@@ -380,10 +380,10 @@ export class CategoryExtraService {
             if (res?.data) {
                 callback.onSuccess(res.data);
             } else {
-                callback.onError("Gagal memperbarui kategori ekstra");
+                callback.onError({ message: "Gagal memperbarui kategori ekstra" } as any);
             }
         } catch (err: any) {
-            callback.onError(err?.message || "Gagal memperbarui kategori ekstra");
+            callback.onError({ message: err?.message || "Gagal memperbarui kategori ekstra" } as any);
         }
         if (callback.onFullfilled) callback.onFullfilled();
     }
@@ -398,6 +398,71 @@ export class CategoryExtraService {
         if (callback.onFullfilled) callback.onFullfilled();
     }
 }
+
+export interface ScheduleClassExtraItem {
+    id_schedule_class_extra?: string;
+    id_school_information: string;
+    row_id: string;
+    day: string;
+    jp?: string;
+    time_range?: string;
+    class_name: string;
+    id_class?: string;
+    extra_name: string;
+    id_category_extra?: string;
+    status?: boolean;
+    created_at?: string;
+    updated_at?: string;
+}
+
+export interface ScheduleClassExtraBatchRequest {
+    id_school_information: string;
+    items: ScheduleClassExtraItem[];
+}
+
+export class ScheduleClassExtraService {
+    basePath = "/schedule-class-extras";
+    service = new API();
+
+    async getBySchoolInformation(
+        idSchoolInformation: string,
+        callback: FetchCallback<ScheduleClassExtraItem[]>
+    ) {
+        try {
+            const res = await this.service.GET<ScheduleClassExtraItem[]>(
+                `${this.basePath}/${idSchoolInformation}`
+            );
+            const dataList = Array.isArray(res?.data) ? res.data : [];
+            callback.onSuccess(dataList);
+        } catch (err: any) {
+            callback.onError(err?.message || "Gagal mengambil data ekstra jadwal");
+        }
+        if (callback.onFullfilled) callback.onFullfilled();
+    }
+
+    async batchSave(
+        payload: ScheduleClassExtraBatchRequest,
+        callback?: FetchCallback<ScheduleClassExtraItem[]>
+    ) {
+        try {
+            const res = await this.service.POST<ScheduleClassExtraItem[]>(
+                `${this.basePath}/batch`,
+                payload
+            );
+            if (callback?.onSuccess) {
+                callback.onSuccess(Array.isArray(res?.data) ? res.data : []);
+            }
+        } catch (err: any) {
+            if (callback?.onError) {
+                callback.onError(err?.message || "Gagal menyimpan data ekstra ke tabel khusus");
+            }
+        }
+        if (callback?.onFullfilled) callback.onFullfilled();
+    }
+}
+
+export const scheduleClassExtraService = new ScheduleClassExtraService();
+
 
 
 

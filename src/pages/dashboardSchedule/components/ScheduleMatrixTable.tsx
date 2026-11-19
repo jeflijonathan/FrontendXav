@@ -1,7 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import {
     Alert,
-    Autocomplete,
     Box,
     Button,
     Card,
@@ -12,7 +11,6 @@ import {
     DialogContent,
     DialogTitle,
     FormControlLabel,
-    IconButton,
     MenuItem,
     Select,
     Table,
@@ -25,7 +23,6 @@ import {
     Tooltip,
     Typography,
 } from '@mui/material';
-import DeleteOutlineIcon from '@mui/icons-material/DeleteOutlined';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import { useScheduleStore, sortClassesByGradeAndName } from '../store/useScheduleStore';
 import type {
@@ -49,7 +46,6 @@ const ScheduleMatrixTable: React.FC = () => {
         setBatchCellTeacher,
         swapCells,
         applySpecialActivityToRow,
-        removeSpecialActivityFromRow,
         setClassExtraActivity,
         categoryExtras,
         draggedItem,
@@ -309,11 +305,11 @@ const ScheduleMatrixTable: React.FC = () => {
         const groups: { grade: string; count: number; classes: ClassColumn[] }[] = [];
         ['X', 'XI', 'XII'].forEach((g) => {
             const cls = filteredClasses.filter((c) => {
-                const k = (c.grade || '').toUpperCase();
-                const n = (c.name || '').toUpperCase();
-                if (g === 'X') return k === 'X' || k === '10' || n.startsWith('10') || n.startsWith('X');
-                if (g === 'XI') return k === 'XI' || k === '11' || n.startsWith('11') || n.startsWith('XI');
-                if (g === 'XII') return k === 'XII' || k === '12' || n.startsWith('12') || n.startsWith('XII');
+                const k = (c.grade || '').toUpperCase().trim();
+                const n = (c.name || '').toUpperCase().trim();
+                if (g === 'XII') return k === 'XII' || k === '12' || n.startsWith('12 ') || n.startsWith('12-') || n.startsWith('XII ') || n.startsWith('XII-') || n === '12' || n === 'XII';
+                if (g === 'XI') return k === 'XI' || k === '11' || n.startsWith('11 ') || n.startsWith('11-') || n.startsWith('XI ') || n.startsWith('XI-') || n === '11' || n === 'XI';
+                if (g === 'X') return k === 'X' || k === '10' || n.startsWith('10 ') || n.startsWith('10-') || n.startsWith('X ') || n.startsWith('X-') || n === '10' || n === 'X';
                 return false;
             });
             if (cls.length > 0) {
@@ -533,6 +529,167 @@ const ScheduleMatrixTable: React.FC = () => {
                                 (r) => r.day === row.day
                             );
 
+                            // Check if this row is EKSTRA type
+                            const isEkstra = Boolean(
+                                row.specialActivity && (
+                                    row.specialActivity.activityType.toString().includes('EKSTRA') ||
+                                    row.specialActivity.activityType === 'PRAMUKA' ||
+                                    row.specialActivity.title.toUpperCase().includes('EKSTRA')
+                                )
+                            );
+
+                            // Calculate visual row span (EKSTRA rows take 2 visual rows due to merged label)
+                            const ekstraCountInDay = sameDayRows.filter((r) =>
+                                r.specialActivity && (
+                                    r.specialActivity.activityType.toString().includes('EKSTRA') ||
+                                    r.specialActivity.activityType === 'PRAMUKA' ||
+                                    (r.specialActivity.title || '').toUpperCase().includes('EKSTRA')
+                                )
+                            ).length;
+                            const visualRowSpan = sameDayRows.length + ekstraCountInDay;
+
+                            // ========== EKSTRA: 2 visual rows (merged label + per-class Select) ==========
+                            if (isEkstra) {
+                                return (
+                                    <React.Fragment key={row.id}>
+                                        {/* Row 1: Merged EKSTRA banner */}
+                                        <TableRow>
+                                            {isNewDay && (
+                                                <TableCell
+                                                    rowSpan={visualRowSpan}
+                                                    sx={{
+                                                        bgcolor: '#f8fafc',
+                                                        color: '#0f172a',
+                                                        fontWeight: 800,
+                                                        fontSize: '13px',
+                                                        textAlign: 'center',
+                                                        verticalAlign: 'middle',
+                                                        borderRight: '1px solid #cbd5e1',
+                                                        letterSpacing: 1,
+                                                    }}
+                                                >
+                                                    {row.day.toUpperCase()}
+                                                </TableCell>
+                                            )}
+                                            <TableCell
+                                                rowSpan={2}
+                                                sx={{
+                                                    textAlign: 'center',
+                                                    fontWeight: 700,
+                                                    fontSize: '12px',
+                                                    color: '#64748b',
+                                                    borderRight: '1px solid #e2e8f0',
+                                                    bgcolor: '#f0fdf4',
+                                                    verticalAlign: 'middle',
+                                                }}
+                                            >
+                                                {row.jp}
+                                            </TableCell>
+                                            <TableCell
+                                                rowSpan={2}
+                                                sx={{
+                                                    textAlign: 'center',
+                                                    fontSize: '11px',
+                                                    fontFamily: 'monospace',
+                                                    fontWeight: 600,
+                                                    color: '#475569',
+                                                    borderRight: '2px solid #cbd5e1',
+                                                    whiteSpace: 'nowrap',
+                                                    bgcolor: '#f0fdf4',
+                                                    verticalAlign: 'middle',
+                                                }}
+                                            >
+                                                {row.timeRange}
+                                            </TableCell>
+                                            <TableCell
+                                                colSpan={filteredClasses.length}
+                                                sx={{
+                                                    bgcolor: '#dcfce7',
+                                                    color: '#166534',
+                                                    fontWeight: 800,
+                                                    textAlign: 'center',
+                                                    py: 0.6,
+                                                    letterSpacing: 1.5,
+                                                    fontSize: '12px',
+                                                    borderBottom: '1px solid #bbf7d0',
+                                                }}
+                                            >
+                                                EKSTRA
+                                            </TableCell>
+                                        </TableRow>
+                                        {/* Row 2: Per-class Select dropdowns */}
+                                        <TableRow sx={{ borderBottom: '1px solid #e2e8f0' }}>
+                                            {filteredClasses.map((cls) => {
+                                                const allCats = categoryExtras.length > 0
+                                                    ? categoryExtras
+                                                    : [
+                                                          { id_category_extra: '1', name: 'Pramuka', status: true },
+                                                          { id_category_extra: '2', name: 'PMR', status: true },
+                                                          { id_category_extra: '3', name: 'Paskibra', status: true },
+                                                          { id_category_extra: '4', name: 'Futsal / Olahraga', status: true },
+                                                          { id_category_extra: '5', name: 'Seni Tari & Musik', status: true },
+                                                          { id_category_extra: '6', name: 'Rohani / Katolik', status: true },
+                                                      ];
+                                                const activeCats = allCats.filter((cat) => cat.status !== false);
+                                                const activeOptions = activeCats.map((cat) => cat.name);
+                                                const currentExtra = row.classExtraActivities?.[cls.name]
+                                                    || row.specialActivity?.subtitle
+                                                    || (activeOptions.length > 0 ? activeOptions[0] : 'Pramuka');
+                                                const isMatchingSearch =
+                                                    searchQuery.trim() !== '' &&
+                                                    (currentExtra.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                                                     'ekstra'.includes(searchQuery.toLowerCase()));
+                                                return (
+                                                    <TableCell
+                                                        key={cls.name}
+                                                        sx={{
+                                                            bgcolor: isMatchingSearch ? '#fef08a' : '#f0fdf4',
+                                                            border: '1px solid #bbf7d0',
+                                                            textAlign: 'center',
+                                                            p: 0.5,
+                                                            verticalAlign: 'middle',
+                                                        }}
+                                                    >
+                                                        <Select
+                                                            size="small"
+                                                            value={activeOptions.includes(currentExtra) ? currentExtra : activeOptions[0] || currentExtra}
+                                                            onChange={(e) => {
+                                                                setClassExtraActivity(row.id, cls.name, e.target.value as string);
+                                                            }}
+                                                            sx={{
+                                                                height: 28,
+                                                                fontSize: '11px',
+                                                                fontWeight: 700,
+                                                                color: '#15803d',
+                                                                bgcolor: '#ffffff',
+                                                                borderRadius: 1,
+                                                                minWidth: 100,
+                                                                '& .MuiOutlinedInput-notchedOutline': {
+                                                                    borderColor: '#86efac',
+                                                                },
+                                                                '&:hover .MuiOutlinedInput-notchedOutline': {
+                                                                    borderColor: '#22c55e',
+                                                                },
+                                                                '& .MuiSelect-select': {
+                                                                    py: '4px',
+                                                                    px: 1,
+                                                                },
+                                                            }}
+                                                        >
+                                                            {activeOptions.map((opt) => (
+                                                                <MenuItem key={opt} value={opt} sx={{ fontSize: '12px' }}>
+                                                                    {opt}
+                                                                </MenuItem>
+                                                            ))}
+                                                        </Select>
+                                                    </TableCell>
+                                                );
+                                            })}
+                                        </TableRow>
+                                    </React.Fragment>
+                                );
+                            }
+
                             return (
                                 <TableRow
                                     key={row.id}
@@ -546,7 +703,7 @@ const ScheduleMatrixTable: React.FC = () => {
                                     {/* Hari Column (Rowspan per Day) */}
                                     {isNewDay && (
                                         <TableCell
-                                            rowSpan={sameDayRows.length}
+                                            rowSpan={visualRowSpan}
                                             sx={{
                                                 bgcolor: '#f8fafc',
                                                 color: '#0f172a',
@@ -594,135 +751,6 @@ const ScheduleMatrixTable: React.FC = () => {
 
                                     {/* Special Activity or KBM Cells */}
                                     {row.specialActivity ? (
-                                        // Check if this is an EKSTRA type (per-class) or full-span (Istirahat, Upacara, etc.)
-                                        row.specialActivity.activityType.toString().includes('EKSTRA') ||
-                                        row.specialActivity.activityType === 'PRAMUKA' ||
-                                        row.specialActivity.title.toUpperCase().includes('EKSTRA')
-                                    ) ? (
-                                        /* ========== EKSTRA: Per-Class Cells ========== */
-                                        filteredClasses.map((cls) => {
-                                            const allCats = categoryExtras.length > 0
-                                                ? categoryExtras
-                                                : [
-                                                      { id_category_extra: '1', name: 'Pramuka', status: true },
-                                                      { id_category_extra: '2', name: 'PMR', status: true },
-                                                      { id_category_extra: '3', name: 'Paskibra', status: true },
-                                                      { id_category_extra: '4', name: 'Futsal / Olahraga', status: true },
-                                                      { id_category_extra: '5', name: 'Seni Tari & Musik', status: true },
-                                                      { id_category_extra: '6', name: 'Rohani / Katolik', status: true },
-                                                  ];
-                                            // Hanya kategori berstatus aktif (status !== false) yang tampil di select
-                                            const activeCats = allCats.filter((cat) => cat.status !== false);
-                                            const activeOptions = activeCats.map((cat) => cat.name);
-
-                                            const currentExtra = row.classExtraActivities?.[cls.name]
-                                                || row.specialActivity?.subtitle
-                                                || (activeOptions.length > 0 ? activeOptions[0] : 'Pramuka');
-
-                                            const isMatchingSearch =
-                                                searchQuery.trim() !== '' &&
-                                                (currentExtra.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                                                 'ekstra'.includes(searchQuery.toLowerCase()));
-
-                                            return (
-                                                <TableCell
-                                                    key={cls.name}
-                                                    sx={{
-                                                        bgcolor: isMatchingSearch ? '#fef08a' : '#f0fdf4',
-                                                        border: '1px solid #bbf7d0',
-                                                        textAlign: 'center',
-                                                        p: 0.5,
-                                                        verticalAlign: 'middle',
-                                                        transition: 'background-color 0.2s ease',
-                                                    }}
-                                                >
-                                                    <Box
-                                                        sx={{
-                                                            display: 'flex',
-                                                            flexDirection: 'column',
-                                                            alignItems: 'center',
-                                                            gap: 0.4,
-                                                            minWidth: 105,
-                                                        }}
-                                                    >
-                                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                                            <Chip
-                                                                label="EKSTRA"
-                                                                size="small"
-                                                                sx={{
-                                                                    fontWeight: 800,
-                                                                    fontSize: '9px',
-                                                                    letterSpacing: 0.5,
-                                                                    height: 18,
-                                                                    bgcolor: '#dcfce7',
-                                                                    color: '#166534',
-                                                                    border: '1px solid #86efac',
-                                                                }}
-                                                            />
-                                                            <Tooltip title="Ubah kembali ke KBM">
-                                                                <IconButton
-                                                                    size="small"
-                                                                    onClick={() => removeSpecialActivityFromRow(row.id)}
-                                                                    sx={{
-                                                                        color: '#dc2626',
-                                                                        opacity: 0.6,
-                                                                        '&:hover': { opacity: 1, bgcolor: '#fee2e2' },
-                                                                        p: 0.2,
-                                                                    }}
-                                                                >
-                                                                    <DeleteOutlineIcon sx={{ fontSize: 13 }} />
-                                                                </IconButton>
-                                                            </Tooltip>
-                                                        </Box>
-
-                                                        {/* Autocomplete dengan pencarian kategori ekstra (hanya yang aktif) */}
-                                                        <Autocomplete
-                                                            size="small"
-                                                            options={activeOptions}
-                                                            value={activeOptions.includes(currentExtra) ? currentExtra : activeOptions[0] || currentExtra}
-                                                            onChange={(_, newValue) => {
-                                                                if (newValue) {
-                                                                    setClassExtraActivity(row.id, cls.name, newValue);
-                                                                }
-                                                            }}
-                                                            disableClearable
-                                                            noOptionsText="Tidak ada"
-                                                            sx={{
-                                                                width: '100%',
-                                                                '& .MuiInputBase-root': {
-                                                                    height: 24,
-                                                                    fontSize: '11px',
-                                                                    fontWeight: 700,
-                                                                    color: '#15803d',
-                                                                    bgcolor: '#ffffff',
-                                                                    borderRadius: 1,
-                                                                    px: 0.6,
-                                                                    py: 0,
-                                                                },
-                                                                '& .MuiOutlinedInput-notchedOutline': {
-                                                                    borderColor: '#86efac',
-                                                                },
-                                                                '&:hover .MuiOutlinedInput-notchedOutline': {
-                                                                    borderColor: '#22c55e',
-                                                                },
-                                                                '& .MuiAutocomplete-input': {
-                                                                    py: '2px !important',
-                                                                },
-                                                            }}
-                                                            renderInput={(params) => (
-                                                                <TextField
-                                                                    {...params}
-                                                                    placeholder="Cari Ekstra..."
-                                                                    variant="outlined"
-                                                                    size="small"
-                                                                />
-                                                            )}
-                                                        />
-                                                    </Box>
-                                                </TableCell>
-                                            );
-                                        })
-                                    ) : (
                                         /* ========== Full-span: Istirahat, Upacara, Senam, Literasi ========== */
                                         <TableCell
                                             colSpan={filteredClasses.length}
@@ -732,46 +760,21 @@ const ScheduleMatrixTable: React.FC = () => {
                                                 border: `1px dashed ${row.specialActivity.colorScheme.border}`,
                                                 textAlign: 'center',
                                                 py: 0.8,
-                                                position: 'relative',
                                             }}
                                         >
-                                            <Box
+                                            <Chip
+                                                label={row.specialActivity.title}
+                                                size="small"
                                                 sx={{
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'center',
-                                                    gap: 1.5,
-                                                    flexWrap: 'wrap',
+                                                    fontWeight: 900,
+                                                    letterSpacing: 1,
+                                                    fontSize: '11px',
+                                                    bgcolor: row.specialActivity.colorScheme.bg,
+                                                    color: row.specialActivity.colorScheme.text,
+                                                    border: `1px solid ${row.specialActivity.colorScheme.border}`,
+                                                    height: 24,
                                                 }}
-                                            >
-                                                <Chip
-                                                    label={row.specialActivity.title}
-                                                    size="small"
-                                                    sx={{
-                                                        fontWeight: 900,
-                                                        letterSpacing: 1,
-                                                        fontSize: '11px',
-                                                        bgcolor: row.specialActivity.colorScheme.bg,
-                                                        color: row.specialActivity.colorScheme.text,
-                                                        border: `1px solid ${row.specialActivity.colorScheme.border}`,
-                                                        height: 24,
-                                                    }}
-                                                />
-                                                <Tooltip title="Ubah baris ini kembali menjadi slot KBM biasa">
-                                                    <IconButton
-                                                        size="small"
-                                                        onClick={() => removeSpecialActivityFromRow(row.id)}
-                                                        sx={{
-                                                            color: row.specialActivity.colorScheme.text,
-                                                            opacity: 0.7,
-                                                            '&:hover': { opacity: 1, bgcolor: 'rgba(0,0,0,0.06)' },
-                                                            p: 0.4,
-                                                        }}
-                                                    >
-                                                        <DeleteOutlineIcon fontSize="small" />
-                                                    </IconButton>
-                                                </Tooltip>
-                                            </Box>
+                                            />
                                         </TableCell>
                                     ) : (
                                         /* Standard KBM Cells */

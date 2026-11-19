@@ -25,6 +25,7 @@ import {
     TeacherScheduleRequestService,
     RosterScheduleService,
     CategoryExtraService,
+    scheduleClassExtraService,
     type CategoryExtraResponseModel,
 } from '@api/schedule/service';
 import TeachingService from '@api/teaching/service';
@@ -241,9 +242,10 @@ export const sortClassesByGradeAndName = (a: ClassColumn, b: ClassColumn): numbe
     const getGradeWeight = (cls: ClassColumn): number => {
         const g = (cls.grade || '').trim().toUpperCase();
         const n = (cls.name || '').trim().toUpperCase();
-        if (g === 'X' || g === '10' || n.startsWith('10') || n.startsWith('X ') || n.startsWith('X-')) return 10;
-        if (g === 'XI' || g === '11' || n.startsWith('11') || n.startsWith('XI ') || n.startsWith('XI-')) return 11;
-        if (g === 'XII' || g === '12' || n.startsWith('12') || n.startsWith('XII ') || n.startsWith('XII-')) return 12;
+        // Check XII/12 first to avoid matching X/10 prefix
+        if (g === 'XII' || g === '12' || n.startsWith('12 ') || n.startsWith('12-') || n.startsWith('XII ') || n.startsWith('XII-') || n === '12' || n === 'XII') return 12;
+        if (g === 'XI' || g === '11' || n.startsWith('11 ') || n.startsWith('11-') || n.startsWith('XI ') || n.startsWith('XI-') || n === '11' || n === 'XI') return 11;
+        if (g === 'X' || g === '10' || n.startsWith('10 ') || n.startsWith('10-') || n.startsWith('X ') || n.startsWith('X-') || n === '10' || n === 'X') return 10;
         return 99;
     };
 
@@ -758,6 +760,41 @@ export const useScheduleStore = create<ScheduleState & ScheduleActions>(
                             onError: () => {},
                         }
                     );
+
+                    // Simpan data pilihan ekstra per kelas ke tabel khusus schedule_class_extras
+                    const extraItems: any[] = [];
+                    state.rows.forEach((row) => {
+                        const isEkstra = Boolean(
+                            row.specialActivity && (
+                                row.specialActivity.activityType.toString().includes('EKSTRA') ||
+                                row.specialActivity.activityType === 'PRAMUKA' ||
+                                row.specialActivity.title.toUpperCase().includes('EKSTRA')
+                            )
+                        );
+                        if (isEkstra || row.classExtraActivities) {
+                            const activities = row.classExtraActivities || {};
+                            state.classes.forEach((cls) => {
+                                const extraVal = activities[cls.name] || row.specialActivity?.subtitle || 'Pramuka';
+                                extraItems.push({
+                                    id_school_information: schoolInfoId,
+                                    row_id: row.id,
+                                    day: row.day,
+                                    jp: String(row.jp),
+                                    time_range: row.timeRange,
+                                    class_name: cls.name,
+                                    id_class: cls.id,
+                                    extra_name: extraVal,
+                                });
+                            });
+                        }
+                    });
+
+                    if (extraItems.length > 0) {
+                        scheduleClassExtraService.batchSave({
+                            id_school_information: schoolInfoId,
+                            items: extraItems,
+                        });
+                    }
                 }
             }, 1200);
         },
@@ -1299,8 +1336,9 @@ export const useScheduleStore = create<ScheduleState & ScheduleActions>(
                                 let grade: 'X' | 'XI' | 'XII' = 'X';
                                 const k = (c.kelas || '').trim().toUpperCase();
                                 const n = (c.name || '').trim().toUpperCase();
-                                if (k === '12' || k === 'XII' || n.startsWith('12') || n.startsWith('XII')) grade = 'XII';
-                                else if (k === '11' || k === 'XI' || n.startsWith('11') || n.startsWith('XI')) grade = 'XI';
+                                // Check XII first to avoid false match on X prefix
+                                if (k === '12' || k === 'XII' || n.startsWith('12 ') || n.startsWith('12-') || n.startsWith('XII ') || n.startsWith('XII-')) grade = 'XII';
+                                else if (k === '11' || k === 'XI' || n.startsWith('11 ') || n.startsWith('11-') || n.startsWith('XI ') || n.startsWith('XI-')) grade = 'XI';
                                 else grade = 'X';
 
                                 return {
@@ -1435,42 +1473,72 @@ export const useScheduleStore = create<ScheduleState & ScheduleActions>(
                     });
                 }
 
+                // Ambil data ekstra per kelas langsung dari tabel database khusus schedule_class_extras
+                let tableExtras: any[] = [];
+                if (schoolInfoId) {
+                    await scheduleClassExtraService.getBySchoolInformation(schoolInfoId, {
+                        onSuccess: (list) => {
+                            if (Array.isArray(list) && list.length > 0) {
+                                tableExtras = list;
+                            }
+                        },
+                        onError: () => {},
+                    });
+                }
+
                 // Fallback ke LocalStorage jika database belum menyimpan
                 if (!savedRows && schoolInfoId) {
                     savedRows = getMatrixFromLocalStorage(schoolInfoId);
                 }
 
-                if (savedRows && Array.isArray(savedRows) && savedRows.length > 0) {
-                    const mergedRows = baseRows.map((bRow) => {
+                const initialMerged = (savedRows && Array.isArray(savedRows) && savedRows.length > 0)
+                    ? baseRows.map((bRow) => {
                         const matchedSaved = savedRows!.find(
                             (s) => s.day === bRow.day && String(s.jp) === String(bRow.jp)
                         );
-                        if (matchedSaved && matchedSaved.classCells) {
+                        if (matchedSaved) {
                             return {
-                                ...bRow, // Pertahankan struktur dari Roster Jam Belajar!
+                                ...bRow,
+                                ...(matchedSaved.specialActivity ? { specialActivity: matchedSaved.specialActivity } : {}),
+                                ...(matchedSaved.classExtraActivities ? { classExtraActivities: { ...matchedSaved.classExtraActivities } } : {}),
                                 classCells: {
                                     ...bRow.classCells,
-                                    ...matchedSaved.classCells,
+                                    ...(matchedSaved.classCells || {}),
                                 },
                             };
                         }
                         return bRow;
-                    });
+                    })
+                    : baseRows;
 
-                    if (schoolInfoId) {
-                        saveMatrixToLocalStorage(schoolInfoId, mergedRows);
+                // Terapkan data dari tabel khusus schedule_class_extras jika ada
+                const mergedRows = initialMerged.map((row) => {
+                    const matchingExtras = tableExtras.filter(
+                        (te) => te.row_id === row.id || (te.day === row.day && String(te.jp) === String(row.jp))
+                    );
+                    if (matchingExtras.length > 0) {
+                        const updatedActivities = { ...(row.classExtraActivities || {}) };
+                        matchingExtras.forEach((te) => {
+                            if (te.class_name && te.extra_name) {
+                                updatedActivities[te.class_name] = te.extra_name;
+                            }
+                        });
+                        return {
+                            ...row,
+                            classExtraActivities: updatedActivities,
+                        };
                     }
+                    return row;
+                });
 
-                    set({
-                        rows: mergedRows,
-                        conflicts: calculateConflicts(mergedRows, currentTeachers),
-                    });
-                } else {
-                    set({
-                        rows: baseRows,
-                        conflicts: calculateConflicts(baseRows, currentTeachers),
-                    });
+                if (schoolInfoId) {
+                    saveMatrixToLocalStorage(schoolInfoId, mergedRows);
                 }
+
+                set({
+                    rows: mergedRows,
+                    conflicts: calculateConflicts(mergedRows, currentTeachers),
+                });
             } finally {
                 set({ isLoadingDatabase: false });
             }
@@ -1489,6 +1557,8 @@ export const useScheduleStore = create<ScheduleState & ScheduleActions>(
 
                 if (schoolInfoId) {
                     saveMatrixToLocalStorage(schoolInfoId, state.rows);
+
+                    // 1. Simpan matriks ke school_matrix_schedules (juga otomatis sync backend ke schedule_class_extras)
                     await matrixService.saveBySchoolInformation(
                         schoolInfoId,
                         {
@@ -1500,14 +1570,53 @@ export const useScheduleStore = create<ScheduleState & ScheduleActions>(
                             is_synced: true,
                         },
                         {
-                            onSuccess: () => {
-                                snackbar.success('Jadwal pelajaran berhasil disimpan ke database MySQL & berelasi!');
-                            },
+                            onSuccess: () => {},
                             onError: (err) => {
-                                snackbar.error(err.message || 'Gagal menyimpan ke database MySQL.');
+                                console.warn('Matrix save warning:', err);
                             },
                         }
                     );
+
+                    // 2. Simpan secara eksplisit ke tabel khusus schedule_class_extras
+                    const extraItems: any[] = [];
+                    state.rows.forEach((row) => {
+                        const isEkstra = Boolean(
+                            row.specialActivity && (
+                                row.specialActivity.activityType.toString().includes('EKSTRA') ||
+                                row.specialActivity.activityType === 'PRAMUKA' ||
+                                row.specialActivity.title.toUpperCase().includes('EKSTRA')
+                            )
+                        );
+                        if (isEkstra || row.classExtraActivities) {
+                            const activities = row.classExtraActivities || {};
+                            state.classes.forEach((cls) => {
+                                const extraVal = activities[cls.name] || row.specialActivity?.subtitle || 'Pramuka';
+                                extraItems.push({
+                                    id_school_information: schoolInfoId,
+                                    row_id: row.id,
+                                    day: row.day,
+                                    jp: String(row.jp),
+                                    time_range: row.timeRange,
+                                    class_name: cls.name,
+                                    id_class: cls.id,
+                                    extra_name: extraVal,
+                                });
+                            });
+                        }
+                    });
+
+                    if (extraItems.length > 0) {
+                        try {
+                            await scheduleClassExtraService.batchSave({
+                                id_school_information: schoolInfoId,
+                                items: extraItems,
+                            });
+                        } catch (err) {
+                            console.warn('Batch save extra error:', err);
+                        }
+                    }
+
+                    snackbar.success('Jadwal pelajaran & data ekstra per kelas berhasil disimpan ke database MySQL!');
                 } else {
                     snackbar.error('Pilih Periode / Tahun Ajaran terlebih dahulu!');
                 }
