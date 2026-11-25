@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
     Box,
     Typography,
@@ -15,6 +15,8 @@ import {
     InputAdornment,
     Button,
     Fab,
+    Tabs,
+    Tab,
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import FactCheckIcon from '@mui/icons-material/FactCheck';
@@ -256,6 +258,7 @@ export const StudentAttendanceMatrixView: React.FC<StudentAttendanceMatrixViewPr
     const [matrixData, setMatrixData] = useState<StudentAttendanceMatrixResponse | null>(null);
     const [isLoadingMatrix, setIsLoadingMatrix] = useState(false);
     const [matrixError, setMatrixError] = useState<string | null>(null);
+    const [selectedSemester, setSelectedSemester] = useState<'GANJIL' | 'GENAP'>('GANJIL');
 
     // Load school info list
     useEffect(() => {
@@ -311,11 +314,86 @@ export const StudentAttendanceMatrixView: React.FC<StudentAttendanceMatrixViewPr
         }
     }, [selectedSchoolInfoId, refreshTrigger, loadMatrix]);
 
-    const meetingColumns = matrixData
-        ? Array.from({ length: matrixData.max_meetings }, (_, i) => i + 1)
+    const filteredView = useMemo(() => {
+        if (!matrixData) return null;
+
+        const semKey = selectedSemester.toLowerCase();
+        let totalPointsAll = 0;
+        let totalCompletedAll = 0;
+        let belowThresholdCount = 0;
+        let maxMeetingsSem = 0;
+
+        const subjects: StudentSubjectAttendance[] = matrixData.subjects.map((sub) => {
+            const semMeetings = (sub.meetings || [])
+                .filter((m) => String(m.semester || '').toLowerCase().includes(semKey))
+                .map((m, idx) => ({
+                    ...m,
+                    pertemuan_ke: idx + 1,
+                }));
+
+            let hadir = 0;
+            let sakit = 0;
+            let izin = 0;
+            let alpa = 0;
+            let pts = 0;
+            let completed = 0;
+
+            for (const m of semMeetings) {
+                if (!m.is_future && m.status) {
+                    const st = m.status.toUpperCase();
+                    if (st === 'HADIR') { hadir += 1; pts += 1.0; completed += 1; }
+                    else if (st === 'SAKIT') { sakit += 1; pts += 1.0; completed += 1; }
+                    else if (st === 'IZIN') { izin += 1; pts += 0.5; completed += 1; }
+                    else if (st === 'ALPA') { alpa += 1; pts += 0.0; completed += 1; }
+                }
+            }
+
+            const pct = completed > 0 ? Math.round((pts / completed) * 1000) / 10 : 100.0;
+            const isBelow = pct < 75.0 && completed > 0;
+            if (isBelow) belowThresholdCount += 1;
+            totalPointsAll += pts;
+            totalCompletedAll += completed;
+            if (semMeetings.length > maxMeetingsSem) {
+                maxMeetingsSem = semMeetings.length;
+            }
+
+            return {
+                ...sub,
+                meetings: semMeetings,
+                hadir_count: hadir,
+                sakit_count: sakit,
+                izin_count: izin,
+                alpa_count: alpa,
+                total_points: pts,
+                completed_meetings: completed,
+                percentage: pct,
+                is_below_threshold: isBelow,
+            };
+        });
+
+        const avgPct = totalCompletedAll > 0
+            ? Math.round((totalPointsAll / totalCompletedAll) * 1000) / 10
+            : 100.0;
+
+        return {
+            subjects,
+            maxMeetings: Math.max(maxMeetingsSem, 1),
+            overall: {
+                ...matrixData.overall,
+                average_percentage: avgPct,
+                total_points: totalPointsAll,
+                total_completed: totalCompletedAll,
+                subjects_below_75: belowThresholdCount,
+                total_subjects: subjects.length,
+            },
+        };
+    }, [matrixData, selectedSemester]);
+
+    const meetingColumns = filteredView
+        ? Array.from({ length: filteredView.maxMeetings }, (_, i) => i + 1)
         : [];
 
-    const avgPct = matrixData?.overall.average_percentage ?? 0;
+    const avgPct = filteredView?.overall.average_percentage ?? 0;
     const avgColor = avgPct >= 75
         ? (isDark ? '#86efac' : '#16a34a')
         : (isDark ? '#fca5a5' : '#dc2626');
@@ -447,7 +525,7 @@ export const StudentAttendanceMatrixView: React.FC<StudentAttendanceMatrixViewPr
             )}
 
             {/* ── SUMMARY CARDS ─────────────────────────────────────────────────── */}
-            {matrixData && (
+            {matrixData && filteredView && (
                 <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 2.5 }}>
                     <Card
                         variant="outlined"
@@ -460,14 +538,14 @@ export const StudentAttendanceMatrixView: React.FC<StudentAttendanceMatrixViewPr
                         <Stack direction="row" spacing={1} sx={{ alignItems: 'center', mb: 0.5 }}>
                             <TrendingUpIcon sx={{ fontSize: 18, color: isDark ? '#94a3b8' : '#64748b' }} />
                             <Typography variant="caption" sx={{ color: isDark ? '#a1a1aa' : '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                                Rata-rata Kehadiran
+                                Rata-rata Kehadiran ({selectedSemester === 'GANJIL' ? 'Semester Ganjil' : 'Semester Genap'})
                             </Typography>
                         </Stack>
                         <Typography variant="h4" sx={{ fontWeight: 900, color: avgColor }}>
                             {avgPct.toFixed(1)}%
                         </Typography>
                         <Typography variant="caption" sx={{ color: isDark ? '#71717a' : '#94a3b8' }}>
-                            {matrixData.overall.total_points} poin dari {matrixData.overall.total_completed} pertemuan tercatat
+                            {filteredView.overall.total_points} poin dari {filteredView.overall.total_completed} pertemuan tercatat
                         </Typography>
                     </Card>
 
@@ -476,13 +554,13 @@ export const StudentAttendanceMatrixView: React.FC<StudentAttendanceMatrixViewPr
                         sx={{
                             flex: 1, p: 2.5, borderRadius: 2.5,
                             bgcolor: isDark ? '#18181b' : '#ffffff',
-                            borderColor: matrixData.overall.subjects_below_75 > 0
+                            borderColor: filteredView.overall.subjects_below_75 > 0
                                 ? (isDark ? '#dc2626' : '#fca5a5')
                                 : (isDark ? '#27272a' : '#e2e8f0'),
                         }}
                     >
                         <Stack direction="row" spacing={1} sx={{ alignItems: 'center', mb: 0.5 }}>
-                            <WarningAmberIcon sx={{ fontSize: 18, color: matrixData.overall.subjects_below_75 > 0 ? '#dc2626' : (isDark ? '#94a3b8' : '#64748b') }} />
+                            <WarningAmberIcon sx={{ fontSize: 18, color: filteredView.overall.subjects_below_75 > 0 ? '#dc2626' : (isDark ? '#94a3b8' : '#64748b') }} />
                             <Typography variant="caption" sx={{ color: isDark ? '#a1a1aa' : '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                                 Syarat Ujian (&ge; 75%)
                             </Typography>
@@ -491,20 +569,56 @@ export const StudentAttendanceMatrixView: React.FC<StudentAttendanceMatrixViewPr
                             variant="h4"
                             sx={{
                                 fontWeight: 900,
-                                color: matrixData.overall.subjects_below_75 > 0
+                                color: filteredView.overall.subjects_below_75 > 0
                                     ? (isDark ? '#fca5a5' : '#dc2626')
                                     : (isDark ? '#86efac' : '#16a34a'),
                             }}
                         >
-                            {matrixData.overall.subjects_below_75 > 0
-                                ? `${matrixData.overall.subjects_below_75} MK di Bawah 75%`
+                            {filteredView.overall.subjects_below_75 > 0
+                                ? `${filteredView.overall.subjects_below_75} MK di Bawah 75%`
                                 : 'Semua Memenuhi'}
                         </Typography>
                         <Typography variant="caption" sx={{ color: isDark ? '#71717a' : '#94a3b8' }}>
-                            {matrixData.overall.total_subjects} mata pelajaran total
+                            {filteredView.overall.total_subjects} mata pelajaran total
                         </Typography>
                     </Card>
                 </Stack>
+            )}
+
+            {/* ── SEMESTER TABS (GANJIL / GENAP) ─────────────────────────────────── */}
+            {matrixData && !isLoadingMatrix && matrixData.subjects.length > 0 && (
+                <Box sx={{ mb: 2 }}>
+                    <Tabs
+                        value={selectedSemester}
+                        onChange={(_, val) => setSelectedSemester(val)}
+                        sx={{
+                            minHeight: 40,
+                            bgcolor: isDark ? '#18181b' : '#f1f5f9',
+                            borderRadius: 2,
+                            p: 0.5,
+                            display: 'inline-flex',
+                            '& .MuiTabs-indicator': { display: 'none' },
+                            '& .MuiTab-root': {
+                                minHeight: 34,
+                                py: 0.5,
+                                px: 2.5,
+                                borderRadius: 1.5,
+                                textTransform: 'none',
+                                fontWeight: 800,
+                                fontSize: '0.82rem',
+                                color: isDark ? '#a1a1aa' : '#64748b',
+                            },
+                            '& .Mui-selected': {
+                                bgcolor: isDark ? '#2563eb' : '#ffffff',
+                                color: isDark ? '#ffffff !important' : '#1d4ed8 !important',
+                                boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
+                            },
+                        }}
+                    >
+                        <Tab value="GANJIL" label="Semester Ganjil" />
+                        <Tab value="GENAP" label="Semester Genap" />
+                    </Tabs>
+                </Box>
             )}
 
             {/* ── LOADING / ERROR ────────────────────────────────────────────────── */}
@@ -600,7 +714,7 @@ export const StudentAttendanceMatrixView: React.FC<StudentAttendanceMatrixViewPr
                                         }}
                                     >
                                         <Typography variant="caption" sx={{ fontWeight: 900, color: isDark ? '#a1a1aa' : '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                                            Pertemuan
+                                            Pertemuan ({selectedSemester === 'GANJIL' ? 'Semester Ganjil' : 'Semester Genap'})
                                         </Typography>
                                     </Box>
 
@@ -649,7 +763,7 @@ export const StudentAttendanceMatrixView: React.FC<StudentAttendanceMatrixViewPr
 
                             {/* TBODY */}
                             <Box component="tbody">
-                                {matrixData.subjects.map((subject, idx) => (
+                                {(filteredView?.subjects || []).map((subject, idx) => (
                                     <SubjectRow
                                         key={`${subject.subject_name}-${idx}`}
                                         subject={subject}
