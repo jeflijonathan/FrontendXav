@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import {
     Box,
+    Card,
     Typography,
     Stack,
     TextField,
@@ -14,6 +15,8 @@ import FactCheckIcon from '@mui/icons-material/FactCheck';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import TuneIcon from '@mui/icons-material/Tune';
+import SaveIcon from '@mui/icons-material/Save';
+import MenuBookIcon from '@mui/icons-material/MenuBook';
 import { useTheme } from '@mui/material/styles';
 import useDashboardAttendanceStore from './store';
 import useAttendanceList from './List/hook/useAttendanceList';
@@ -30,6 +33,7 @@ import ShowAttendanceBarcodeDialog from './ShowBarcode/ShowAttendanceBarcodeDial
 import StudentAttendanceScanView from './StudentScan/StudentAttendanceScanView';
 import StudentAttendanceMatrixView from './StudentMatrix/StudentAttendanceMatrixView';
 import { BaseDialog, DialogHeader, DialogBody } from '@components/Dialog';
+import { WordDescriptionEditor } from '@common/components/WordEditor/WordDescriptionEditor';
 import attendanceService from '@api/attendance/service';
 import { snackbar } from '@utils/snackbar';
 import useAuthStore from '../../common/store/useAuthStore';
@@ -112,6 +116,8 @@ const TeacherAttendanceView: React.FC = () => {
         isSaving,
         sessionOpenStatus,
         isUpdatingSessionStatus,
+        teachingAgenda,
+        isSavingAgenda,
     } = state;
 
     const { fetchMeetings, loadAttendanceSheet } = useAttendanceList();
@@ -167,6 +173,26 @@ const TeacherAttendanceView: React.FC = () => {
             snackbar.error(err?.message || 'Gagal memperbarui status pembukaan presensi.');
         } finally {
             setState({ isUpdatingSessionStatus: false });
+        }
+    };
+
+    const handleSaveAgenda = async () => {
+        if (!selectedSchoolInfoId || !selectedClassId || !selectedMeeting) return;
+        setState({ isSavingAgenda: true });
+        try {
+            await attendanceService.updateSessionAgenda({
+                id_school_information: selectedSchoolInfoId,
+                id_class: selectedClassId,
+                date: selectedMeeting.date,
+                jp: String(selectedMeeting.jp),
+                subject_name: selectedSubject || selectedMeeting.subject_name || '',
+                teaching_agenda: teachingAgenda,
+            });
+            snackbar.success('Keterangan agenda mengajar berhasil disimpan.');
+        } catch (err: any) {
+            snackbar.error(err?.message || 'Gagal menyimpan keterangan agenda mengajar.');
+        } finally {
+            setState({ isSavingAgenda: false });
         }
     };
 
@@ -348,6 +374,73 @@ const TeacherAttendanceView: React.FC = () => {
                                 isLoading={isLoadingSheet}
                                 disabled={!canShowAttendanceTable || isSaving}
                             />
+
+                            {/* Keterangan Agenda Mengajar (Word Text Box) */}
+                            <Card
+                                variant="outlined"
+                                sx={{
+                                    mt: 2.5,
+                                    p: { xs: 2, sm: 2.5 },
+                                    borderRadius: 3,
+                                    bgcolor: isDark ? '#18181b' : '#ffffff',
+                                    borderColor: isDark ? '#27272a' : '#e2e8f0',
+                                }}
+                            >
+                                <Stack
+                                    direction={{ xs: 'column', sm: 'row' }}
+                                    spacing={1.5}
+                                    sx={{
+                                        alignItems: { sm: 'center' },
+                                        justifyContent: 'space-between',
+                                        mb: 1.5,
+                                    }}
+                                >
+                                    <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+                                        <MenuBookIcon sx={{ fontSize: 20, color: '#2563eb' }} />
+                                        <Box>
+                                            <Typography
+                                                variant="subtitle2"
+                                                sx={{ fontWeight: 800, color: isDark ? '#f4f4f5' : '#0f172a' }}
+                                            >
+                                                Keterangan Agenda Mengajar
+                                            </Typography>
+                                            <Typography variant="caption" sx={{ color: isDark ? '#a1a1aa' : '#64748b' }}>
+                                                Catat pokok bahasan, materi yang disampaikan, atau catatan KBM pertemuan ini.
+                                            </Typography>
+                                        </Box>
+                                    </Stack>
+                                    <Button
+                                        variant="contained"
+                                        size="small"
+                                        startIcon={
+                                            isSavingAgenda ? (
+                                                <CircularProgress size={16} color="inherit" />
+                                            ) : (
+                                                <SaveIcon />
+                                            )
+                                        }
+                                        disabled={isSavingAgenda || isLoadingSheet}
+                                        onClick={handleSaveAgenda}
+                                        sx={{
+                                            textTransform: 'none',
+                                            fontWeight: 700,
+                                            borderRadius: 2,
+                                            bgcolor: '#2563eb',
+                                            '&:hover': { bgcolor: '#1d4ed8' },
+                                            whiteSpace: 'nowrap',
+                                        }}
+                                    >
+                                        {isSavingAgenda ? 'Menyimpan...' : 'Simpan Agenda'}
+                                    </Button>
+                                </Stack>
+                                <WordDescriptionEditor
+                                    label="Agenda Mengajar / Materi Pertemuan"
+                                    value={teachingAgenda}
+                                    onChange={(val) => setState({ teachingAgenda: val })}
+                                    rows={5}
+                                    placeholder="Tuliskan materi pokok, kegiatan pembelajaran, tugas siswa, atau catatan agenda mengajar pada pertemuan ini..."
+                                />
+                            </Card>
                         </>
                     )}
                 </>

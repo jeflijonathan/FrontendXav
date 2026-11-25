@@ -8,7 +8,8 @@ export function buildBatchAttendancePayload(
     idSchoolInformation: string,
     idClass: string,
     meeting: AcademicYearMeetingItem,
-    students: StudentAttendanceSheetItem[]
+    students: StudentAttendanceSheetItem[],
+    teachingAgenda?: string
 ): BatchSaveAttendancePayload {
     return {
         id_school_information: idSchoolInformation,
@@ -20,6 +21,7 @@ export function buildBatchAttendancePayload(
         day: meeting.day,
         jp: String(meeting.jp),
         time_range: meeting.time_range,
+        teaching_agenda: teachingAgenda,
         attendances: students.map((s) => ({
             id_student: s.id_student,
             status: s.status,

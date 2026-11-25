@@ -151,6 +151,7 @@ export function useAttendanceList() {
             } else {
                 let nextStatus: 'BELUM_DIBUKA' | 'DIBUKA' | 'DITUTUP' = 'BELUM_DIBUKA';
                 let nextToken: string | null = null;
+                let nextAgenda = '';
                 try {
                     const sessionRes = await attendanceService.getSessionStatus({
                         id_school_information: selectedSchoolInfoId,
@@ -161,6 +162,7 @@ export function useAttendanceList() {
                     });
                     nextStatus = sessionRes.status || 'BELUM_DIBUKA';
                     nextToken = sessionRes.session_token || null;
+                    nextAgenda = sessionRes.teaching_agenda || '';
                 } catch {
                     // keep default BELUM_DIBUKA
                 }
@@ -168,6 +170,7 @@ export function useAttendanceList() {
                     students: res.students || [],
                     sessionOpenStatus: nextStatus,
                     sessionToken: nextToken,
+                    teachingAgenda: nextAgenda,
                 });
             }
         } catch (err) {

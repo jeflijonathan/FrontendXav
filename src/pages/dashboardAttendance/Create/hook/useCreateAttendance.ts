@@ -24,7 +24,7 @@ export function useCreateAttendance(onRefreshAfterSave: () => Promise<void>) {
     }, [setState]);
 
     const handleSaveBatch = useCallback(async () => {
-        const { selectedSchoolInfoId, selectedClassId, selectedMeeting, students } = state;
+        const { selectedSchoolInfoId, selectedClassId, selectedMeeting, students, teachingAgenda } = state;
         if (!selectedSchoolInfoId || !selectedClassId || !selectedMeeting || students.length === 0) {
             snackbar.warning('Tidak ada data siswa atau pertemuan yang dipilih untuk disimpan.');
             return;
@@ -36,7 +36,8 @@ export function useCreateAttendance(onRefreshAfterSave: () => Promise<void>) {
                 selectedSchoolInfoId,
                 selectedClassId,
                 selectedMeeting,
-                students
+                students,
+                teachingAgenda
             );
             await attendanceService.saveBatchAttendance(payload);
             snackbar.success(

@@ -11,6 +11,7 @@ import type {
     ScanAttendanceResponse,
     StudentAttendanceMatrixResponse,
     AttendanceSessionStatusResponse,
+    AttendanceSessionAgendaPayload,
 } from "./model";
 
 export class AttendanceService {
@@ -236,6 +237,16 @@ export class AttendanceService {
     }): Promise<AttendanceSessionStatusResponse> {
         const res = await this.service.POST<AttendanceSessionStatusResponse>(
             `${this.basePath}/session-status`,
+            payload
+        );
+        return res.data;
+    }
+
+    async updateSessionAgenda(
+        payload: AttendanceSessionAgendaPayload
+    ): Promise<AttendanceSessionStatusResponse> {
+        const res = await this.service.PUT<AttendanceSessionStatusResponse>(
+            `${this.basePath}/session-agenda`,
             payload
         );
         return res.data;

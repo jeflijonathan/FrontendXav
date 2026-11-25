@@ -106,7 +106,7 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ meeting, isDark }) => {
 
 // ─── Percentage Chip ───────────────────────────────────────────────────────────
 const PercentageChip: React.FC<{ pct: number; isDark: boolean }> = ({ pct, isDark }) => {
-    const isOk = pct >= 75;
+    const isOk = pct >= 95;
     return (
         <Chip
             label={`${pct.toFixed(1)}%`}
@@ -349,7 +349,7 @@ export const StudentAttendanceMatrixView: React.FC<StudentAttendanceMatrixViewPr
             }
 
             const pct = completed > 0 ? Math.round((pts / completed) * 1000) / 10 : 100.0;
-            const isBelow = pct < 75.0 && completed > 0;
+            const isBelow = pct < 95.0 && completed > 0;
             if (isBelow) belowThresholdCount += 1;
             totalPointsAll += pts;
             totalCompletedAll += completed;
@@ -394,7 +394,7 @@ export const StudentAttendanceMatrixView: React.FC<StudentAttendanceMatrixViewPr
         : [];
 
     const avgPct = filteredView?.overall.average_percentage ?? 0;
-    const avgColor = avgPct >= 75
+    const avgColor = avgPct >= 95
         ? (isDark ? '#86efac' : '#16a34a')
         : (isDark ? '#fca5a5' : '#dc2626');
 
@@ -562,7 +562,7 @@ export const StudentAttendanceMatrixView: React.FC<StudentAttendanceMatrixViewPr
                         <Stack direction="row" spacing={1} sx={{ alignItems: 'center', mb: 0.5 }}>
                             <WarningAmberIcon sx={{ fontSize: 18, color: filteredView.overall.subjects_below_75 > 0 ? '#dc2626' : (isDark ? '#94a3b8' : '#64748b') }} />
                             <Typography variant="caption" sx={{ color: isDark ? '#a1a1aa' : '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                                Syarat Ujian (&ge; 75%)
+                                Syarat Ujian (&ge; 95%)
                             </Typography>
                         </Stack>
                         <Typography
@@ -575,7 +575,7 @@ export const StudentAttendanceMatrixView: React.FC<StudentAttendanceMatrixViewPr
                             }}
                         >
                             {filteredView.overall.subjects_below_75 > 0
-                                ? `${filteredView.overall.subjects_below_75} MK di Bawah 75%`
+                                ? `${filteredView.overall.subjects_below_75} MK di Bawah 95%`
                                 : 'Semua Memenuhi'}
                         </Typography>
                         <Typography variant="caption" sx={{ color: isDark ? '#71717a' : '#94a3b8' }}>
@@ -820,7 +820,7 @@ export const StudentAttendanceMatrixView: React.FC<StudentAttendanceMatrixViewPr
                     <Chip label="A = Alpa (0 poin)" size="small" sx={{ fontWeight: 800, bgcolor: isDark ? 'rgba(220,38,38,0.2)' : '#fee2e2', color: isDark ? '#fca5a5' : '#dc2626', border: `1px solid ${isDark ? '#dc2626' : '#fca5a5'}` }} />
                 </Stack>
                 <Typography variant="caption" sx={{ display: 'block', mt: 1, color: isDark ? '#71717a' : '#94a3b8' }}>
-                    Rumus: % Kehadiran = (Jumlah Poin ÷ Total Pertemuan) × 100% &nbsp;·&nbsp; Syarat Ujian: ≥ 75%
+                    Rumus: % Kehadiran = (Jumlah Poin ÷ Total Pertemuan) × 100% &nbsp;·&nbsp; Syarat Ujian: ≥ 95%
                 </Typography>
             </Paper>
 

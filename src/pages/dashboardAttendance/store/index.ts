@@ -35,10 +35,12 @@ export interface AttendanceState {
     isLoadingSheet: boolean;
     isSaving: boolean;
 
-    // Session open/close status (BELUM_DIBUKA -> DIBUKA -> DITUTUP)
+    // Session open/close status (BELUM_DIBUKA -> DIBUKA -> DITUTUP) & agenda
     sessionOpenStatus: AttendanceSessionOpenStatus;
     sessionToken: string | null;
     isUpdatingSessionStatus: boolean;
+    teachingAgenda: string;
+    isSavingAgenda: boolean;
 
     // Settings & Scan / Barcode dialogs
     settings: AttendanceSettingsModel;
@@ -76,6 +78,8 @@ const initialState: AttendanceState = {
     sessionOpenStatus: 'BELUM_DIBUKA',
     sessionToken: null,
     isUpdatingSessionStatus: false,
+    teachingAgenda: '',
+    isSavingAgenda: false,
     settings: {
         use_face_verification: true,
         use_geolocation: true,
@@ -104,6 +108,7 @@ export const useDashboardAttendanceStore = create<AttendanceStore>((set) => ({
                 selectedSubject: '',
                 selectedMeeting: null,
                 students: [],
+                teachingAgenda: '',
             },
         })),
     resetSelectionOnClassChange: (newClassId) =>
@@ -114,6 +119,7 @@ export const useDashboardAttendanceStore = create<AttendanceStore>((set) => ({
                 selectedSubject: '',
                 selectedMeeting: null,
                 students: [],
+                teachingAgenda: '',
             },
         })),
 }));

@@ -117,6 +117,7 @@ export interface BatchSaveAttendancePayload {
     day: string;
     jp?: string;
     time_range?: string;
+    teaching_agenda?: string | null;
     attendances: StudentAttendanceItem[];
 }
 
@@ -154,6 +155,16 @@ export type AttendanceSessionOpenStatus = 'BELUM_DIBUKA' | 'DIBUKA' | 'DITUTUP';
 export interface AttendanceSessionStatusResponse {
     status: AttendanceSessionOpenStatus;
     session_token?: string | null;
+    teaching_agenda?: string | null;
+}
+
+export interface AttendanceSessionAgendaPayload {
+    id_school_information: string;
+    id_class: string;
+    date: string;
+    jp?: string;
+    subject_name?: string;
+    teaching_agenda: string;
 }
 
 export interface ScanAttendanceResponse {
