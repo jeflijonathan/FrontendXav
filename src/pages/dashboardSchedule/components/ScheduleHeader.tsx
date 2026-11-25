@@ -1,9 +1,14 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import {
+    Alert,
     Box,
     Button,
     Chip,
     CircularProgress,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogTitle,
     FormControl,
     InputLabel,
     MenuItem,
@@ -20,6 +25,7 @@ import PrintOutlinedIcon from '@mui/icons-material/PrintOutlined';
 import SaveIcon from '@mui/icons-material/Save';
 import TableChartIcon from '@mui/icons-material/TableChart';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
+import DeleteSweepOutlinedIcon from '@mui/icons-material/DeleteSweepOutlined';
 import { useScheduleStore } from '../store/useScheduleStore';
 
 const ScheduleHeader: React.FC = () => {
@@ -36,7 +42,46 @@ const ScheduleHeader: React.FC = () => {
         setRecommendationModalOpen,
         setPrintDialogOpen,
         setIsGenerateScheduleDialogOpen,
+        clearScheduleSlots,
+        classes,
+        selectedClassFilter,
+        rows,
     } = useScheduleStore();
+
+    const [isClearDialogOpen, setIsClearDialogOpen] = useState(false);
+    const [selectedScope, setSelectedScope] = useState<string>('ALL');
+    const [isClearing, setIsClearing] = useState(false);
+
+    // Hitung jumlah slot KBM yang sudah terisi pengajar
+    const filledSlotsCount = useMemo(() => {
+        let count = 0;
+        rows.forEach((r) => {
+            if (r.specialActivity) return;
+            Object.values(r.classCells || {}).forEach((c) => {
+                if (c?.teacherCode) count++;
+            });
+        });
+        return count;
+    }, [rows]);
+
+    const handleOpenClearDialog = () => {
+        if (selectedClassFilter && selectedClassFilter !== 'Semua') {
+            setSelectedScope(selectedClassFilter);
+        } else {
+            setSelectedScope('ALL');
+        }
+        setIsClearDialogOpen(true);
+    };
+
+    const handleConfirmClear = async () => {
+        setIsClearing(true);
+        try {
+            await clearScheduleSlots(selectedScope === 'ALL' ? undefined : selectedScope);
+            setIsClearDialogOpen(false);
+        } finally {
+            setIsClearing(false);
+        }
+    };
 
     return (
         <Box
@@ -181,6 +226,36 @@ const ScheduleHeader: React.FC = () => {
                         </Button>
                     </Tooltip>
 
+                    <Tooltip title={filledSlotsCount > 0 ? "Kosongkan seluruh atau sebagian slot jadwal KBM" : "Belum ada slot KBM yang terisi"}>
+                        <span>
+                            <Button
+                                variant="outlined"
+                                size="small"
+                                color="error"
+                                disabled={filledSlotsCount === 0}
+                                startIcon={<DeleteSweepOutlinedIcon />}
+                                onClick={handleOpenClearDialog}
+                                sx={{
+                                    borderColor: isDark ? 'rgba(239, 68, 68, 0.4)' : '#fca5a5',
+                                    color: isDark ? '#f87171' : '#dc2626',
+                                    textTransform: 'none',
+                                    fontWeight: 600,
+                                    borderRadius: 2,
+                                    '&:hover': {
+                                        bgcolor: isDark ? 'rgba(239, 68, 68, 0.15)' : '#fef2f2',
+                                        borderColor: '#ef4444',
+                                    },
+                                    '&.Mui-disabled': {
+                                        borderColor: isDark ? '#27272a' : '#e2e8f0',
+                                        color: isDark ? '#52525b' : '#94a3b8',
+                                    },
+                                }}
+                            >
+                                Kosongkan Slot
+                            </Button>
+                        </span>
+                    </Tooltip>
+
                     <Button
                         variant="outlined"
                         size="small"
@@ -218,6 +293,127 @@ const ScheduleHeader: React.FC = () => {
                     </Button>
                 </Stack>
             </Box>
+
+            {/* Dialog Konfirmasi Kosongkan Slot Jadwal */}
+            <Dialog
+                open={isClearDialogOpen}
+                onClose={() => !isClearing && setIsClearDialogOpen(false)}
+                maxWidth="xs"
+                fullWidth
+                slotProps={{
+                    paper: {
+                        sx: {
+                            borderRadius: 3,
+                            bgcolor: isDark ? '#18181b' : '#ffffff',
+                            color: isDark ? '#f4f4f5' : '#0f172a',
+                        },
+                    },
+                }}
+            >
+                <DialogTitle
+                    sx={{
+                        p: 2.5,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1.5,
+                        borderBottom: isDark ? '1px solid #27272a' : '1px solid #e2e8f0',
+                    }}
+                >
+                    <Box
+                        sx={{
+                            width: 38,
+                            height: 38,
+                            borderRadius: 2,
+                            bgcolor: isDark ? 'rgba(239, 68, 68, 0.2)' : '#fee2e2',
+                            color: '#ef4444',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                        }}
+                    >
+                        <DeleteSweepOutlinedIcon />
+                    </Box>
+                    <Box>
+                        <Typography variant="h6" sx={{ fontWeight: 800, fontSize: '17px' }}>
+                            Kosongkan Slot Jadwal
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: isDark ? '#a1a1aa' : '#64748b' }}>
+                            Hapus input nomor kode guru pada slot KBM
+                        </Typography>
+                    </Box>
+                </DialogTitle>
+
+                <DialogContent sx={{ p: 2.5 }}>
+                    <Stack spacing={2} sx={{ pt: 1 }}>
+                        <Alert severity="warning" sx={{ fontSize: '12.5px' }}>
+                            Tindakan ini akan <strong>mengosongkan nomor kode guru pengajar</strong> pada slot jam pelajaran yang dipilih dan langsung menyinkronkan ke database.
+                        </Alert>
+
+                        <Box
+                            sx={{
+                                p: 1.5,
+                                bgcolor: isDark ? '#27272a' : '#f8fafc',
+                                borderRadius: 2,
+                                border: isDark ? '1px solid #3f3f46' : '1px solid #e2e8f0',
+                            }}
+                        >
+                            <Typography variant="caption" sx={{ color: isDark ? '#a1a1aa' : '#64748b', fontWeight: 600, display: 'block' }}>
+                                Slot KBM Terisi Saat Ini:
+                            </Typography>
+                            <Typography variant="body2" sx={{ fontWeight: 800, color: '#ef4444' }}>
+                                {filledSlotsCount} slot KBM terisi pengajar
+                            </Typography>
+                        </Box>
+
+                        {classes.length > 0 && (
+                            <FormControl fullWidth size="small">
+                                <Typography variant="caption" sx={{ fontWeight: 700, color: isDark ? '#cbd5e1' : '#334155', mb: 0.75 }}>
+                                    Pilih Lingkup Kelas yang Ingin Dikosongkan:
+                                </Typography>
+                                <Select
+                                    value={selectedScope}
+                                    onChange={(e) => setSelectedScope(e.target.value)}
+                                    size="small"
+                                >
+                                    <MenuItem value="ALL">
+                                        Seluruh Ruang Kelas ({classes.length} Rombel)
+                                    </MenuItem>
+                                    {classes.map((c) => (
+                                        <MenuItem key={c.id || c.name} value={c.name}>
+                                            Hanya Kelas {c.name} {c.major ? `(${c.major})` : ''}
+                                        </MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+                        )}
+                    </Stack>
+                </DialogContent>
+
+                <DialogActions sx={{ p: 2, borderTop: isDark ? '1px solid #27272a' : '1px solid #e2e8f0' }}>
+                    <Button
+                        onClick={() => setIsClearDialogOpen(false)}
+                        disabled={isClearing}
+                        sx={{ textTransform: 'none', color: isDark ? '#a1a1aa' : '#64748b', fontWeight: 600 }}
+                    >
+                        Batal
+                    </Button>
+                    <Button
+                        variant="contained"
+                        color="error"
+                        disabled={isClearing || filledSlotsCount === 0}
+                        onClick={handleConfirmClear}
+                        startIcon={isClearing ? <CircularProgress size={16} color="inherit" /> : <DeleteSweepOutlinedIcon />}
+                        sx={{
+                            textTransform: 'none',
+                            fontWeight: 700,
+                            borderRadius: 2,
+                            px: 2.5,
+                        }}
+                    >
+                        {isClearing ? 'Mengosongkan...' : 'Kosongkan Sekarang'}
+                    </Button>
+                </DialogActions>
+            </Dialog>
         </Box>
     );
 };

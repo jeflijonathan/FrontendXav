@@ -4,7 +4,7 @@ import TableBody from "@components/Table/TableBody";
 import TableRow from "@components/Table/TableRow";
 import TableFooter from "@components/Table/TableFooter";
 import TablePagination from "@components/Table/TablePagination";
-import { TableCell, Chip, IconButton, type IconButtonProps } from "@mui/material";
+import { TableCell, Chip, IconButton, Typography, type IconButtonProps } from "@mui/material";
 import { Edit, Visibility, Delete } from "@mui/icons-material";
 import useEmployeeList from "./hook/useEmployeeList";
 import useEmployeeFilters from "./hook/useEmployeeFilters";
@@ -121,13 +121,15 @@ const EmployeeTable = () => {
                                         style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} 
                                     />
                                 ) : (
-                                    <div style={{ width: 40, height: 40, borderRadius: '50%', backgroundColor: '#eee', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>-</div>
+                                    <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-zinc-700 text-slate-700 dark:text-zinc-200 flex items-center justify-center font-bold text-sm">
+                                        {row.first_name?.[0]?.toUpperCase() || "-"}
+                                    </div>
                                 )}
                             </TableCell>
                             <TableCell sx={{ py: 1 }}>
-                                <div style={{ fontWeight: 600, color: '#1e293b' }}>
+                                <Typography variant="body2" sx={{ fontWeight: 600, color: "text.primary" }}>
                                     {row.formatted_name || `${row.first_name} ${row.last_name || ''}`}
-                                </div>
+                                </Typography>
                             </TableCell>
                             <TableCell sx={{ py: 1 }}>
                                 <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>

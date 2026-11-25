@@ -24,6 +24,7 @@ import ErrorIcon from "@mui/icons-material/Error";
 import SchoolIcon from "@mui/icons-material/School";
 import { useNavigate } from "react-router-dom";
 import useAcademicCalendarStore from "../store/useAcademicCalendarStore";
+import { useCalendarPermissions } from "../utils/permissions";
 import { useSnackbar } from "notistack";
 
 const ScanPdfModal: React.FC = () => {
@@ -40,6 +41,7 @@ const ScanPdfModal: React.FC = () => {
     setSelectedSchoolInfoId,
     loadDefaults,
   } = useAcademicCalendarStore();
+  const { canEdit } = useCalendarPermissions();
   const { enqueueSnackbar } = useSnackbar();
   const navigate = useNavigate();
 
@@ -116,7 +118,7 @@ const ScanPdfModal: React.FC = () => {
 
   return (
     <Dialog
-      open={isScanModalOpen}
+      open={isScanModalOpen && canEdit}
       onClose={handleClose}
       maxWidth="sm"
       fullWidth

@@ -6,7 +6,10 @@ import EventBusyIcon from "@mui/icons-material/EventBusy";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import CalendarViewMonthIcon from "@mui/icons-material/CalendarViewMonth";
 import TableChartIcon from "@mui/icons-material/TableChart";
+import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
+import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import useAcademicCalendarStore from "../store/useAcademicCalendarStore";
+import { useCalendarPermissions } from "../utils/permissions";
 import { useSnackbar } from "notistack";
 
 const CalendarHeader: React.FC = () => {
@@ -24,6 +27,7 @@ const CalendarHeader: React.FC = () => {
     clearHolidaysOnly,
     schoolInformations,
   } = useAcademicCalendarStore();
+  const { canEdit, roleName } = useCalendarPermissions();
   const { enqueueSnackbar } = useSnackbar();
 
   const [isClearHolidaysDialogOpen, setIsClearHolidaysDialogOpen] = useState(false);
@@ -243,62 +247,82 @@ const CalendarHeader: React.FC = () => {
           </Box>
         </Box>
 
-        {/* Kelompok Aksi Kanan: Pindai PDF, Simpan, Hapus Hari Raya */}
+        {/* Kelompok Aksi Kanan: Pindai PDF, Simpan, Hapus Hari Raya (Hanya Kurikulum) */}
         <Stack direction="row" spacing={1} sx={{ alignItems: "center", flexWrap: "wrap" }}>
-          <Button
-            variant="contained"
-            color="primary"
-            size="small"
-            startIcon={<UploadFileIcon />}
-            onClick={() => setIsScanModalOpen(true)}
-            sx={{
-              textTransform: "none",
-              borderRadius: 2,
-              fontWeight: 700,
-              fontSize: "0.8rem",
-              px: 1.5,
-              py: 0.8,
-            }}
-          >
-            Pindai / Import PDF
-          </Button>
+          {canEdit ? (
+            <>
+              <Button
+                variant="contained"
+                color="primary"
+                size="small"
+                startIcon={<UploadFileIcon />}
+                onClick={() => setIsScanModalOpen(true)}
+                sx={{
+                  textTransform: "none",
+                  borderRadius: 2,
+                  fontWeight: 700,
+                  fontSize: "0.8rem",
+                  px: 1.5,
+                  py: 0.8,
+                }}
+              >
+                Pindai / Import PDF
+              </Button>
 
-          <Button
-            variant="contained"
-            color="success"
-            size="small"
-            startIcon={<SaveIcon />}
-            onClick={handleSave}
-            disabled={isSaving}
-            sx={{
-              textTransform: "none",
-              borderRadius: 2,
-              fontWeight: 700,
-              fontSize: "0.8rem",
-              px: 1.5,
-              py: 0.8,
-            }}
-          >
-            {isSaving ? "Menyimpan..." : "Simpan"}
-          </Button>
+              <Button
+                variant="contained"
+                color="success"
+                size="small"
+                startIcon={<SaveIcon />}
+                onClick={handleSave}
+                disabled={isSaving}
+                sx={{
+                  textTransform: "none",
+                  borderRadius: 2,
+                  fontWeight: 700,
+                  fontSize: "0.8rem",
+                  px: 1.5,
+                  py: 0.8,
+                }}
+              >
+                {isSaving ? "Menyimpan..." : "Simpan"}
+              </Button>
 
-          <Button
-            variant="outlined"
-            color="warning"
-            size="small"
-            startIcon={<EventBusyIcon />}
-            onClick={() => setIsClearHolidaysDialogOpen(true)}
-            sx={{
-              textTransform: "none",
-              borderRadius: 2,
-              fontWeight: 600,
-              fontSize: "0.8rem",
-              px: 1.5,
-              py: 0.8,
-            }}
-          >
-            Hapus Hari Raya
-          </Button>
+              <Button
+                variant="outlined"
+                color="warning"
+                size="small"
+                startIcon={<EventBusyIcon />}
+                onClick={() => setIsClearHolidaysDialogOpen(true)}
+                sx={{
+                  textTransform: "none",
+                  borderRadius: 2,
+                  fontWeight: 600,
+                  fontSize: "0.8rem",
+                  px: 1.5,
+                  py: 0.8,
+                }}
+              >
+                Hapus Hari Raya
+              </Button>
+            </>
+          ) : (
+            <Chip
+              icon={<VisibilityOutlinedIcon sx={{ fontSize: "16px !important", color: "text.secondary" }} />}
+              label={`Mode Lihat Saja (${roleName} - Akses Edit: Khusus Kurikulum)`}
+              size="small"
+              sx={{
+                bgcolor: (theme) => (theme.palette.mode === "dark" ? "rgba(148, 163, 184, 0.15)" : "#f1f5f9"),
+                color: (theme) => (theme.palette.mode === "dark" ? "#94a3b8" : "#475569"),
+                border: 1,
+                borderColor: (theme) => (theme.palette.mode === "dark" ? "rgba(148, 163, 184, 0.3)" : "#cbd5e1"),
+                fontWeight: 600,
+                fontSize: "0.75rem",
+                py: 1.6,
+                px: 0.5,
+              }}
+            />
+          )}
         </Stack>
       </Box>
 

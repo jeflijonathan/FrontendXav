@@ -5,7 +5,6 @@ import {
   Box,
   Typography,
   Paper,
-  Chip,
   Autocomplete,
 } from "@mui/material";
 import { Controller, useFormContext } from "react-hook-form";
@@ -43,37 +42,33 @@ export const UpdateAllocationFormDialog: React.FC = () => {
   return (
     <DialogBody>
       <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5, pt: 1 }}>
-        {/* 1. Mata Pelajaran */}
+        {/* 1. Mata Pelajaran (dengan fitur pencarian) */}
         <Controller
           name="id_subject"
           control={control}
           render={({ field }) => (
-            <TextField
-              {...field}
-              select
-              label="Mata Pelajaran"
-              fullWidth
-              size="small"
-              error={!!errors.id_subject}
-              helperText={errors.id_subject?.message as string}
-            >
-              {state.subjectsList.map((s) => (
-                <MenuItem key={s.id} value={s.id}>
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 1, width: "100%" }}>
-                    <span>{s.name} ({s.code || "Fase " + s.fase})</span>
-                    {s.majorName && (
-                      <Chip
-                        label={s.majorName}
-                        size="small"
-                        variant="outlined"
-                        color="warning"
-                        sx={{ fontSize: "0.68rem", height: 20, fontWeight: 700, ml: "auto" }}
-                      />
-                    )}
-                  </Box>
-                </MenuItem>
-              ))}
-            </TextField>
+            <Autocomplete
+              options={state.subjectsList}
+              getOptionLabel={(option) =>
+                `${option.name}${option.code ? ` (${option.code})` : option.fase ? ` (Fase ${option.fase})` : ""}`
+              }
+              value={state.subjectsList.find((s) => s.id === field.value) || null}
+              isOptionEqualToValue={(option, val) => option.id === val.id}
+              onChange={(_, newValue) => {
+                field.onChange(newValue ? newValue.id : "");
+              }}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Mata Pelajaran"
+                  placeholder="Cari mata pelajaran..."
+                  size="small"
+                  fullWidth
+                  error={!!errors.id_subject}
+                  helperText={errors.id_subject?.message as string}
+                />
+              )}
+            />
           )}
         />
 

@@ -36,26 +36,12 @@ interface NotificationStore {
     clearSystemNotifications: () => void;
 }
 
-const STORAGE_KEY = "smk_xaverius_system_notifications";
-
 const getSavedNotifications = (): SystemNotificationItem[] => {
-    try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (raw) {
-            return JSON.parse(raw);
-        }
-    } catch {
-        // fallback
-    }
     return [];
 };
 
-const saveNotifications = (items: SystemNotificationItem[]) => {
-    try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
-    } catch {
-        // ignore
-    }
+const saveNotifications = (_items: SystemNotificationItem[]) => {
+    // In-memory store; tidak disimpan ke LocalStorage
 };
 
 const useNotificationStore = create<NotificationStore>((set, get) => ({

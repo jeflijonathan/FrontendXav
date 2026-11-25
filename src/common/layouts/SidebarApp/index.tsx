@@ -17,7 +17,7 @@ import type { MenuItemType } from "../../types";
 import LogoSidebar from "./LogoSidebar";
 import BaseMenu from "./BaseMenu";
 import getProfilePhotoUrl from "@utils/getProfilePhotoUrl";
-
+import CoPresentIcon from "@mui/icons-material/CoPresent";
 const SidebarApp = () => {
   const { isSidebarOpen, handleSidebarToggle } = useSidebarStore();
   const { user, activeRole, logout } = useAuthStore();
@@ -41,6 +41,14 @@ const SidebarApp = () => {
         { label: "Kelas", href: "/classes" },
         { label: "Kategori Mapel", href: "/category-subjects" },
         { label: "Mapel", href: "/subjects" },
+        { label: "Kategori Ekstra", href: "/category-extras" },
+      ],
+    },
+    {
+      icon: <CoPresentIcon fontSize="small" />,
+      label: "KBM",
+      subItems: [
+        { label: "Presensi Siswa", href: "/presensi-siswa" },
       ],
     },
     {
@@ -51,7 +59,6 @@ const SidebarApp = () => {
         { label: "Alokasi Jam & JP", href: "/alokasi-jp" },
         { label: "Pengajar", href: "/teaching-staff" },
         { label: "Roster Jam Belajar", href: "/roster-jam" },
-        { label: "Kategori Ekstra", href: "/category-extras" },
         { label: "Jadwal Pelajaran", href: "/jadwal-pelajaran" },
       ],
     },

@@ -23,6 +23,7 @@ import {
     Tooltip,
     Typography,
 } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutlined';
@@ -33,6 +34,9 @@ import { useScheduleStore } from '../store/useScheduleStore';
 import type { DragPayload, TeacherCodeEntry } from '../types';
 
 const TeacherCodeTable: React.FC = () => {
+    const theme = useTheme();
+    const isDark = theme.palette.mode === 'dark';
+
     const {
         teachers,
         rows,
@@ -124,19 +128,19 @@ const TeacherCodeTable: React.FC = () => {
             elevation={0}
             sx={{
                 borderRadius: 3,
-                border: '1px solid #cbd5e1',
+                border: isDark ? '1px solid #27272a' : '1px solid #cbd5e1',
                 overflow: 'hidden',
-                bgcolor: '#ffffff',
+                bgcolor: isDark ? '#141416' : '#ffffff',
                 mb: 4,
-                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
+                boxShadow: isDark ? '0 4px 20px rgba(0,0,0,0.5)' : '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
             }}
         >
             {/* Header Toolbar */}
             <Box
                 sx={{
                     p: 2.5,
-                    bgcolor: '#f8fafc',
-                    borderBottom: '2px solid #e2e8f0',
+                    bgcolor: isDark ? '#18181b' : '#f8fafc',
+                    borderBottom: isDark ? '2px solid #27272a' : '2px solid #e2e8f0',
                     display: 'flex',
                     flexWrap: 'wrap',
                     alignItems: 'center',
@@ -150,8 +154,8 @@ const TeacherCodeTable: React.FC = () => {
                             width: 36,
                             height: 36,
                             borderRadius: 2,
-                            bgcolor: '#dbeafe',
-                            color: '#1e40af',
+                            bgcolor: isDark ? '#1e3a8a' : '#dbeafe',
+                            color: isDark ? '#93c5fd' : '#1e40af',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
@@ -162,11 +166,11 @@ const TeacherCodeTable: React.FC = () => {
                     <Box>
                         <Typography
                             variant="subtitle1"
-                            sx={{ fontWeight: 800, color: '#0f172a', letterSpacing: 0.5 }}
+                            sx={{ fontWeight: 800, color: isDark ? '#f4f4f5' : '#0f172a', letterSpacing: 0.5 }}
                         >
                             KODE & NAMA GURU PENGAJAR (LAMPIRAN RESMI)
                         </Typography>
-                        <Typography variant="caption" sx={{ color: '#64748b' }}>
+                        <Typography variant="caption" sx={{ color: isDark ? '#a1a1aa' : '#64748b' }}>
                             Daftar nomor urut kode guru SMK Xaverius Palembang beserta mapel & rekomendasi JP
                         </Typography>
                     </Box>
@@ -300,12 +304,13 @@ const TeacherCodeTable: React.FC = () => {
                                     key={t.code}
                                     id={`teacher-row-${t.code}`}
                                     sx={{
-                                        '&:hover': { bgcolor: '#f8fafc' },
+                                        '&:hover': { bgcolor: isDark ? '#1e1e24' : '#f8fafc' },
                                         transition: 'background-color 0.25s ease',
+                                        borderBottom: isDark ? '1px solid #27272a' : '1px solid #e2e8f0',
                                     }}
                                 >
                                     {/* Draggable Code Badge */}
-                                    <TableCell sx={{ textAlign: 'center' }}>
+                                    <TableCell sx={{ textAlign: 'center', borderBottom: isDark ? '1px solid #27272a' : undefined }}>
                                         <Tooltip title="Tarik nomor ini ke sel tabel jadwal di atas">
                                             <Chip
                                                 draggable
@@ -319,16 +324,16 @@ const TeacherCodeTable: React.FC = () => {
                                                     cursor: 'grab',
                                                     bgcolor:
                                                         t.category === 'KEJURUAN'
-                                                            ? '#ffedd5'
-                                                            : '#dbeafe',
+                                                            ? (isDark ? 'rgba(234, 88, 12, 0.25)' : '#ffedd5')
+                                                            : (isDark ? 'rgba(37, 99, 235, 0.25)' : '#dbeafe'),
                                                     color:
                                                         t.category === 'KEJURUAN'
-                                                            ? '#c2410c'
-                                                            : '#1e40af',
+                                                            ? (isDark ? '#fb923c' : '#c2410c')
+                                                            : (isDark ? '#93c5fd' : '#1e40af'),
                                                     border: `1px solid ${
                                                         t.category === 'KEJURUAN'
-                                                            ? '#fed7aa'
-                                                            : '#bfdbfe'
+                                                            ? (isDark ? 'rgba(234, 88, 12, 0.5)' : '#fed7aa')
+                                                            : (isDark ? 'rgba(37, 99, 235, 0.5)' : '#bfdbfe')
                                                     }`,
                                                     '&:hover': {
                                                         transform: 'scale(1.1)',
@@ -340,22 +345,22 @@ const TeacherCodeTable: React.FC = () => {
                                     </TableCell>
 
                                     {/* Name */}
-                                    <TableCell sx={{ fontWeight: 700, color: '#0f172a' }}>
+                                    <TableCell sx={{ fontWeight: 700, color: isDark ? '#f4f4f5' : '#0f172a', borderBottom: isDark ? '1px solid #27272a' : undefined }}>
                                         {t.name}
                                     </TableCell>
 
                                     {/* Subject */}
-                                    <TableCell>
-                                        <Typography variant="body2" sx={{ fontWeight: 600, color: '#1e293b' }}>
+                                    <TableCell sx={{ borderBottom: isDark ? '1px solid #27272a' : undefined }}>
+                                        <Typography variant="body2" sx={{ fontWeight: 600, color: isDark ? '#f4f4f5' : '#1e293b' }}>
                                             {t.subjectName}
                                         </Typography>
-                                        <Typography variant="caption" sx={{ color: '#64748b' }}>
+                                        <Typography variant="caption" sx={{ color: isDark ? '#a1a1aa' : '#64748b' }}>
                                             Kode: {t.subjectCode}
                                         </Typography>
                                     </TableCell>
 
                                     {/* Category */}
-                                    <TableCell sx={{ textAlign: 'center' }}>
+                                    <TableCell sx={{ textAlign: 'center', borderBottom: isDark ? '1px solid #27272a' : undefined }}>
                                         <Chip
                                             label={t.category}
                                             size="small"
@@ -364,26 +369,26 @@ const TeacherCodeTable: React.FC = () => {
                                                 fontWeight: 800,
                                                 bgcolor:
                                                     t.category === 'KEJURUAN'
-                                                        ? '#fef3c7'
-                                                        : '#e0f2fe',
+                                                        ? (isDark ? 'rgba(217, 119, 6, 0.25)' : '#fef3c7')
+                                                        : (isDark ? 'rgba(2, 132, 199, 0.25)' : '#e0f2fe'),
                                                 color:
                                                     t.category === 'KEJURUAN'
-                                                        ? '#92400e'
-                                                        : '#0369a1',
+                                                        ? (isDark ? '#fcd34d' : '#92400e')
+                                                        : (isDark ? '#7dd3fc' : '#0369a1'),
                                             }}
                                         />
                                     </TableCell>
 
                                     {/* Recommended JP */}
-                                    <TableCell>
+                                    <TableCell sx={{ borderBottom: isDark ? '1px solid #27272a' : undefined }}>
                                         <Typography
                                             variant="caption"
                                             sx={{
                                                 fontWeight: 700,
                                                 color:
                                                     t.category === 'KEJURUAN'
-                                                        ? '#b45309'
-                                                        : '#0284c7',
+                                                        ? (isDark ? '#fbbf24' : '#b45309')
+                                                        : (isDark ? '#38bdf8' : '#0284c7'),
                                                 display: 'block',
                                             }}
                                         >
@@ -392,12 +397,14 @@ const TeacherCodeTable: React.FC = () => {
                                     </TableCell>
 
                                     {/* Scheduled hours vs Target */}
-                                    <TableCell sx={{ textAlign: 'center' }}>
+                                    <TableCell sx={{ textAlign: 'center', borderBottom: isDark ? '1px solid #27272a' : undefined }}>
                                         <Typography
                                             variant="body2"
                                             sx={{
                                                 fontWeight: 800,
-                                                color: isFulfilled ? '#15803d' : '#0284c7',
+                                                color: isFulfilled
+                                                    ? (isDark ? '#4ade80' : '#15803d')
+                                                    : (isDark ? '#38bdf8' : '#0284c7'),
                                             }}
                                         >
                                             {scheduled} / {t.targetJp} JP
@@ -405,12 +412,12 @@ const TeacherCodeTable: React.FC = () => {
                                     </TableCell>
 
                                     {/* Actions */}
-                                    <TableCell sx={{ textAlign: 'center' }}>
+                                    <TableCell sx={{ textAlign: 'center', borderBottom: isDark ? '1px solid #27272a' : undefined }}>
                                         <Tooltip title="Edit data guru">
                                             <IconButton
                                                 size="small"
                                                 onClick={() => setEditingTeacher(t)}
-                                                sx={{ color: '#64748b', '&:hover': { color: '#2563eb' } }}
+                                                sx={{ color: isDark ? '#a1a1aa' : '#64748b', '&:hover': { color: '#2563eb' } }}
                                             >
                                                 <EditIcon fontSize="small" />
                                             </IconButton>
@@ -419,7 +426,7 @@ const TeacherCodeTable: React.FC = () => {
                                             <IconButton
                                                 size="small"
                                                 onClick={() => deleteTeacher(t.code)}
-                                                sx={{ color: '#94a3b8', '&:hover': { color: '#ef4444' } }}
+                                                sx={{ color: isDark ? '#71717a' : '#94a3b8', '&:hover': { color: '#ef4444' } }}
                                             >
                                                 <DeleteOutlineIcon fontSize="small" />
                                             </IconButton>
@@ -438,8 +445,18 @@ const TeacherCodeTable: React.FC = () => {
                 onClose={() => setEditingTeacher(null)}
                 maxWidth="sm"
                 fullWidth
+                slotProps={{
+                    paper: {
+                        sx: {
+                            bgcolor: isDark ? '#18181b' : '#ffffff',
+                            color: isDark ? '#f4f4f5' : '#0f172a',
+                            border: isDark ? '1px solid #27272a' : undefined,
+                            borderRadius: 3,
+                        },
+                    },
+                }}
             >
-                <DialogTitle sx={{ fontWeight: 800 }}>
+                <DialogTitle sx={{ fontWeight: 800, color: isDark ? '#f4f4f5' : '#0f172a' }}>
                     Edit Nomor & Data Guru #{editingTeacher?.code}
                 </DialogTitle>
                 <DialogContent>
@@ -554,8 +571,18 @@ const TeacherCodeTable: React.FC = () => {
                 onClose={() => setIsAddOpen(false)}
                 maxWidth="sm"
                 fullWidth
+                slotProps={{
+                    paper: {
+                        sx: {
+                            bgcolor: isDark ? '#18181b' : '#ffffff',
+                            color: isDark ? '#f4f4f5' : '#0f172a',
+                            border: isDark ? '1px solid #27272a' : undefined,
+                            borderRadius: 3,
+                        },
+                    },
+                }}
             >
-                <DialogTitle sx={{ fontWeight: 800 }}>
+                <DialogTitle sx={{ fontWeight: 800, color: isDark ? '#f4f4f5' : '#0f172a' }}>
                     Tambah Guru Pengajar Baru
                 </DialogTitle>
                 <DialogContent>

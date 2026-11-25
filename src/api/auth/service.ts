@@ -1,6 +1,6 @@
 import type { FetchCallback } from "@common/types";
 import { API } from "../index";
-import { setCookie, deleteCookie, getCookie } from "@utils/cookie";
+import { setCookie, deleteCookie, getCookie, getJSONCookie, setJSONCookie } from "@utils/cookie";
 import LocalStorage from "@utils/localStorage";
 import type {
   EmployeeLoginRequestModel,
@@ -20,19 +20,23 @@ export default class AuthService {
   private saveTokensAndUser(data: AuthResponseModel) {
     if (data.access_token) {
       setCookie("access_token", data.access_token, { maxAge: data.expires_in || 3600 });
-      LocalStorage().setItem("accessToken", data.access_token);
+      setCookie("accessToken", data.access_token, { maxAge: data.expires_in || 3600 });
     }
     if (data.refresh_token) {
       setCookie("refresh_token", data.refresh_token, { maxAge: 7 * 24 * 3600 });
-      LocalStorage().setItem("refreshToken", data.refresh_token);
+      setCookie("refreshToken", data.refresh_token, { maxAge: 7 * 24 * 3600 });
     }
     if (data.user) {
-      LocalStorage().setItem("user", data.user);
+      setJSONCookie("user", data.user, { maxAge: 7 * 24 * 3600 });
       if (data.user.active_role) {
         setCookie("active_role", data.user.active_role, { maxAge: 7 * 24 * 3600 });
-        LocalStorage().setItem("active_role", data.user.active_role);
       }
     }
+    // Bersihkan LocalStorage dari data auth agar murni hanya di cookie
+    LocalStorage().removeItem("accessToken");
+    LocalStorage().removeItem("refreshToken");
+    LocalStorage().removeItem("user");
+    LocalStorage().removeItem("active_role");
   }
 
   async loginEmployee(
@@ -89,15 +93,20 @@ export default class AuthService {
       if (res.status === "SUCCESS" || res.status_code === 200) {
         if (res.data.access_token) {
           setCookie("access_token", res.data.access_token, { maxAge: 3600 });
-          LocalStorage().setItem("accessToken", res.data.access_token);
+          setCookie("accessToken", res.data.access_token, { maxAge: 3600 });
         }
         if (res.data.active_role) {
           setCookie("active_role", res.data.active_role, { maxAge: 7 * 24 * 3600 });
-          LocalStorage().setItem("active_role", res.data.active_role);
         }
         if (res.data.user) {
-          LocalStorage().setItem("user", res.data.user);
+          setJSONCookie("user", res.data.user, { maxAge: 7 * 24 * 3600 });
         }
+        // Bersihkan LocalStorage dari data auth
+        LocalStorage().removeItem("accessToken");
+        LocalStorage().removeItem("refreshToken");
+        LocalStorage().removeItem("user");
+        LocalStorage().removeItem("active_role");
+
         callback.onSuccess(res.data);
       } else {
         callback.onError({ message: res.message, detail: res.details });
@@ -110,14 +119,17 @@ export default class AuthService {
 
   async logout(callback?: FetchCallback<any>) {
     try {
-      const rf = getCookie("refresh_token") || LocalStorage().getItem<string>("refreshToken");
+      const rf = getCookie("refresh_token") || getCookie("refreshToken");
       await this.service.POST(`${this.basePath}/logout`, { refresh_token: rf });
     } catch {
       // Ignore network logout errors, proceed to clear client session
     } finally {
       deleteCookie("access_token");
+      deleteCookie("accessToken");
       deleteCookie("refresh_token");
+      deleteCookie("refreshToken");
       deleteCookie("active_role");
+      deleteCookie("user");
       LocalStorage().removeItem("accessToken");
       LocalStorage().removeItem("refreshToken");
       LocalStorage().removeItem("user");
@@ -131,7 +143,7 @@ export default class AuthService {
     try {
       const res = await this.service.GET<AuthUserModel>(`${this.basePath}/me`);
       if (res.status === "SUCCESS" || res.status_code === 200) {
-        LocalStorage().setItem("user", res.data);
+        setJSONCookie("user", res.data, { maxAge: 7 * 24 * 3600 });
         callback.onSuccess(res.data);
       } else {
         callback.onError({ message: res.message, detail: res.details });
@@ -166,11 +178,11 @@ export default class AuthService {
         data
       );
       if (res.status === "SUCCESS" || res.status_code === 200) {
-        // Sinkronisasi data user dasar di local storage & auth state
-        const storedUser = LocalStorage().getItem<AuthUserModel>("user");
+        // Sinkronisasi data user dasar di cookie & auth state
+        const storedUser = getJSONCookie<AuthUserModel>("user");
         if (storedUser) {
           storedUser.profile_url = res.data.profile_url;
-          LocalStorage().setItem("user", storedUser);
+          setJSONCookie("user", storedUser, { maxAge: 7 * 24 * 3600 });
         }
         callback.onSuccess(res.data);
       } else {

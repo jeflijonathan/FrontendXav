@@ -43,6 +43,8 @@ export interface TeacherScheduleRequest {
     teacherName: string;
     subjectName: string;
     preferredSlots: PreferredScheduleSlot[];
+    /** Rekomendasi kelas yang ingin diajar (opsional, bisa kosong) */
+    recommendedClasses?: string[];
     status: 'VALID' | 'CONFLICT' | 'PENDING' | string;
     statusText: string; // "✓ Tersedia & Bebas Bentrok" atau "⚠️ Terdeteksi Bentrok"
     conflictReason?: string | null;
@@ -79,6 +81,7 @@ export interface TeacherCodeEntry {
     recommendedJpRange?: [number, number];
     totalJpAssigned: number;
     targetJp: number;
+    roles?: string[];
     color?: string;
 }
 
@@ -131,7 +134,7 @@ export interface ScheduleConflict {
     teacherCode: number;
     teacherName: string;
     conflictedClasses: string[]; // classes where this teacher is assigned at the same slot
-    conflictType?: 'TEACHER_DOUBLE_BOOKING' | 'PIKET_CONFLICT';
+    conflictType?: 'TEACHER_DOUBLE_BOOKING' | 'PIKET_CONFLICT' | 'SUBJECT_MULTI_TEACHER';
     conflictReason?: string;
 }
 
@@ -150,7 +153,8 @@ export interface GuruPiketEntry {
     teacherCode?: number;
     name: string;
     hari: DayName;
-    jumlahJp: number; // e.g. 4 means slot KBM 1 s/d 4
+    jumlahJp: number; // e.g. 4 means slot KBM 1 s/d 4 atau total slot dipilih
+    slots?: number[]; // e.g. [1, 2, 3, 4] slot KBM spesifik yang dipilih
     role?: string;
     notes?: string;
 }

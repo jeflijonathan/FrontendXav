@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import {
     Box,
     Card,
@@ -10,6 +10,7 @@ import {
     Tooltip,
     CircularProgress,
 } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 import EditNoteIcon from '@mui/icons-material/EditNote';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import EventAvailableIcon from '@mui/icons-material/EventAvailable';
@@ -21,8 +22,14 @@ import { useScheduleStore } from '../store/useScheduleStore';
 import type { TeacherScheduleRequest } from '../types';
 
 const TeacherScheduleRequestPanel: React.FC = () => {
+    const theme = useTheme();
+    const isDark = theme.palette.mode === 'dark';
+
     const {
         teacherRequests,
+        teachers,
+        idSchoolInformation,
+        schoolInformations,
         isLoadingRequests,
         fetchTeacherRequests,
         setIsRequestDialogOpen,
@@ -33,6 +40,23 @@ const TeacherScheduleRequestPanel: React.FC = () => {
     useEffect(() => {
         fetchTeacherRequests();
     }, [fetchTeacherRequests]);
+
+    const activePeriodName = useMemo(() => {
+        const info = schoolInformations.find((i) => i.id_school_information === idSchoolInformation);
+        return info?.periode || 'periode aktif';
+    }, [schoolInformations, idSchoolInformation]);
+
+    // Hanya tampilkan request untuk guru yang terdaftar di periode aktif
+    const visibleRequests = useMemo(() => {
+        if (teachers.length === 0) return [];
+        return teacherRequests.filter((req) =>
+            teachers.some(
+                (t) =>
+                    t.code === req.teacherCode ||
+                    (t.name && req.teacherName && t.name.trim().toLowerCase() === req.teacherName.trim().toLowerCase())
+            )
+        );
+    }, [teacherRequests, teachers]);
 
     const handleOpenNewRequest = () => {
         setEditingRequest(null);
@@ -57,9 +81,9 @@ const TeacherScheduleRequestPanel: React.FC = () => {
                 mb: 3,
                 p: { xs: 2.5, md: 3 },
                 borderRadius: 3,
-                border: '1px solid #e2e8f0',
-                bgcolor: '#ffffff',
-                boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)',
+                border: isDark ? '1px solid #27272a' : '1px solid #e2e8f0',
+                bgcolor: isDark ? '#141416' : '#ffffff',
+                boxShadow: isDark ? '0 4px 20px rgba(0,0,0,0.5)' : '0 1px 3px 0 rgba(0, 0, 0, 0.04)',
             }}
         >
             {/* Header: Title, Subtitle, & Input Request Baru Button (Sesuai Gambar 1) */}
@@ -79,8 +103,8 @@ const TeacherScheduleRequestPanel: React.FC = () => {
                             width: 40,
                             height: 40,
                             borderRadius: 2,
-                            bgcolor: '#ede9fe',
-                            color: '#4f46e5',
+                            bgcolor: isDark ? 'rgba(79, 70, 229, 0.2)' : '#ede9fe',
+                            color: isDark ? '#818cf8' : '#4f46e5',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
@@ -90,39 +114,54 @@ const TeacherScheduleRequestPanel: React.FC = () => {
                         <EventAvailableIcon />
                     </Box>
                     <Box>
-                        <Typography variant="h6" sx={{ fontWeight: 800, color: '#1e1b4b', fontSize: '18px' }}>
+                        <Typography variant="h6" sx={{ fontWeight: 800, color: isDark ? '#f4f4f5' : '#1e1b4b', fontSize: '18px' }}>
                             Panel Request Jadwal Pengajar
                         </Typography>
-                        <Typography variant="body2" sx={{ color: '#64748b', fontSize: '13px' }}>
+                        <Typography variant="body2" sx={{ color: isDark ? '#a1a1aa' : '#64748b', fontSize: '13px' }}>
                             Form preferensi waktu mengajar & riwayat request yang telah divalidasi sistem.
                         </Typography>
                     </Box>
                 </Box>
 
-                <Button
-                    variant="contained"
-                    onClick={handleOpenNewRequest}
-                    startIcon={<EditNoteIcon />}
-                    sx={{
-                        bgcolor: '#4f46e5',
-                        color: '#ffffff',
-                        textTransform: 'none',
-                        fontWeight: 700,
-                        fontSize: '13px',
-                        borderRadius: 2,
-                        px: 2.5,
-                        py: 0.9,
-                        boxShadow: '0 4px 12px rgba(79, 70, 229, 0.25)',
-                        '&:hover': {
-                            bgcolor: '#4338ca',
-                        },
-                    }}
+                <Tooltip
+                    title={
+                        teachers.length === 0
+                            ? `Belum ada guru terdaftar pada periode ${activePeriodName}. Input penugasan di menu Pengajaran terlebih dahulu.`
+                            : ''
+                    }
                 >
-                    Input Request Baru
-                </Button>
+                    <span>
+                        <Button
+                            variant="contained"
+                            onClick={handleOpenNewRequest}
+                            startIcon={<EditNoteIcon />}
+                            disabled={teachers.length === 0}
+                            sx={{
+                                bgcolor: '#4f46e5',
+                                color: '#ffffff',
+                                textTransform: 'none',
+                                fontWeight: 700,
+                                fontSize: '13px',
+                                borderRadius: 2,
+                                px: 2.5,
+                                py: 0.9,
+                                boxShadow: '0 4px 12px rgba(79, 70, 229, 0.25)',
+                                '&:hover': {
+                                    bgcolor: '#4338ca',
+                                },
+                                '&.Mui-disabled': {
+                                    bgcolor: isDark ? '#27272a' : '#e2e8f0',
+                                    color: isDark ? '#52525b' : '#94a3b8',
+                                },
+                            }}
+                        >
+                            Input Request Baru
+                        </Button>
+                    </span>
+                </Tooltip>
             </Box>
 
-            {/* List Cards Request Pengajar (Sesuai Desain Gambar 1) */}
+            {/* List Cards Request Pengajar */}
             {isLoadingRequests ? (
                 <Box sx={{ py: 4, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 1.5 }}>
                     <CircularProgress size={22} color="primary" />
@@ -130,21 +169,25 @@ const TeacherScheduleRequestPanel: React.FC = () => {
                         Memuat daftar request jadwal pengajar...
                     </Typography>
                 </Box>
-            ) : teacherRequests.length === 0 ? (
+            ) : visibleRequests.length === 0 ? (
                 <Box
                     sx={{
                         p: 3,
                         textAlign: 'center',
-                        bgcolor: '#f8fafc',
+                        bgcolor: isDark ? '#1e1e24' : '#f8fafc',
                         borderRadius: 2.5,
-                        border: '1px dashed #cbd5e1',
+                        border: isDark ? '1px dashed #3f3f46' : '1px dashed #cbd5e1',
                     }}
                 >
-                    <Typography variant="body2" sx={{ color: '#64748b', fontWeight: 600 }}>
-                        Belum ada request jadwal pengajar.
+                    <Typography variant="body2" sx={{ color: isDark ? '#e4e4e7' : '#64748b', fontWeight: 600 }}>
+                        {teachers.length === 0
+                            ? `0 guru terdaftar pada periode ${activePeriodName}.`
+                            : 'Belum ada request jadwal pengajar.'}
                     </Typography>
-                    <Typography variant="caption" sx={{ color: '#94a3b8' }}>
-                        Klik tombol "Input Request Baru" untuk mengajukan preferensi waktu mengajar guru.
+                    <Typography variant="caption" sx={{ color: isDark ? '#a1a1aa' : '#94a3b8' }}>
+                        {teachers.length === 0
+                            ? 'Silakan input penugasan mengajar di menu Pengajaran terlebih dahulu sebelum menambahkan request jadwal.'
+                            : 'Klik tombol "Input Request Baru" untuk mengajukan preferensi waktu mengajar guru.'}
                     </Typography>
                 </Box>
             ) : (
@@ -158,7 +201,7 @@ const TeacherScheduleRequestPanel: React.FC = () => {
                         gap: 2.5,
                     }}
                 >
-                    {teacherRequests.map((req) => {
+                    {visibleRequests.map((req) => {
                         const isConflict = req.status === 'CONFLICT';
 
                         return (
@@ -168,12 +211,18 @@ const TeacherScheduleRequestPanel: React.FC = () => {
                                 sx={{
                                     p: 2.5,
                                     borderRadius: 3,
-                                    borderColor: isConflict ? '#fecaca' : '#e0e7ff',
-                                    bgcolor: isConflict ? '#fffbfa' : '#ffffff',
+                                    borderColor: isConflict
+                                        ? (isDark ? 'rgba(239, 68, 68, 0.4)' : '#fecaca')
+                                        : (isDark ? '#27272a' : '#e0e7ff'),
+                                    bgcolor: isConflict
+                                        ? (isDark ? 'rgba(239, 68, 68, 0.12)' : '#fffbfa')
+                                        : (isDark ? '#18181b' : '#ffffff'),
                                     transition: 'all 0.2s ease',
                                     '&:hover': {
-                                        borderColor: isConflict ? '#f87171' : '#c7d2fe',
-                                        boxShadow: '0 4px 12px 0 rgba(79, 70, 229, 0.06)',
+                                        borderColor: isConflict
+                                            ? '#f87171'
+                                            : (isDark ? '#4f46e5' : '#c7d2fe'),
+                                        boxShadow: isDark ? '0 4px 16px rgba(0,0,0,0.4)' : '0 4px 12px 0 rgba(79, 70, 229, 0.06)',
                                     },
                                 }}
                             >
@@ -188,7 +237,7 @@ const TeacherScheduleRequestPanel: React.FC = () => {
                                     }}
                                 >
                                     <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
-                                        {/* Blue Number Badge (Sesuai Gambar 1: Kotak biru dengan angka) */}
+                                        {/* Blue Number Badge */}
                                         <Box
                                             sx={{
                                                 width: 36,
@@ -207,10 +256,10 @@ const TeacherScheduleRequestPanel: React.FC = () => {
                                             {req.teacherCode}
                                         </Box>
                                         <Box>
-                                            <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#0f172a', lineHeight: 1.2 }}>
+                                            <Typography variant="subtitle1" sx={{ fontWeight: 800, color: isDark ? '#f4f4f5' : '#0f172a', lineHeight: 1.2 }}>
                                                 {req.teacherName}
                                             </Typography>
-                                            <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 600 }}>
+                                            <Typography variant="caption" sx={{ color: isDark ? '#a1a1aa' : '#64748b', fontWeight: 600 }}>
                                                 {req.subjectName}
                                             </Typography>
                                         </Box>
@@ -223,7 +272,7 @@ const TeacherScheduleRequestPanel: React.FC = () => {
                                                 isConflict ? (
                                                     <ErrorOutlineIcon sx={{ fontSize: '15px !important', color: '#b91c1c !important' }} />
                                                 ) : (
-                                                    <CheckCircleOutlineIcon sx={{ fontSize: '15px !important', color: '#15803d !important' }} />
+                                                    <CheckCircleOutlineIcon sx={{ fontSize: '15px !important', color: isDark ? '#86efac !important' : '#15803d !important' }} />
                                                 )
                                             }
                                             label={isConflict ? '⚠️ Terdeteksi Bentrok' : '✓ Tersedia & Bebas Bentrok'}
@@ -232,15 +281,19 @@ const TeacherScheduleRequestPanel: React.FC = () => {
                                                 height: 24,
                                                 fontSize: '11px',
                                                 fontWeight: 700,
-                                                bgcolor: isConflict ? '#fef2f2' : '#dcfce7',
-                                                color: isConflict ? '#b91c1c' : '#15803d',
-                                                border: `1px solid ${isConflict ? '#fca5a5' : '#bbf7d0'}`,
+                                                bgcolor: isConflict
+                                                    ? (isDark ? 'rgba(239, 68, 68, 0.2)' : '#fef2f2')
+                                                    : (isDark ? 'rgba(22, 101, 52, 0.25)' : '#dcfce7'),
+                                                color: isConflict
+                                                    ? (isDark ? '#fca5a5' : '#b91c1c')
+                                                    : (isDark ? '#86efac' : '#15803d'),
+                                                border: `1px solid ${isConflict ? (isDark ? 'rgba(239, 68, 68, 0.4)' : '#fca5a5') : (isDark ? 'rgba(22, 101, 52, 0.4)' : '#bbf7d0')}`,
                                                 borderRadius: '12px',
                                             }}
                                         />
                                         <Tooltip title="Edit Request">
                                             <IconButton size="small" onClick={() => handleEditRequest(req)}>
-                                                <EditIcon sx={{ fontSize: 16, color: '#64748b' }} />
+                                                <EditIcon sx={{ fontSize: 16, color: isDark ? '#a1a1aa' : '#64748b' }} />
                                             </IconButton>
                                         </Tooltip>
                                         <Tooltip title="Hapus Request">
@@ -263,17 +316,17 @@ const TeacherScheduleRequestPanel: React.FC = () => {
                                                 p: 1.2,
                                                 px: 1.5,
                                                 borderRadius: 2,
-                                                bgcolor: '#f8fafc',
-                                                border: '1px solid #f1f5f9',
+                                                bgcolor: isDark ? '#27272a' : '#f8fafc',
+                                                border: isDark ? '1px solid #3f3f46' : '1px solid #f1f5f9',
                                             }}
                                         >
                                             <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-                                                <CalendarTodayIcon sx={{ fontSize: 14, color: '#3b82f6' }} />
-                                                <Typography variant="body2" sx={{ fontWeight: 700, color: '#1e293b', fontSize: '13px' }}>
+                                                <CalendarTodayIcon sx={{ fontSize: 14, color: isDark ? '#60a5fa' : '#3b82f6' }} />
+                                                <Typography variant="body2" sx={{ fontWeight: 700, color: isDark ? '#f4f4f5' : '#1e293b', fontSize: '13px' }}>
                                                     {slot.day}
                                                 </Typography>
                                             </Stack>
-                                            <Typography variant="caption" sx={{ fontWeight: 600, color: '#475569', fontSize: '12px' }}>
+                                            <Typography variant="caption" sx={{ fontWeight: 600, color: isDark ? '#d4d4d8' : '#475569', fontSize: '12px' }}>
                                                 {slot.jam}
                                             </Typography>
                                         </Box>
@@ -281,7 +334,7 @@ const TeacherScheduleRequestPanel: React.FC = () => {
                                 </Stack>
 
                                 {req.conflictReason && (
-                                    <Typography variant="caption" sx={{ color: '#b91c1c', mt: 1, display: 'block', fontWeight: 600 }}>
+                                    <Typography variant="caption" sx={{ color: isDark ? '#f87171' : '#b91c1c', mt: 1, display: 'block', fontWeight: 600 }}>
                                         {req.conflictReason}
                                     </Typography>
                                 )}

@@ -8,7 +8,7 @@ export default class SchoolInformationService {
 
     async getAll(
         callback: FetchCallback<DataWithPagination<SchoolInformationResponseModel[]>>,
-        params: FilterParams
+        params?: FilterParams
     ) {
         try {
             const res = await this.service.GET<DataWithPagination<SchoolInformationResponseModel[]>>(this.basePath, params?.params);

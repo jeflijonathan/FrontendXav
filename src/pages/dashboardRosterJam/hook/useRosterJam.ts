@@ -4,6 +4,7 @@ import JenisJamService from '@api/jenisJam/service';
 import SchoolInformationService from '@api/schoolinformation/service';
 import { RosterScheduleService } from '@api/schedule/service';
 import { useRosterJamStore, createEmptySchedule } from '../store';
+import { snackbar } from '@utils/snackbar';
 
 export const useRosterJam = () => {
     const { enqueueSnackbar } = useSnackbar();
@@ -70,30 +71,18 @@ export const useRosterJam = () => {
                                 isLoading: false,
                             }));
                         } else {
-                            // Check local storage fallback
-                            const localStored = prevSchedulesFromLocal(schoolInfoId);
-                            if (localStored) {
-                                setState((prev) => ({
-                                    ...prev,
-                                    schedules: localStored,
-                                    isLoading: false,
-                                }));
-                            } else {
-                                // Belum dibuat sama sekali -> KOSONG
-                                setState((prev) => ({
-                                    ...prev,
-                                    schedules: createEmptySchedule(),
-                                    isLoading: false,
-                                }));
-                            }
+                            // Belum dibuat sama sekali di database -> Mulai dengan jadwal kosong
+                            setState((prev) => ({
+                                ...prev,
+                                schedules: createEmptySchedule(),
+                                isLoading: false,
+                            }));
                         }
                     },
                     onError: () => {
-                        // Fallback to local storage or empty
-                        const localStored = prevSchedulesFromLocal(schoolInfoId);
                         setState((prev) => ({
                             ...prev,
-                            schedules: localStored || createEmptySchedule(),
+                            schedules: createEmptySchedule(),
                             isLoading: false,
                         }));
                     },
@@ -104,19 +93,6 @@ export const useRosterJam = () => {
         },
         [setState]
     );
-
-    const prevSchedulesFromLocal = (key: string) => {
-        try {
-            const raw = localStorage.getItem('smk_roster_period_schedules');
-            if (raw) {
-                const parsed = JSON.parse(raw);
-                return parsed[key] || null;
-            }
-        } catch {
-            // ignore
-        }
-        return null;
-    };
 
     useEffect(() => {
         fetchJenisJam();
@@ -132,22 +108,9 @@ export const useRosterJam = () => {
 
     const handleSaveAll = async () => {
         const targetId = state.selectedSchoolInfoId;
-        const currentPeriodKey = targetId || state.periode;
 
         setState((prev) => ({ ...prev, isSaving: true }));
 
-        // 1. Simpan ke LocalStorage
-        try {
-            const updated = {
-                ...state.periodSchedules,
-                [currentPeriodKey]: state.schedules,
-            };
-            localStorage.setItem('smk_roster_period_schedules', JSON.stringify(updated));
-        } catch {
-            // ignore
-        }
-
-        // 2. Simpan ke Database Backend jika selectedSchoolInfoId tersedia
         if (targetId) {
             await rosterScheduleService.saveBySchoolInformation(
                 targetId,
@@ -155,28 +118,24 @@ export const useRosterJam = () => {
                 {
                     onSuccess: () => {
                         setState((prev) => ({ ...prev, isSaving: false }));
-                        enqueueSnackbar(
-                            `Roster Jam Belajar periode ${state.periode} berhasil disimpan ke database!`,
-                            { variant: 'success' }
+                        snackbar.success(
+                            `Roster Jam Belajar periode ${state.periode} berhasil disimpan ke database!`
                         );
                     },
                     onError: (err) => {
-                        console.warn('Simpan ke backend gagal, tersimpan lokal:', err);
+                        console.error('Simpan ke backend gagal:', err);
                         setState((prev) => ({ ...prev, isSaving: false }));
-                        enqueueSnackbar(
-                            `Roster Jam Belajar disimpan di penyimpanan lokal (offline)`,
-                            { variant: 'info' }
+                        snackbar.error(
+                            `Gagal menyimpan Roster Jam Belajar ke database`,
                         );
                     },
                 }
             );
         } else {
-            setTimeout(() => {
-                setState((prev) => ({ ...prev, isSaving: false }));
-                enqueueSnackbar(`Roster Jam Belajar periode ${state.periode} berhasil disimpan!`, {
-                    variant: 'success',
-                });
-            }, 300);
+            setState((prev) => ({ ...prev, isSaving: false }));
+            snackbar.error(
+                "Pilih informasi sekolah / periode terlebih dahulu untuk menyimpan Roster ke database."
+            );
         }
     };
 

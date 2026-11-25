@@ -17,12 +17,17 @@ import {
     Chip,
     Alert,
     Tooltip,
+    Autocomplete,
+    Checkbox,
 } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 import CloseIcon from '@mui/icons-material/Close';
 import EventAvailableIcon from '@mui/icons-material/EventAvailable';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutlined';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
+import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank';
+import CheckBoxIcon from '@mui/icons-material/CheckBox';
 import { useScheduleStore } from '../store/useScheduleStore';
 import type { DayName, PreferredScheduleSlot } from '../types';
 import { snackbar } from '@utils/snackbar';
@@ -36,12 +41,16 @@ interface SelectedSlotDetail {
 }
 
 const InputScheduleRequestDialog: React.FC = () => {
+    const theme = useTheme();
+    const isDark = theme.palette.mode === 'dark';
+
     const {
         isRequestDialogOpen,
         setIsRequestDialogOpen,
         editingRequest,
         teachers,
         rows,
+        classes,
         createTeacherRequest,
         updateTeacherRequest,
         validateTeacherRequest,
@@ -52,6 +61,7 @@ const InputScheduleRequestDialog: React.FC = () => {
     const [selectedSubjectCode, setSelectedSubjectCode] = useState<string>('');
     const [customSubjectName, setCustomSubjectName] = useState<string>('');
     const [selectedSlots, setSelectedSlots] = useState<SelectedSlotDetail[]>([]);
+    const [selectedClasses, setSelectedClasses] = useState<string[]>([]);
     const [notes, setNotes] = useState<string>('');
     const [validationError, setValidationError] = useState<string | null>(null);
 
@@ -94,30 +104,6 @@ const InputScheduleRequestDialog: React.FC = () => {
                 }
             });
             return unique.sort((a, b) => a.jp - b.jp);
-        }
-
-        // 2. Fallback baca dari LocalStorage roster schedule
-        try {
-            const raw = localStorage.getItem('smk_roster_period_schedules');
-            if (raw) {
-                const parsed = JSON.parse(raw);
-                const schoolInfoId = useScheduleStore.getState().idSchoolInformation;
-                const scheduleObj =
-                    (schoolInfoId && parsed[schoolInfoId]) || Object.values(parsed)[0];
-                if (scheduleObj && Array.isArray(scheduleObj[day])) {
-                    return scheduleObj[day]
-                        .filter((s: any) => {
-                            const jenis = (s.jenisJam || s.activityType || 'KBM').toString().toUpperCase();
-                            return jenis === 'KBM' || jenis.includes('KBM');
-                        })
-                        .map((s: any, idx: number) => ({
-                            jp: s.jp !== undefined ? Number(s.jp) : idx + 1,
-                            timeRange: s.jam || s.timeRange || '07:00 - 07:45',
-                        }));
-                }
-            }
-        } catch {
-            // Ignore
         }
 
         return [];
@@ -169,6 +155,7 @@ const InputScheduleRequestDialog: React.FC = () => {
             });
 
             setSelectedSlots(parsedSlots);
+            setSelectedClasses(editingRequest.recommendedClasses || []);
             setNotes(editingRequest.notes || '');
             setValidationError(null);
         } else {
@@ -181,6 +168,7 @@ const InputScheduleRequestDialog: React.FC = () => {
                 setCustomSubjectName(firstSubj?.subjectName || initialTeacher.subjectName);
             }
             setSelectedSlots([]);
+            setSelectedClasses([]);
             setNotes('');
             setValidationError(null);
         }
@@ -194,6 +182,7 @@ const InputScheduleRequestDialog: React.FC = () => {
             setCustomSubjectName(t.subjects[0].subjectName);
         }
         setSelectedSlots([]);
+        setSelectedClasses([]);
     };
 
     const handleSubjectChange = (subjectCode: string) => {
@@ -211,10 +200,14 @@ const InputScheduleRequestDialog: React.FC = () => {
         if (isAlreadySelected) {
             setSelectedSlots((prev) => prev.filter((s) => !(s.day === day && s.jp === jp)));
         } else {
+            const inThisDay = selectedSlots.filter((s) => s.day === day).length;
+            if (inThisDay >= 4) {
+                snackbar.warning(`Maksimal 4 JP per hari telah tercapai untuk hari ${day}.`);
+                return;
+            }
             if (selectedSlots.length >= targetJp) {
-                snackbar.info(
-                    `Perhatian: Target JP untuk mapel ini adalah ${targetJp} JP (${selectedSlots.length} slot sudah dipilih).`
-                );
+                snackbar.warning(`Target ${targetJp} JP/minggu telah terpenuhi (${selectedSlots.length} slot sudah dipilih).`);
+                return;
             }
             setSelectedSlots((prev) => [...prev, { day, jp, timeRange }]);
         }
@@ -295,6 +288,7 @@ const InputScheduleRequestDialog: React.FC = () => {
             teacherName: selectedTeacher?.name || 'Guru',
             subjectName: finalSubjectName,
             preferredSlots,
+            recommendedClasses: selectedClasses.length > 0 ? selectedClasses : undefined,
             status: 'VALID',
             statusText: '✓ Tersedia & Bebas Bentrok',
             conflictReason: null,
@@ -325,6 +319,9 @@ const InputScheduleRequestDialog: React.FC = () => {
                     sx: {
                         borderRadius: 3.5,
                         overflow: 'hidden',
+                        bgcolor: isDark ? '#18181b' : '#ffffff',
+                        color: isDark ? '#f4f4f5' : '#0f172a',
+                        border: isDark ? '1px solid #27272a' : undefined,
                     },
                 },
             }}
@@ -332,8 +329,8 @@ const InputScheduleRequestDialog: React.FC = () => {
             <DialogTitle
                 sx={{
                     p: 2.5,
-                    bgcolor: '#f8fafc',
-                    borderBottom: '1px solid #e2e8f0',
+                    bgcolor: isDark ? '#18181b' : '#f8fafc',
+                    borderBottom: isDark ? '1px solid #27272a' : '1px solid #e2e8f0',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
@@ -345,8 +342,8 @@ const InputScheduleRequestDialog: React.FC = () => {
                             width: 38,
                             height: 38,
                             borderRadius: 2,
-                            bgcolor: '#ede9fe',
-                            color: '#4f46e5',
+                            bgcolor: isDark ? 'rgba(99, 102, 241, 0.2)' : '#ede9fe',
+                            color: isDark ? '#818cf8' : '#4f46e5',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
@@ -355,10 +352,10 @@ const InputScheduleRequestDialog: React.FC = () => {
                         <EventAvailableIcon fontSize="small" />
                     </Box>
                     <Box>
-                        <Typography variant="h6" sx={{ fontWeight: 800, color: '#0f172a', fontSize: '17px' }}>
+                        <Typography variant="h6" sx={{ fontWeight: 800, color: isDark ? '#f4f4f5' : '#0f172a', fontSize: '17px' }}>
                             {editingRequest ? 'Edit Request Jadwal Pengajar' : 'Input Request Jadwal Pengajar Baru'}
                         </Typography>
-                        <Typography variant="caption" sx={{ color: '#64748b' }}>
+                        <Typography variant="caption" sx={{ color: isDark ? '#a1a1aa' : '#64748b' }}>
                             Data guru & mapel sinkron dengan Pengajaran • Slot disesuaikan dengan Roster Jam Belajar
                         </Typography>
                     </Box>
@@ -368,8 +365,13 @@ const InputScheduleRequestDialog: React.FC = () => {
                 </IconButton>
             </DialogTitle>
 
-            <DialogContent sx={{ p: 3 }}>
-                <Stack spacing={2.5}>
+            <DialogContent sx={{ p: 3, pt: '24px !important', overflowY: 'auto' }}>
+                <Stack spacing={2.5} sx={{ pt: 1 }}>
+                    {teachers.length === 0 && (
+                        <Alert severity="error">
+                            Belum ada guru yang ditugaskan mengajar pada periode ini. Silakan input penugasan mengajar di menu <strong>Pengajaran</strong> terlebih dahulu.
+                        </Alert>
+                    )}
                     {validationError && (
                         <Alert severity="warning" onClose={() => setValidationError(null)}>
                             {validationError}
@@ -377,14 +379,15 @@ const InputScheduleRequestDialog: React.FC = () => {
                     )}
 
                     {/* Section 1: Pemilihan Guru & Mapel Riil dari Database */}
-                    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
+                    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2, pt: 0.5 }}>
                         {/* Teacher Selector */}
                         <FormControl fullWidth size="small">
                             <InputLabel id="select-teacher-label">Pilih Guru Pengajar</InputLabel>
                             <Select
                                 labelId="select-teacher-label"
-                                value={selectedTeacherCode}
+                                value={teachers.length > 0 ? selectedTeacherCode : ''}
                                 label="Pilih Guru Pengajar"
+                                disabled={teachers.length === 0}
                                 onChange={(e) => handleTeacherChange(Number(e.target.value))}
                             >
                                 {teachers.map((t) => (
@@ -462,6 +465,61 @@ const InputScheduleRequestDialog: React.FC = () => {
                         )}
                     </Box>
 
+                    {/* Section 1b: Rekomendasi Kelas Mengajar (Opsional) */}
+                    {classes.length > 0 && (
+                        <Autocomplete
+                            multiple
+                            size="small"
+                            options={classes.map((c) => c.name)}
+                            value={selectedClasses}
+                            onChange={(_e, newValue) => setSelectedClasses(newValue)}
+                            disableCloseOnSelect
+                            renderOption={(props, option, { selected }) => {
+                                const { key, ...rest } = props as any;
+                                return (
+                                    <li key={key} {...rest}>
+                                        <Checkbox
+                                            icon={<CheckBoxOutlineBlankIcon fontSize="small" />}
+                                            checkedIcon={<CheckBoxIcon fontSize="small" />}
+                                            style={{ marginRight: 8 }}
+                                            checked={selected}
+                                        />
+                                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                            {option}
+                                        </Typography>
+                                    </li>
+                                );
+                            }}
+                            renderTags={(value, getTagProps) =>
+                                value.map((option, index) => {
+                                    const { key, ...tagProps } = getTagProps({ index });
+                                    return (
+                                        <Chip
+                                            key={key}
+                                            {...tagProps}
+                                            label={option}
+                                            size="small"
+                                            sx={{
+                                                fontWeight: 700,
+                                                fontSize: '11px',
+                                                bgcolor: '#e0e7ff',
+                                                color: '#3730a3',
+                                            }}
+                                        />
+                                    );
+                                })
+                            }
+                            renderInput={(params) => (
+                                <TextField
+                                    {...params}
+                                    label="Rekomendasi Kelas Mengajar (Opsional)"
+                                    placeholder={selectedClasses.length === 0 ? 'Pilih kelas...' : ''}
+                                    helperText="Kosongkan jika ingin diajar di semua kelas yang sesuai jurusan."
+                                />
+                            )}
+                        />
+                    )}
+
                     {/* Section 2: Banner Status Pemenuhan JP */}
                     <Box
                         sx={{
@@ -469,17 +527,17 @@ const InputScheduleRequestDialog: React.FC = () => {
                             borderRadius: 2.5,
                             bgcolor:
                                 selectedSlots.length === targetJp
-                                    ? '#f0fdf4'
+                                    ? (isDark ? 'rgba(22, 101, 52, 0.25)' : '#f0fdf4')
                                     : selectedSlots.length > targetJp
-                                    ? '#fffbeb'
-                                    : '#f8fafc',
+                                    ? (isDark ? 'rgba(217, 119, 6, 0.2)' : '#fffbeb')
+                                    : (isDark ? '#1e1e24' : '#f8fafc'),
                             border: '1px solid',
                             borderColor:
                                 selectedSlots.length === targetJp
-                                    ? '#bbf7d0'
+                                    ? (isDark ? 'rgba(22, 101, 52, 0.5)' : '#bbf7d0')
                                     : selectedSlots.length > targetJp
-                                    ? '#fde68a'
-                                    : '#e2e8f0',
+                                    ? (isDark ? 'rgba(217, 119, 6, 0.5)' : '#fde68a')
+                                    : (isDark ? '#27272a' : '#e2e8f0'),
                             display: 'flex',
                             flexWrap: 'wrap',
                             alignItems: 'center',
@@ -491,10 +549,10 @@ const InputScheduleRequestDialog: React.FC = () => {
                             <InfoOutlinedIcon
                                 sx={{
                                     fontSize: 20,
-                                    color: selectedSlots.length === targetJp ? '#16a34a' : '#64748b',
+                                    color: selectedSlots.length === targetJp ? '#16a34a' : (isDark ? '#a1a1aa' : '#64748b'),
                                 }}
                             />
-                            <Typography variant="body2" sx={{ fontWeight: 700, color: '#1e293b' }}>
+                            <Typography variant="body2" sx={{ fontWeight: 700, color: isDark ? '#f4f4f5' : '#1e293b' }}>
                                 Target Mata Pelajaran: {targetJp} JP/Minggu
                             </Typography>
                         </Stack>
@@ -520,15 +578,15 @@ const InputScheduleRequestDialog: React.FC = () => {
                                     size="small"
                                     icon={<CheckCircleOutlineIcon sx={{ color: '#15803d !important', fontSize: '14px' }} />}
                                     label="✓ Terpenuhi Pas"
-                                    sx={{ bgcolor: '#dcfce7', color: '#15803d', fontWeight: 700 }}
+                                    sx={{ bgcolor: isDark ? 'rgba(22, 101, 52, 0.25)' : '#dcfce7', color: isDark ? '#86efac' : '#15803d', fontWeight: 700 }}
                                 />
                             )}
                             {selectedSlots.length > targetJp && (
                                 <Chip
                                     size="small"
-                                    icon={<WarningAmberIcon sx={{ color: '#b45309 !important', fontSize: '14px' }} />}
+                                    icon={<WarningAmberIcon sx={{ color: isDark ? '#fbbf24 !important' : '#b45309 !important', fontSize: '14px' }} />}
                                     label={`Lebih ${selectedSlots.length - targetJp} Slot`}
-                                    sx={{ bgcolor: '#fef3c7', color: '#b45309', fontWeight: 700 }}
+                                    sx={{ bgcolor: isDark ? 'rgba(217, 119, 6, 0.25)' : '#fef3c7', color: isDark ? '#fbbf24' : '#b45309', fontWeight: 700 }}
                                 />
                             )}
                         </Stack>
@@ -538,16 +596,16 @@ const InputScheduleRequestDialog: React.FC = () => {
                     <Box
                         sx={{
                             p: 2.5,
-                            bgcolor: '#f8fafc',
+                            bgcolor: isDark ? '#1e1e24' : '#f8fafc',
                             borderRadius: 3,
-                            border: '1px solid #e2e8f0',
+                            border: isDark ? '1px solid #27272a' : '1px solid #e2e8f0',
                         }}
                     >
                         <Box sx={{ mb: 2 }}>
-                            <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#0f172a', fontSize: '14px' }}>
+                            <Typography variant="subtitle2" sx={{ fontWeight: 800, color: isDark ? '#f4f4f5' : '#0f172a', fontSize: '14px' }}>
                                 Preferensi Jam Belajar (Klik Kotak Hijau untuk Memilih)
                             </Typography>
-                            <Typography variant="caption" sx={{ color: '#64748b' }}>
+                            <Typography variant="caption" sx={{ color: isDark ? '#a1a1aa' : '#64748b' }}>
                                 Kotak nomor [1], [2], [3] merepresentasikan Jam Ke- (KBM) yang terdaftar pada Roster Jam Belajar.
                             </Typography>
                         </Box>
@@ -563,10 +621,12 @@ const InputScheduleRequestDialog: React.FC = () => {
                                         sx={{
                                             p: 1.5,
                                             px: 2,
-                                            bgcolor: '#ffffff',
+                                            bgcolor: isDark ? '#141416' : '#ffffff',
                                             borderRadius: 2.5,
                                             border: '1px solid',
-                                            borderColor: selectedInDay.length > 0 ? '#bbf7d0' : '#e2e8f0',
+                                            borderColor: selectedInDay.length > 0
+                                                ? (isDark ? '#16a34a' : '#bbf7d0')
+                                                : (isDark ? '#27272a' : '#e2e8f0'),
                                             display: 'flex',
                                             flexDirection: { xs: 'column', sm: 'row' },
                                             alignItems: { xs: 'flex-start', sm: 'center' },
@@ -582,7 +642,9 @@ const InputScheduleRequestDialog: React.FC = () => {
                                                     variant="subtitle2"
                                                     sx={{
                                                         fontWeight: 800,
-                                                        color: selectedInDay.length > 0 ? '#15803d' : '#1e293b',
+                                                        color: selectedInDay.length > 0
+                                                            ? (isDark ? '#86efac' : '#15803d')
+                                                            : (isDark ? '#f4f4f5' : '#1e293b'),
                                                         letterSpacing: 0.5,
                                                     }}
                                                 >
@@ -591,18 +653,22 @@ const InputScheduleRequestDialog: React.FC = () => {
                                                 {selectedInDay.length > 0 && (
                                                     <Chip
                                                         size="small"
-                                                        label={`${selectedInDay.length} JP`}
+                                                        label={selectedInDay.length >= 4 ? `${selectedInDay.length} JP (Maks)` : `${selectedInDay.length} JP`}
                                                         sx={{
                                                             height: 18,
                                                             fontSize: '10px',
                                                             fontWeight: 800,
-                                                            bgcolor: '#dcfce7',
-                                                            color: '#15803d',
+                                                            bgcolor: selectedInDay.length >= 4
+                                                                ? (isDark ? 'rgba(22, 101, 52, 0.3)' : '#dcfce7')
+                                                                : (isDark ? 'rgba(99, 102, 241, 0.25)' : '#e0e7ff'),
+                                                            color: selectedInDay.length >= 4
+                                                                ? (isDark ? '#86efac' : '#15803d')
+                                                                : (isDark ? '#a5b4fc' : '#3730a3'),
                                                         }}
                                                     />
                                                 )}
                                             </Stack>
-                                            <Typography variant="caption" sx={{ color: '#94a3b8', fontSize: '11px' }}>
+                                            <Typography variant="caption" sx={{ color: isDark ? '#71717a' : '#94a3b8', fontSize: '11px' }}>
                                                 {kbmSlots.length > 0
                                                     ? `${kbmSlots.length} slot KBM tersedia`
                                                     : 'Tidak ada KBM di roster'}
@@ -614,42 +680,79 @@ const InputScheduleRequestDialog: React.FC = () => {
                                             {kbmSlots.length > 0 ? (
                                                 kbmSlots.map((slot) => {
                                                     const isChecked = isSlotSelected(day, slot.jp);
+                                                    const isDayMaxed = selectedInDay.length >= 4;
+                                                    const isTotalMaxed = selectedSlots.length >= targetJp;
+                                                    const isDisabled = !isChecked && (isDayMaxed || isTotalMaxed);
+
+                                                    let tooltipTitle = `Jam Ke-${slot.jp} (${slot.timeRange})`;
+                                                    if (isChecked) {
+                                                        tooltipTitle = `Klik untuk membatalkan Jam Ke-${slot.jp} (${slot.timeRange})`;
+                                                    } else if (isDayMaxed) {
+                                                        tooltipTitle = `Maksimal 4 JP per hari telah tercapai untuk hari ${day}`;
+                                                    } else if (isTotalMaxed) {
+                                                        tooltipTitle = `Target ${targetJp} JP/minggu telah terpenuhi`;
+                                                    }
 
                                                     return (
                                                         <Tooltip
                                                             key={`${day}-${slot.jp}`}
-                                                            title={`Jam Ke-${slot.jp} (${slot.timeRange})`}
+                                                            title={tooltipTitle}
                                                             arrow
                                                         >
-                                                            <Button
-                                                                variant={isChecked ? 'contained' : 'outlined'}
-                                                                onClick={() => handleToggleSlot(day, slot.jp, slot.timeRange)}
-                                                                sx={{
-                                                                    minWidth: 46,
-                                                                    width: 46,
-                                                                    height: 42,
-                                                                    p: 0,
-                                                                    borderRadius: '8px',
-                                                                    fontWeight: 900,
-                                                                    fontSize: '15px',
-                                                                    fontFamily: 'monospace',
-                                                                    bgcolor: isChecked ? '#16a34a' : '#f8fafc',
-                                                                    color: isChecked ? '#ffffff' : '#475569',
-                                                                    borderColor: isChecked ? '#15803d' : '#cbd5e1',
-                                                                    borderWidth: isChecked ? '2px' : '1px',
-                                                                    boxShadow: isChecked
-                                                                        ? '0 3px 6px rgba(22, 163, 74, 0.35)'
-                                                                        : 'none',
-                                                                    transition: 'all 0.15s ease-in-out',
-                                                                    '&:hover': {
-                                                                        bgcolor: isChecked ? '#15803d' : '#e2e8f0',
-                                                                        borderColor: isChecked ? '#166534' : '#94a3b8',
-                                                                        transform: 'translateY(-1px)',
-                                                                    },
-                                                                }}
-                                                            >
-                                                                [{slot.jp}]
-                                                            </Button>
+                                                            <span>
+                                                                <Button
+                                                                    variant={isChecked ? 'contained' : 'outlined'}
+                                                                    disabled={isDisabled}
+                                                                    onClick={() => handleToggleSlot(day, slot.jp, slot.timeRange)}
+                                                                    sx={{
+                                                                        minWidth: 46,
+                                                                        width: 46,
+                                                                        height: 42,
+                                                                        p: 0,
+                                                                        borderRadius: '8px',
+                                                                        fontWeight: 900,
+                                                                        fontSize: '15px',
+                                                                        fontFamily: 'monospace',
+                                                                        bgcolor: isChecked
+                                                                            ? '#16a34a'
+                                                                            : isDisabled
+                                                                            ? (isDark ? '#27272a' : '#f1f5f9')
+                                                                            : (isDark ? '#18181b' : '#f8fafc'),
+                                                                        color: isChecked
+                                                                            ? '#ffffff'
+                                                                            : isDisabled
+                                                                            ? (isDark ? '#52525b' : '#94a3b8')
+                                                                            : (isDark ? '#e4e4e7' : '#475569'),
+                                                                        borderColor: isChecked
+                                                                            ? '#15803d'
+                                                                            : isDisabled
+                                                                            ? (isDark ? '#27272a' : '#e2e8f0')
+                                                                            : (isDark ? '#3f3f46' : '#cbd5e1'),
+                                                                        borderWidth: isChecked ? '2px' : '1px',
+                                                                        cursor: isDisabled ? 'not-allowed' : 'pointer',
+                                                                        opacity: isDisabled ? 0.45 : 1,
+                                                                        boxShadow: isChecked
+                                                                            ? '0 3px 6px rgba(22, 163, 74, 0.35)'
+                                                                            : 'none',
+                                                                        transition: 'all 0.15s ease-in-out',
+                                                                        '&:hover': {
+                                                                            bgcolor: isChecked
+                                                                                ? '#15803d'
+                                                                                : isDisabled
+                                                                                ? (isDark ? '#27272a' : '#f1f5f9')
+                                                                                : (isDark ? '#27272a' : '#e2e8f0'),
+                                                                            borderColor: isChecked
+                                                                                ? '#166534'
+                                                                                : isDisabled
+                                                                                ? (isDark ? '#27272a' : '#e2e8f0')
+                                                                                : (isDark ? '#52525b' : '#94a3b8'),
+                                                                            transform: isDisabled ? 'none' : 'translateY(-1px)',
+                                                                        },
+                                                                    }}
+                                                                >
+                                                                    [{slot.jp}]
+                                                                </Button>
+                                                            </span>
                                                         </Tooltip>
                                                     );
                                                 })
@@ -657,7 +760,7 @@ const InputScheduleRequestDialog: React.FC = () => {
                                                 <Typography
                                                     variant="caption"
                                                     sx={{
-                                                        color: '#94a3b8',
+                                                        color: isDark ? '#71717a' : '#94a3b8',
                                                         fontStyle: 'italic',
                                                         py: 0.5,
                                                     }}
@@ -686,7 +789,7 @@ const InputScheduleRequestDialog: React.FC = () => {
                 </Stack>
             </DialogContent>
 
-            <DialogActions sx={{ p: 2.5, bgcolor: '#f8fafc', borderTop: '1px solid #e2e8f0' }}>
+            <DialogActions sx={{ p: 2.5, bgcolor: isDark ? '#18181b' : '#f8fafc', borderTop: isDark ? '1px solid #27272a' : '1px solid #e2e8f0' }}>
                 <Button
                     onClick={() => setIsRequestDialogOpen(false)}
                     variant="outlined"
@@ -697,7 +800,7 @@ const InputScheduleRequestDialog: React.FC = () => {
                 <Button
                     onClick={handleSave}
                     variant="contained"
-                    disabled={isLoadingRequests}
+                    disabled={isLoadingRequests || teachers.length === 0}
                     sx={{
                         textTransform: 'none',
                         fontWeight: 700,

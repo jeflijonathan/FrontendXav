@@ -35,6 +35,7 @@ export interface TeachingTeacherRowModel {
     total_subjects: number;
     total_classes: number;
     total_jp?: number;
+    roles?: string[];
     subjects: TeachingSubjectRowModel[];
 }
 

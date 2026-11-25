@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import {
   Box,
   Typography,
@@ -9,10 +9,179 @@ import {
   useTheme,
 } from "@mui/material";
 import useAcademicCalendarStore from "../store/useAcademicCalendarStore";
-import type { SemesterModel, MonthModel } from "@api/academicCalendar/model";
+import type { SemesterModel, MonthModel, DayCellModel } from "@api/academicCalendar/model";
 import { getDayName } from "./CalendarMatrixTable";
+import { useCalendarPermissions } from "../utils/permissions";
 
 const DAY_HEADERS = ["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"];
+
+interface MonthEventItem {
+  dateRangeText: string;
+  description: string;
+  isHoliday: boolean;
+  sampleDay: number;
+  label?: string;
+  sampleCell: DayCellModel;
+}
+
+/**
+ * Ekstraksi & pengelompokan kegiatan/libur khusus per bulan (Sesuai format resmi Kalender Pendidikan).
+ * Tanggal berturut-turut (misal 1-5 atau 6-10) digabungkan menjadi rentang tanggal.
+ * Hari libur/hari raya ditampilkan merah, kegiatan/agenda sekolah ditampilkan biru gelap.
+ */
+const getMonthEvents = (month: MonthModel, daysInMonth: number): MonthEventItem[] => {
+  const rawEvents: Array<{
+    day: number;
+    description: string;
+    isHoliday: boolean;
+    cell: DayCellModel;
+  }> = [];
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const cell = month.cells[String(d)];
+    if (!cell || cell.valid === false) continue;
+
+    // Abaikan hari-hari standar/rutin (KBM biasa tanpa catatan, atau akhir pekan biasa)
+    const isStandardSaturday =
+      (cell.type === "weekend_saturday" || cell.label === "S") &&
+      (!cell.note || cell.note.toLowerCase().includes("libur akhir pekan") || cell.note.trim() === "Sabtu");
+    const isStandardSunday =
+      (cell.type === "weekend_sunday" || cell.label === "M") &&
+      (!cell.note || cell.note.toLowerCase().includes("libur akhir pekan") || cell.note.trim() === "Minggu");
+    const isStandardEffective =
+      (cell.type === "effective_day" || (!cell.type && cell.is_effective)) &&
+      (!cell.label || cell.label.trim() === "") &&
+      (!cell.note || cell.note.toLowerCase().includes("hari efektif belajar") || cell.note.trim() === "");
+
+    if (isStandardSaturday || isStandardSunday || isStandardEffective) {
+      continue;
+    }
+
+    let description = (cell.note || "").trim();
+    const cellLabel = (cell.label || "").trim();
+
+    if (!description && cellLabel && cellLabel !== "S" && cellLabel !== "M") {
+      description = cellLabel;
+    }
+
+    if (!description) {
+      if (cell.type?.startsWith("holiday_")) {
+        description = "Hari Libur";
+      } else if (cell.type === "first_day") {
+        description = "Hari Pertama Masuk Sekolah";
+      } else {
+        description = "Kegiatan Khusus";
+      }
+    }
+
+    const descLower = description.toLowerCase();
+    const isHoliday =
+      cell.type?.startsWith("holiday_") ||
+      cell.bg_color === "#ef4444" ||
+      cell.bg_color === "#dc2626" ||
+      (!cell.is_effective && cell.type !== "weekend_saturday") ||
+      descLower.includes("libur") ||
+      descLower.includes("hari raya") ||
+      descLower.includes("wafat") ||
+      descLower.includes("isra") ||
+      descLower.includes("tahun baru") ||
+      descLower.includes("kemerdekaan") ||
+      descLower.includes("cuti bersama") ||
+      descLower.includes("imlek") ||
+      descLower.includes("nyepi") ||
+      descLower.includes("idul") ||
+      descLower.includes("natal") ||
+      descLower.includes("waisak");
+
+    rawEvents.push({
+      day: d,
+      description,
+      isHoliday,
+      cell,
+    });
+  }
+
+  if (rawEvents.length === 0) return [];
+
+  // Gabungkan tanggal yang berurutan dengan deskripsi & tipe yang sama
+  const grouped: MonthEventItem[] = [];
+
+  let currentGroup: {
+    startDay: number;
+    endDay: number;
+    description: string;
+    isHoliday: boolean;
+    sampleDay: number;
+    sampleCell: DayCellModel;
+  } | null = null;
+
+  for (const item of rawEvents) {
+    if (!currentGroup) {
+      currentGroup = {
+        startDay: item.day,
+        endDay: item.day,
+        description: item.description,
+        isHoliday: item.isHoliday,
+        sampleDay: item.day,
+        sampleCell: item.cell,
+      };
+      continue;
+    }
+
+    // Jika deskripsi sama dan tanggal berlanjut (atau terpotong akhir pekan 1-2 hari)
+    const isContinuous =
+      item.day === currentGroup.endDay + 1 ||
+      (item.day <= currentGroup.endDay + 3 &&
+        item.description.trim().toLowerCase() === currentGroup.description.trim().toLowerCase());
+
+    const isSameEvent =
+      item.description.trim().toLowerCase() === currentGroup.description.trim().toLowerCase() &&
+      item.isHoliday === currentGroup.isHoliday;
+
+    if (isContinuous && isSameEvent) {
+      currentGroup.endDay = item.day;
+    } else {
+      // Simpan grup sebelumnya
+      grouped.push({
+        dateRangeText:
+          currentGroup.startDay === currentGroup.endDay
+            ? `${currentGroup.startDay}`
+            : `${currentGroup.startDay}-${currentGroup.endDay}`,
+        description: currentGroup.description,
+        isHoliday: currentGroup.isHoliday,
+        sampleDay: currentGroup.sampleDay,
+        label: currentGroup.sampleCell.label,
+        sampleCell: currentGroup.sampleCell,
+      });
+
+      // Mulai grup baru
+      currentGroup = {
+        startDay: item.day,
+        endDay: item.day,
+        description: item.description,
+        isHoliday: item.isHoliday,
+        sampleDay: item.day,
+        sampleCell: item.cell,
+      };
+    }
+  }
+
+  if (currentGroup) {
+    grouped.push({
+      dateRangeText:
+        currentGroup.startDay === currentGroup.endDay
+          ? `${currentGroup.startDay}`
+          : `${currentGroup.startDay}-${currentGroup.endDay}`,
+      description: currentGroup.description,
+      isHoliday: currentGroup.isHoliday,
+      sampleDay: currentGroup.sampleDay,
+      label: currentGroup.sampleCell.label,
+      sampleCell: currentGroup.sampleCell,
+    });
+  }
+
+  return grouped;
+};
 
 interface MonthCardProps {
   semesterId: string;
@@ -24,6 +193,7 @@ const MonthCard: React.FC<MonthCardProps> = ({ semesterId, monthIndex, month }) 
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
   const { setEditingCell } = useAcademicCalendarStore();
+  const { canEdit } = useCalendarPermissions();
 
   // Jumlah hari dalam bulan (28, 29, 30, atau 31)
   const daysInMonth = new Date(month.year, month.month_number, 0).getDate();
@@ -33,11 +203,55 @@ const MonthCard: React.FC<MonthCardProps> = ({ semesterId, monthIndex, month }) 
   // Senin = 0, Selasa = 1, ..., Minggu = 6
   const startDayOfWeek = (firstDayDate.getDay() + 6) % 7;
 
+  // Judul bulan bersih tanpa duplikasi tahun (misal: "Juli 2026", bukan "Juli 2026 2026")
+  const displayMonthTitle = useMemo(() => {
+    const rawName = (month.name || "").trim();
+    const strYear = String(month.year);
+    if (rawName.includes(strYear)) {
+      return rawName;
+    }
+    return `${rawName} ${strYear}`;
+  }, [month.name, month.year]);
+
+  // Daftar agenda/kegiatan bulan ini (Contoh gambar 2)
+  const monthEvents = useMemo(() => {
+    return getMonthEvents(month, daysInMonth);
+  }, [month, daysInMonth]);
+
+  const handleDayClick = (d: number, dayName: string, cell: DayCellModel) => {
+    if (!canEdit) return;
+    setEditingCell({
+      semesterId,
+      monthIndex,
+      monthName: month.name,
+      year: month.year,
+      monthNumber: month.month_number,
+      day: d,
+      dayName,
+      cell,
+    });
+  };
+
+  const handleEventClick = (eventItem: MonthEventItem) => {
+    if (!canEdit) return;
+    const dayName = getDayName(month.year, month.month_number, eventItem.sampleDay);
+    setEditingCell({
+      semesterId,
+      monthIndex,
+      monthName: month.name,
+      year: month.year,
+      monthNumber: month.month_number,
+      day: eventItem.sampleDay,
+      dayName,
+      cell: eventItem.sampleCell,
+    });
+  };
+
   return (
     <Paper
       elevation={0}
       sx={{
-        borderRadius: 2,
+        borderRadius: 2.5,
         overflow: "hidden",
         border: 1,
         borderColor: isDark ? "rgba(51, 65, 85, 0.6)" : "#e2e8f0",
@@ -56,7 +270,7 @@ const MonthCard: React.FC<MonthCardProps> = ({ semesterId, monthIndex, month }) 
         },
       }}
     >
-      {/* Header Bulan: Warna Netral Elegan & Seragam (Tidak Warna-Warni Pusing) */}
+      {/* Header Bulan: Judul Bersih & Chip Jumlah Hari & Minggu Efektif */}
       <Box
         sx={{
           px: 1.5,
@@ -79,7 +293,7 @@ const MonthCard: React.FC<MonthCardProps> = ({ semesterId, monthIndex, month }) 
             letterSpacing: 0.2,
           }}
         >
-          {month.name} {month.year}
+          {displayMonthTitle}
         </Typography>
 
         <Stack direction="row" spacing={0.75} sx={{ alignItems: "center" }}>
@@ -152,14 +366,13 @@ const MonthCard: React.FC<MonthCardProps> = ({ semesterId, monthIndex, month }) 
         })}
       </Box>
 
-      {/* Grid Tanggal Kompak (Kecil-Kecil, Responsif, 7 Kolom Selalu Kelihatan Penuh) */}
+      {/* Grid Tanggal Kalender (7 Kolom Responsif) */}
       <Box
         sx={{
           display: "grid",
           gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
           p: 0.75,
           gap: "2px",
-          flex: 1,
         }}
       >
         {/* Kotak kosong sebelum Tanggal 1 */}
@@ -190,7 +403,6 @@ const MonthCard: React.FC<MonthCardProps> = ({ semesterId, monthIndex, month }) 
           const isFirstDay = cell.label === "1" || cell.type === "first_day";
           const isHoliday = cell.type?.startsWith("holiday_");
 
-          // Warna lembut & tenang (Bukan warna-warni yang mencolok)
           let bgColor = "transparent";
           let textColor = isDark ? "#e2e8f0" : "#1e293b";
           let borderColor = isDark ? "rgba(51,65,85,0.4)" : "#f1f5f9";
@@ -219,7 +431,7 @@ const MonthCard: React.FC<MonthCardProps> = ({ semesterId, monthIndex, month }) 
           const hasCustomLabel = cell.label && cell.label !== "S" && cell.label !== "M";
 
           const tooltipTitle = (
-            <Box sx={{ p: 0.5, maxWidth: 200 }}>
+            <Box sx={{ p: 0.5, maxWidth: 220 }}>
               <Typography variant="caption" sx={{ fontWeight: 800, color: "#ffffff", display: "block" }}>
                 {dayName}, {d} {month.name} {month.year}
               </Typography>
@@ -231,8 +443,17 @@ const MonthCard: React.FC<MonthCardProps> = ({ semesterId, monthIndex, month }) 
               <Typography variant="caption" sx={{ color: "#cbd5e1", display: "block", fontSize: "11px" }}>
                 {cell.note || (cell.is_effective ? "Hari Efektif Belajar" : "Hari Libur")}
               </Typography>
-              <Typography variant="caption" sx={{ color: "#94a3b8", display: "block", mt: 0.25, fontSize: "10px" }}>
-                Klik untuk ubah
+              <Typography
+                variant="caption"
+                sx={{
+                  color: canEdit ? "#93c5fd" : "#94a3b8",
+                  display: "block",
+                  mt: 0.5,
+                  fontSize: "10px",
+                  fontWeight: 600,
+                }}
+              >
+                {canEdit ? "Klik untuk ubah jadwal" : "Mode Lihat Saja (Kurikulum)"}
               </Typography>
             </Box>
           );
@@ -240,18 +461,7 @@ const MonthCard: React.FC<MonthCardProps> = ({ semesterId, monthIndex, month }) 
           return (
             <Tooltip key={d} title={tooltipTitle} arrow placement="top">
               <Box
-                onClick={() =>
-                  setEditingCell({
-                    semesterId,
-                    monthIndex,
-                    monthName: month.name,
-                    year: month.year,
-                    monthNumber: month.month_number,
-                    day: d,
-                    dayName,
-                    cell,
-                  })
-                }
+                onClick={() => handleDayClick(d, dayName, cell)}
                 sx={{
                   height: 28,
                   minWidth: 0,
@@ -260,20 +470,22 @@ const MonthCard: React.FC<MonthCardProps> = ({ semesterId, monthIndex, month }) 
                   flexDirection: "column",
                   alignItems: "center",
                   justifyContent: "center",
-                  cursor: "pointer",
+                  cursor: canEdit ? "pointer" : "default",
                   p: "1px",
                   bgcolor: bgColor,
                   color: textColor,
                   border: 1,
                   borderColor: borderColor,
-                  transition: "transform 0.12s ease, border-color 0.12s ease",
+                  transition: canEdit ? "transform 0.12s ease, border-color 0.12s ease" : "none",
                   overflow: "hidden",
-                  "&:hover": {
-                    transform: "scale(1.08)",
-                    borderColor: "#3b82f6",
-                    zIndex: 2,
-                    boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
-                  },
+                  "&:hover": canEdit
+                    ? {
+                        transform: "scale(1.08)",
+                        borderColor: "#3b82f6",
+                        zIndex: 2,
+                        boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                      }
+                    : {},
                 }}
               >
                 {/* Nomor Tanggal */}
@@ -312,6 +524,110 @@ const MonthCard: React.FC<MonthCardProps> = ({ semesterId, monthIndex, month }) 
             </Tooltip>
           );
         })}
+      </Box>
+
+      {/* --- DESKRIPSI & KETERANGAN AGENDA BULANAN (Sesuai Gambar 1 & Gambar 2) --- */}
+      <Box
+        sx={{
+          borderTop: 1,
+          borderColor: isDark ? "rgba(51, 65, 85, 0.6)" : "#f1f5f9",
+          bgcolor: isDark ? "#0b0f19" : "#ffffff",
+          px: 1.5,
+          py: 1.25,
+          minHeight: 65,
+          display: "flex",
+          flexDirection: "column",
+          gap: 0.5,
+          flex: 1,
+        }}
+      >
+        {monthEvents.length === 0 ? (
+          <Box sx={{ py: 1, textAlign: "center" }}>
+            <Typography
+              variant="caption"
+              sx={{
+                color: isDark ? "#64748b" : "#94a3b8",
+                fontSize: "10.5px",
+                fontStyle: "italic",
+                display: "block",
+              }}
+            >
+              - Tidak ada agenda khusus -
+            </Typography>
+          </Box>
+        ) : (
+          <Stack spacing={0.5}>
+            {monthEvents.map((ev, idx) => {
+              const holidayColor = isDark ? "#f87171" : "#dc2626";
+              const activityColor = isDark ? "#93c5fd" : "#0f2b5c";
+
+              return (
+                <Box
+                  key={idx}
+                  onClick={() => handleEventClick(ev)}
+                  sx={{
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: 0.75,
+                    lineHeight: 1.35,
+                    cursor: canEdit ? "pointer" : "default",
+                    px: 0.5,
+                    py: 0.25,
+                    borderRadius: 1,
+                    transition: "background-color 0.15s ease",
+                    "&:hover": canEdit
+                      ? {
+                          bgcolor: isDark ? "rgba(255,255,255,0.06)" : "rgba(59, 130, 246, 0.06)",
+                        }
+                      : {},
+                  }}
+                  title={canEdit ? "Klik untuk mengedit kegiatan ini" : undefined}
+                >
+                  {/* Nomor / Rentang Tanggal (contoh: 1, 5-7, 8-10, 12-19) */}
+                  <Typography
+                    sx={{
+                      fontWeight: 800,
+                      fontSize: "11px",
+                      minWidth: 38,
+                      flexShrink: 0,
+                      color: ev.isHoliday ? holidayColor : activityColor,
+                      textAlign: "left",
+                      letterSpacing: -0.2,
+                    }}
+                  >
+                    {ev.dateRangeText}
+                  </Typography>
+
+                  {/* Titik Dua Pemisah */}
+                  <Typography
+                    sx={{
+                      fontWeight: 800,
+                      fontSize: "11px",
+                      flexShrink: 0,
+                      color: ev.isHoliday ? holidayColor : activityColor,
+                      userSelect: "none",
+                    }}
+                  >
+                    :
+                  </Typography>
+
+                  {/* Deskripsi Kegiatan */}
+                  <Typography
+                    sx={{
+                      fontWeight: 700,
+                      fontSize: "11px",
+                      color: ev.isHoliday ? holidayColor : activityColor,
+                      wordBreak: "break-word",
+                      lineHeight: 1.3,
+                    }}
+                  >
+                    {ev.description}
+                  </Typography>
+                </Box>
+              );
+            })}
+          </Stack>
+        )}
       </Box>
     </Paper>
   );

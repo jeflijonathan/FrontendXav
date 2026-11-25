@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import type { AuthUserModel } from "@api/auth/model";
 import AuthService from "@api/auth/service";
-import { getCookie, setCookie, deleteCookie } from "@utils/cookie";
+import { getCookie, setCookie, deleteCookie, getJSONCookie, setJSONCookie } from "@utils/cookie";
 import LocalStorage from "@utils/localStorage";
 
 interface AuthStore {
@@ -22,33 +22,32 @@ interface AuthStore {
 const authService = new AuthService();
 
 export const useAuthStore = create<AuthStore>((set, get) => ({
-  user: LocalStorage().getItem<AuthUserModel>("user") || null,
-  activeRole:
-    getCookie("active_role") ||
-    LocalStorage().getItem<string>("active_role") ||
-    null,
+  user: getJSONCookie<AuthUserModel>("user") || null,
+  activeRole: getCookie("active_role") || null,
   isAuthenticated: Boolean(
-    getCookie("access_token") || LocalStorage().getItem<string>("accessToken")
+    getCookie("access_token") || getCookie("accessToken")
   ),
   isLoading: true,
   isRoleModalOpen: false,
 
   setUser: (user) => {
     if (user) {
-      LocalStorage().setItem("user", user);
+      setJSONCookie("user", user, { maxAge: 7 * 24 * 3600 });
     } else {
-      LocalStorage().removeItem("user");
+      deleteCookie("user");
     }
+    // Pastikan tidak ada duplikasi data di localStorage
+    LocalStorage().removeItem("user");
     set({ user, isAuthenticated: Boolean(user) });
   },
 
   setActiveRole: (role) => {
     if (role) {
       setCookie("active_role", role, { maxAge: 7 * 24 * 3600 });
-      LocalStorage().setItem("active_role", role);
     } else {
-      LocalStorage().removeItem("active_role");
+      deleteCookie("active_role");
     }
+    LocalStorage().removeItem("active_role");
     set({ activeRole: role });
   },
 
@@ -58,15 +57,16 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     const current = get().user;
     if (current) {
       const updated = { ...current, ...partial };
-      LocalStorage().setItem("user", updated);
+      setJSONCookie("user", updated, { maxAge: 7 * 24 * 3600 });
+      LocalStorage().removeItem("user");
       set({ user: updated });
     }
   },
 
   setLoginSuccess: (user) => {
-    LocalStorage().setItem("user", user);
-
+    setJSONCookie("user", user, { maxAge: 7 * 24 * 3600 });
     deleteCookie("active_role");
+    LocalStorage().removeItem("user");
     LocalStorage().removeItem("active_role");
 
     set({
@@ -109,7 +109,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
 
   initAuth: async () => {
     const hasToken = Boolean(
-      getCookie("access_token") || LocalStorage().getItem<string>("accessToken")
+      getCookie("access_token") || getCookie("accessToken")
     );
     if (!hasToken) {
       set({ isLoading: false, isAuthenticated: false, user: null, activeRole: null });
@@ -120,7 +120,6 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       onSuccess: (userData) => {
         const storedRole =
           getCookie("active_role") ||
-          LocalStorage().getItem<string>("active_role") ||
           userData.active_role ||
           (userData.roles.length === 1 ? userData.roles[0].name : null);
 
@@ -145,4 +144,3 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
 }));
 
 export default useAuthStore;
-

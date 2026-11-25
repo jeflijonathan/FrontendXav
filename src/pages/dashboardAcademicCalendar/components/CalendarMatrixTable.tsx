@@ -5,6 +5,7 @@ import {
   Tooltip,
 } from "@mui/material";
 import useAcademicCalendarStore from "../store/useAcademicCalendarStore";
+import { useCalendarPermissions } from "../utils/permissions";
 import type { SemesterModel, MonthModel, DayCellModel } from "@api/academicCalendar/model";
 
 const INDO_DAY_NAMES = [
@@ -38,6 +39,7 @@ const CalendarCell: React.FC<CellRendererProps> = ({
   cell,
 }) => {
   const { setEditingCell } = useAcademicCalendarStore();
+  const { canEdit } = useCalendarPermissions();
   const dayName = getDayName(month.year, month.month_number, day);
 
   if (!cell || !cell.valid) {
@@ -87,8 +89,8 @@ const CalendarCell: React.FC<CellRendererProps> = ({
       <Typography variant="caption" sx={{ display: "block", color: "white" }}>
         {cell.note || (cell.is_effective ? "Hari Efektif Belajar" : "Hari Libur")}
       </Typography>
-      <Typography variant="caption" sx={{ display: "block", color: "#a1a1aa", mt: 0.5 }}>
-        Klik untuk mengubah
+      <Typography variant="caption" sx={{ display: "block", color: canEdit ? "#93c5fd" : "#a1a1aa", mt: 0.5 }}>
+        {canEdit ? "Klik untuk mengubah" : "Mode Lihat Saja (Kurikulum)"}
       </Typography>
     </Box>
   );
@@ -96,19 +98,24 @@ const CalendarCell: React.FC<CellRendererProps> = ({
   return (
     <Tooltip title={tooltipTitle} arrow placement="top">
       <td
-        onClick={() =>
-          setEditingCell({
-            semesterId,
-            monthIndex,
-            monthName: month.name,
-            year: month.year,
-            monthNumber: month.month_number,
-            day,
-            dayName,
-            cell,
-          })
+        onClick={
+          canEdit
+            ? () =>
+                setEditingCell({
+                  semesterId,
+                  monthIndex,
+                  monthName: month.name,
+                  year: month.year,
+                  monthNumber: month.month_number,
+                  day,
+                  dayName,
+                  cell,
+                })
+            : undefined
         }
-        className="border border-zinc-300 dark:border-zinc-700 text-center p-0 cursor-pointer transition-all hover:ring-2 hover:ring-blue-500 hover:z-10 relative select-none"
+        className={`border border-zinc-300 dark:border-zinc-700 text-center p-0 transition-all relative select-none ${
+          canEdit ? "cursor-pointer hover:ring-2 hover:ring-blue-500 hover:z-10" : "cursor-default"
+        }`}
         style={{
           minWidth: 28,
           width: 32,

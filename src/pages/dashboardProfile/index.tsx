@@ -1,18 +1,16 @@
-import LocalStorage from "@utils/localStorage";
 import useAuthStore from "@common/store/useAuthStore";
+import { getCookie } from "@utils/cookie";
 import EmployeeProfile from "./EmployeeProfile/EmployeeProfile";
 import StudentProfile from "./StudentProfile/StudentProfile";
 
 const DashboardProfile = () => {
     const { activeRole, user } = useAuthStore();
-    const storedUser: any = LocalStorage().getItem<any>("user");
-    const storedActiveRole = LocalStorage().getItem<string>("active_role");
+    const cookieRole = getCookie("active_role");
 
     const currentRole = (
         activeRole ||
-        storedActiveRole ||
+        cookieRole ||
         user?.active_role ||
-        storedUser?.active_role ||
         (user?.user_type === "employee" ? "guru" : "student") ||
         ""
     ).toLowerCase().trim();

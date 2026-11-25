@@ -10,24 +10,34 @@ export default class EmployeeService {
         callback: FetchCallback<DataWithPagination<EmployeeResponseModel[]>>,
         params?: FilterParams
     ) {
-        const res = await this.service.GET<DataWithPagination<EmployeeResponseModel[]>>(this.basePath, params?.params);
-        if (res.status == "SUCCESS") {
-            callback.onSuccess({ data: res.data.data, pagination: res.data.pagination });
-        } else {
-            callback.onError({ message: res.message, detail: res.details });
+        try {
+            const res = await this.service.GET<DataWithPagination<EmployeeResponseModel[]>>(this.basePath, params?.params);
+            if (res.status == "SUCCESS") {
+                callback.onSuccess({ data: res.data.data, pagination: res.data.pagination });
+            } else {
+                callback.onError({ message: res.message, detail: res.details });
+            }
+        } catch (err: any) {
+            const message = err?.message || "Gagal memuat data karyawan";
+            const detail = err?.response?.data?.detail;
+            callback.onError({ message, detail: detail || message });
         }
         if (callback.onFullfilled) callback.onFullfilled();
     }
 
     async getById(id: string, callback: FetchCallback<EmployeeResponseModel>) {
-        const res = await this.service.GET<EmployeeResponseModel>(`${this.basePath}${id}`);
-
-        if (res.status == "SUCCESS") {
-            callback.onSuccess(res.data)
-        } else {
-            callback.onError({ message: res.message, detail: res.details })
+        try {
+            const res = await this.service.GET<EmployeeResponseModel>(`${this.basePath}${id}`);
+            if (res.status == "SUCCESS") {
+                callback.onSuccess(res.data);
+            } else {
+                callback.onError({ message: res.message, detail: res.details });
+            }
+        } catch (err: any) {
+            const message = err?.message || "Gagal memuat data karyawan";
+            const detail = err?.response?.data?.detail;
+            callback.onError({ message, detail: detail || message });
         }
-
         if (callback.onFullfilled) callback.onFullfilled();
     }
 
@@ -36,9 +46,9 @@ export default class EmployeeService {
             const res = await this.service.POST<EmployeeResponseModel>(this.basePath, data);
 
             if (res.status == "SUCCESS") {
-                callback.onSuccess(res.data)
+                callback.onSuccess(res.data);
             } else {
-                callback.onError({ message: res.message, detail: res.details })
+                callback.onError({ message: res.message, detail: res.details });
             }
         } catch (err: any) {
             const message = err?.message || "Gagal membuat data karyawan";
@@ -50,21 +60,33 @@ export default class EmployeeService {
     }
 
     async update(id: string, data: UpdateEmployeeRequestModel, callback: FetchCallback<EmployeeResponseModel>) {
-        const res = await this.service.PATCH<EmployeeResponseModel>(`${this.basePath}${id}`, data);
-        if (res.status == "SUCCESS") {
-            callback.onSuccess(res.data)
-        } else {
-            callback.onError({ message: res.message, detail: res.details })
+        try {
+            const res = await this.service.PATCH<EmployeeResponseModel>(`${this.basePath}${id}`, data);
+            if (res.status == "SUCCESS") {
+                callback.onSuccess(res.data);
+            } else {
+                callback.onError({ message: res.message, detail: res.details });
+            }
+        } catch (err: any) {
+            const message = err?.message || "Gagal memperbarui data karyawan";
+            const detail = err?.response?.data?.detail;
+            callback.onError({ message, detail: detail || message });
         }
         if (callback.onFullfilled) callback.onFullfilled();
     }
 
     async delete(id: string, callback: FetchCallback<any>) {
-        const res = await this.service.DELETE(`${this.basePath}${id}`);
-        if (res.status == "SUCCESS") {
-            callback.onSuccess(res.data)
-        } else {
-            callback.onError({ message: res.message, detail: res.details })
+        try {
+            const res = await this.service.DELETE(`${this.basePath}${id}`);
+            if (res.status == "SUCCESS") {
+                callback.onSuccess(res.data);
+            } else {
+                callback.onError({ message: res.message, detail: res.details });
+            }
+        } catch (err: any) {
+            const message = err?.message || "Gagal menghapus data karyawan";
+            const detail = err?.response?.data?.detail;
+            callback.onError({ message, detail: detail || message });
         }
         if (callback.onFullfilled) callback.onFullfilled();
     }
@@ -77,32 +99,50 @@ export default class EmployeeService {
     }
 
     async getAcademicTitles(callback: FetchCallback<AcademicTitleModel[]>, type?: "depan" | "belakang") {
-        const query = type ? `?type=${type}` : "";
-        const res = await this.service.GET<AcademicTitleModel[]>(`${this.basePath}academic-titles${query}`);
-        if (res.status == "SUCCESS") {
-            callback.onSuccess(res.data);
-        } else {
-            callback.onError({ message: res.message, detail: res.details });
+        try {
+            const query = type ? `?type=${type}` : "";
+            const res = await this.service.GET<AcademicTitleModel[]>(`${this.basePath}academic-titles${query}`);
+            if (res.status == "SUCCESS") {
+                callback.onSuccess(res.data);
+            } else {
+                callback.onError({ message: res.message, detail: res.details });
+            }
+        } catch (err: any) {
+            const message = err?.message || "Gagal memuat gelar akademik";
+            const detail = err?.response?.data?.detail;
+            callback.onError({ message, detail: detail || message });
         }
         if (callback.onFullfilled) callback.onFullfilled();
     }
 
     async getMyProfile(callback: FetchCallback<EmployeeResponseModel>) {
-        const res = await this.service.GET<EmployeeResponseModel>(`${this.basePath}me`);
-        if (res.status == "SUCCESS") {
-            callback.onSuccess(res.data);
-        } else {
-            callback.onError({ message: res.message, detail: res.details });
+        try {
+            const res = await this.service.GET<EmployeeResponseModel>(`${this.basePath}me`);
+            if (res.status == "SUCCESS") {
+                callback.onSuccess(res.data);
+            } else {
+                callback.onError({ message: res.message, detail: res.details });
+            }
+        } catch (err: any) {
+            const message = err?.message || "Gagal memuat profil";
+            const detail = err?.response?.data?.detail;
+            callback.onError({ message, detail: detail || message });
         }
         if (callback.onFullfilled) callback.onFullfilled();
     }
 
     async updateMyProfile(data: UpdateEmployeeRequestModel, callback: FetchCallback<EmployeeResponseModel>) {
-        const res = await this.service.PATCH<EmployeeResponseModel>(`${this.basePath}me`, data);
-        if (res.status == "SUCCESS") {
-            callback.onSuccess(res.data);
-        } else {
-            callback.onError({ message: res.message, detail: res.details });
+        try {
+            const res = await this.service.PATCH<EmployeeResponseModel>(`${this.basePath}me`, data);
+            if (res.status == "SUCCESS") {
+                callback.onSuccess(res.data);
+            } else {
+                callback.onError({ message: res.message, detail: res.details });
+            }
+        } catch (err: any) {
+            const message = err?.message || "Gagal memperbarui profil";
+            const detail = err?.response?.data?.detail;
+            callback.onError({ message, detail: detail || message });
         }
         if (callback.onFullfilled) callback.onFullfilled();
     }

@@ -48,16 +48,13 @@ const NavbarApp = () => {
   const navigate = useNavigate();
 
   // Mode Tampilan Notifikasi: 'drawer' (Versi 2 - Panel Samping Kanan) atau 'popover' (Versi 1 - Dropdown Menu)
-  const [notifMode, setNotifMode] = useState<"drawer" | "popover">(() => {
-    return (localStorage.getItem("notif_view_mode") as "drawer" | "popover") || "drawer";
-  });
+  const [notifMode, setNotifMode] = useState<"drawer" | "popover">("drawer");
 
   const [notifAnchorEl, setNotifAnchorEl] = useState<null | HTMLElement>(null);
   const [isNotifDrawerOpen, setIsNotifDrawerOpen] = useState(false);
 
   const toggleNotifMode = (mode: "drawer" | "popover") => {
     setNotifMode(mode);
-    localStorage.setItem("notif_view_mode", mode);
     if (mode === "drawer") {
       setNotifAnchorEl(null);
       setIsNotifDrawerOpen(true);

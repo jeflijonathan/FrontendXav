@@ -46,32 +46,7 @@ const schoolInfoService = new SchoolInformationService();
 const classService = new ClassService();
 const effectiveWeekService = new EffectiveWeekService();
 
-export const DEFAULT_TEACHER_REQUESTS: TeacherScheduleRequest[] = [
-    {
-        id: 'req-1',
-        teacherCode: 1,
-        teacherName: 'Admin Xaverius',
-        subjectName: 'Bahasa Indonesia (IND-03)',
-        preferredSlots: [
-            { day: 'Senin', jam: 'Jam ke 1-3 (07:45 - 09:30)', timeRange: '07:45 - 09:30', jpStart: 1, jpEnd: 3 },
-        ],
-        status: 'VALID',
-        statusText: '✓ Tersedia & Bebas Bentrok',
-        notes: 'Preferensi jam mengajar sesi pagi',
-    },
-    {
-        id: 'req-2',
-        teacherCode: 2,
-        teacherName: 'Jefli Jonathan',
-        subjectName: 'Matematika (MAT-04)',
-        preferredSlots: [
-            { day: 'Senin', jam: 'Jam ke 4-6 (09:45 - 11:50)', timeRange: '09:45 - 11:50', jpStart: 4, jpEnd: 6 },
-        ],
-        status: 'VALID',
-        statusText: '✓ Tersedia & Bebas Bentrok',
-        notes: 'Preferensi blok jam setelah istirahat',
-    },
-];
+export const DEFAULT_TEACHER_REQUESTS: TeacherScheduleRequest[] = [];
 
 export interface ScheduleState {
     classes: ClassColumn[];
@@ -229,6 +204,7 @@ export interface ScheduleActions {
     syncFromDatabaseTeachingStaff: () => Promise<void>;
     generateTableFromRosterJam: () => Promise<void>;
     autoScheduleSmart: () => void;
+    clearScheduleSlots: (targetClassName?: string) => Promise<void>;
     resetToOfficialTemplate: () => Promise<void>;
     saveSchedule: () => Promise<void>;
 }
@@ -322,9 +298,15 @@ const calculateConflicts = (
                 });
 
                 if (matchingPiket) {
-                    const piketMaxJp = Number(matchingPiket.jumlahJp) || 4;
-                    // Bentrok hanya jika mengajar di slot KBM 1 s/d piketMaxJp
-                    if (rowJpNum <= piketMaxJp) {
+                    const isPiketSlot = matchingPiket.slots && matchingPiket.slots.length > 0
+                        ? matchingPiket.slots.includes(rowJpNum)
+                        : rowJpNum <= (Number(matchingPiket.jumlahJp) || 4);
+
+                    if (isPiketSlot) {
+                        const slotDesc = matchingPiket.slots && matchingPiket.slots.length > 0
+                            ? `Jam Ke-${matchingPiket.slots.join(', ')}`
+                            : `Slot KBM 1-${Number(matchingPiket.jumlahJp) || 4}`;
+
                         conflicts.push({
                             day: row.day,
                             jp: row.jp,
@@ -333,12 +315,58 @@ const calculateConflicts = (
                             teacherName,
                             conflictedClasses: classList,
                             conflictType: 'PIKET_CONFLICT',
-                            conflictReason: `Bentrok Tugas Piket: ${teacherName} bertugas piket hari ${row.day} (Slot KBM 1-${piketMaxJp}), tidak dapat mengajar di ${classList.join(', ')}`,
+                            conflictReason: `Bentrok Tugas Piket: ${teacherName} bertugas piket hari ${row.day} (${slotDesc}), tidak dapat mengajar di ${classList.join(', ')} pada Jam Ke-${rowJpNum}`,
                         });
                     }
-                    // Jika rowJpNum > piketMaxJp: TIDAK BENTROK (sisanya bebas mengajar)
                 }
             }
+        });
+    });
+
+    // 3. Validasi 1 Mapel = 1 Guru per Kelas (SUBJECT_MULTI_TEACHER)
+    // Kumpulkan semua assignment subjectCode -> teacherCode per kelas
+    const classSubjectTeacherMap: Record<string, Record<string, Set<number>>> = {};
+    rows.forEach((row) => {
+        if (row.specialActivity) return;
+        Object.entries(row.classCells).forEach(([className, cell]) => {
+            if (!cell.teacherCode || !cell.subjectCode) return;
+            if (!classSubjectTeacherMap[className]) classSubjectTeacherMap[className] = {};
+            if (!classSubjectTeacherMap[className][cell.subjectCode]) {
+                classSubjectTeacherMap[className][cell.subjectCode] = new Set();
+            }
+            classSubjectTeacherMap[className][cell.subjectCode].add(cell.teacherCode);
+        });
+    });
+
+    // Untuk setiap kelas + mapel yang diajar oleh > 1 guru, buat conflict di setiap cell terkait
+    Object.entries(classSubjectTeacherMap).forEach(([className, subjectMap]) => {
+        Object.entries(subjectMap).forEach(([subjectCode, teacherCodes]) => {
+            if (teacherCodes.size <= 1) return; // OK, hanya 1 guru
+
+            const teacherCodeArr = Array.from(teacherCodes);
+            const teacherNames = teacherCodeArr.map((code) => {
+                const t = findTeacherByCode(teachers, code);
+                return t ? `#${code} ${t.name}` : `#${code}`;
+            });
+
+            // Cari baris mana saja yang terlibat
+            rows.forEach((row) => {
+                if (row.specialActivity) return;
+                const cell = row.classCells[className];
+                if (!cell || !cell.teacherCode || cell.subjectCode !== subjectCode) return;
+
+                const teacher = findTeacherByCode(teachers, cell.teacherCode);
+                conflicts.push({
+                    day: row.day,
+                    jp: row.jp,
+                    timeRange: row.timeRange,
+                    teacherCode: cell.teacherCode,
+                    teacherName: teacher?.name || `Guru #${cell.teacherCode}`,
+                    conflictedClasses: [className],
+                    conflictType: 'SUBJECT_MULTI_TEACHER',
+                    conflictReason: `Pelanggaran 1 Mapel = 1 Guru: Mapel ${cell.subjectName || subjectCode} di kelas ${className} diajar oleh ${teacherNames.join(' & ')}. Satu mapel hanya boleh diajar 1 guru per kelas.`,
+                });
+            });
         });
     });
 
@@ -351,21 +379,6 @@ const buildEmptyClassCells = (classes: ClassColumn[]): Record<string, ScheduleCe
         cells[c.name] = { teacherCode: null };
     });
     return cells;
-};
-
-const getStoredRosterData = (schoolInfoId?: string, periode?: string) => {
-    try {
-        const raw = localStorage.getItem('smk_roster_period_schedules');
-        if (!raw) return null;
-        const parsed = JSON.parse(raw);
-        if (schoolInfoId && parsed[schoolInfoId]) return parsed[schoolInfoId];
-        if (periode && parsed[periode]) return parsed[periode];
-        const keys = Object.keys(parsed);
-        if (keys.length > 0) return parsed[keys[0]];
-        return null;
-    } catch {
-        return null;
-    }
 };
 
 const buildScheduleRowsFromRoster = (
@@ -434,25 +447,6 @@ const buildScheduleRowsFromRoster = (
     return rows;
 };
 
-const saveMatrixToLocalStorage = (schoolInfoId: string, rows: ScheduleRow[]) => {
-    try {
-        if (!schoolInfoId) return;
-        localStorage.setItem(`smk_matrix_schedule_${schoolInfoId}`, JSON.stringify(rows));
-    } catch (e) {
-        console.warn('Gagal simpan matriks ke local storage:', e);
-    }
-};
-
-const getMatrixFromLocalStorage = (schoolInfoId: string): ScheduleRow[] | null => {
-    try {
-        if (!schoolInfoId) return null;
-        const raw = localStorage.getItem(`smk_matrix_schedule_${schoolInfoId}`);
-        return raw ? JSON.parse(raw) : null;
-    } catch {
-        return null;
-    }
-};
-
 let autoSaveScheduleTimer: any = null;
 
 const mapTeachingStaffToTeacherEntries = (staffList: TeachingTeacherRowModel[]): TeacherCodeEntry[] => {
@@ -462,12 +456,24 @@ const mapTeachingStaffToTeacherEntries = (staffList: TeachingTeacherRowModel[]):
     staffList.forEach((teacher) => {
         const fullName = `${teacher.first_name || ''} ${teacher.last_name || ''}`.trim() || 'Guru Pengajar';
 
+        // Filter: HANYA mapel yang benar-benar aktif dan memiliki alokasi kelas di periode ini
+        const validSubjects = (teacher.subjects || []).filter((subj) => {
+            const hasSubject = Boolean(subj.id_subject || subj.subject_name);
+            const hasClasses = Array.isArray(subj.classes) && subj.classes.length > 0;
+            return hasSubject && hasClasses;
+        });
+
+        // JIKA GURU BELUM DIINPUT MATA PELAJARAN / KELASNYA PADA PERIODE INI, JANGAN TAMPILKAN!
+        if (validSubjects.length === 0) {
+            return;
+        }
+
         const allAssignedClasses: string[] = [];
         const allAllowedMajors = new Set<string>();
         const allAllowedGrades = new Set<string>();
 
         // Petakan semua mapel yang diajar guru ini dari menu Pengajaran
-        const teacherSubjects: TeacherSubjectOption[] = (teacher.subjects || []).map((subj, sIdx) => {
+        const teacherSubjects: TeacherSubjectOption[] = validSubjects.map((subj, sIdx) => {
             const isKejuruan =
                 ((subj as any).category_name || '').toLowerCase().includes('kejuruan') ||
                 (subj.subject_name || '').toLowerCase().includes('akuntansi') ||
@@ -510,12 +516,8 @@ const mapTeachingStaffToTeacherEntries = (staffList: TeachingTeacherRowModel[]):
             };
         });
 
-        const primarySubj = teacherSubjects[0] || {
-            subjectName: 'Mata Pelajaran',
-            subjectCode: `MP-${codeCounter}`,
-            category: 'UMUM' as const,
-            targetJp: 24,
-        };
+        const primarySubj = teacherSubjects[0];
+        if (!primarySubj) return;
 
         const totalTargetJp = teacherSubjects.reduce((acc, s) => acc + (s.targetJp || 0), 0) || 24;
 
@@ -536,6 +538,7 @@ const mapTeachingStaffToTeacherEntries = (staffList: TeachingTeacherRowModel[]):
             recommendedJpRange: primarySubj.category === 'KEJURUAN' ? [6, 8] : [1, 3],
             totalJpAssigned: 0,
             targetJp: totalTargetJp,
+            roles: teacher.roles || [],
             color: primarySubj.category === 'KEJURUAN' ? '#ea580c' : '#2563eb',
         });
     });
@@ -582,7 +585,7 @@ export const useScheduleStore = create<ScheduleState & ScheduleActions>(
         isSaving: false,
 
         // Teacher Schedule Requests Initial State
-        teacherRequests: DEFAULT_TEACHER_REQUESTS,
+        teacherRequests: [],
         isLoadingRequests: false,
         isRequestDialogOpen: false,
         editingRequest: null,
@@ -625,7 +628,9 @@ export const useScheduleStore = create<ScheduleState & ScheduleActions>(
                     ...entry,
                     id: `piket-${Date.now()}`,
                 };
-                const updated = [...state.guruPiket, newEntry];
+                // 1 Hari diawasi 1 Guru Piket: gantikan jika hari tersebut sudah ada guru piket
+                const filtered = state.guruPiket.filter((p) => p.hari !== entry.hari);
+                const updated = [...filtered, newEntry];
                 return {
                     guruPiket: updated,
                     conflicts: calculateConflicts(state.rows, state.teachers, updated),
@@ -636,10 +641,16 @@ export const useScheduleStore = create<ScheduleState & ScheduleActions>(
 
         updateGuruPiket: (index, updates) => {
             set((state) => {
-                const updated = [...state.guruPiket];
-                if (updated[index]) {
-                    updated[index] = { ...updated[index], ...updates };
+                const current = state.guruPiket[index];
+                if (!current) return state;
+                const newEntry = { ...current, ...updates };
+
+                // Jika hari berubah dan bentrok dengan hari lain, pastikan 1 hari hanya 1 guru piket
+                let updated = state.guruPiket.map((p, i) => (i === index ? newEntry : p));
+                if (updates.hari && updates.hari !== current.hari) {
+                    updated = updated.filter((p, i) => i === index || p.hari !== updates.hari);
                 }
+
                 return {
                     guruPiket: updated,
                     conflicts: calculateConflicts(state.rows, state.teachers, updated),
@@ -771,10 +782,13 @@ export const useScheduleStore = create<ScheduleState & ScheduleActions>(
                                 row.specialActivity.title.toUpperCase().includes('EKSTRA')
                             )
                         );
-                        if (isEkstra || row.classExtraActivities) {
+                        if (isEkstra) {
                             const activities = row.classExtraActivities || {};
                             state.classes.forEach((cls) => {
-                                const extraVal = activities[cls.name] || row.specialActivity?.subtitle || 'Pramuka';
+                                const rawVal = activities[cls.name] !== undefined
+                                    ? activities[cls.name]
+                                    : (cls.id && activities[cls.id] !== undefined ? activities[cls.id] : undefined);
+                                const extraVal = rawVal !== undefined ? rawVal : (row.specialActivity?.subtitle || '');
                                 extraItems.push({
                                     id_school_information: schoolInfoId,
                                     row_id: row.id,
@@ -807,6 +821,32 @@ export const useScheduleStore = create<ScheduleState & ScheduleActions>(
                     teacher?.subjects?.find((s) => s.subjectName === subjectCode) ||
                     (teacher?.subjects && teacher.subjects.length > 0 ? teacher.subjects[0] : null);
 
+                const resolvedSubjCode = chosenSubj?.subjectCode || teacher?.subjectCode;
+
+                // Validasi 1 Mapel = 1 Guru per Kelas
+                if (teacherCode && resolvedSubjCode) {
+                    const existingTeacherForSubject = new Set<number>();
+                    state.rows.forEach((r) => {
+                        if (r.specialActivity) return;
+                        if (r.id === rowId) return; // skip the row being edited
+                        const c = r.classCells[className];
+                        if (c && c.teacherCode && c.subjectCode === resolvedSubjCode) {
+                            existingTeacherForSubject.add(c.teacherCode);
+                        }
+                    });
+                    // Jika ada guru lain yang sudah mengajar mapel ini di kelas ini
+                    const otherTeachers = Array.from(existingTeacherForSubject).filter((tc) => tc !== teacherCode);
+                    if (otherTeachers.length > 0) {
+                        const otherNames = otherTeachers.map((tc) => {
+                            const t = findTeacherByCode(state.teachers, tc);
+                            return t ? `#${tc} ${t.name}` : `#${tc}`;
+                        });
+                        snackbar.error(
+                            `Mapel ${chosenSubj?.subjectName || resolvedSubjCode} di kelas ${className} sudah diajar oleh guru ${otherNames.join(', ')}. Satu mapel hanya boleh diajar 1 guru per kelas.`
+                        );
+                    }
+                }
+
                 const newRows = state.rows.map((row) => {
                     if (row.id !== rowId) return row;
 
@@ -828,8 +868,6 @@ export const useScheduleStore = create<ScheduleState & ScheduleActions>(
                         },
                     };
                 });
-
-                saveMatrixToLocalStorage(state.idSchoolInformation, newRows);
 
                 return {
                     rows: newRows,
@@ -871,8 +909,6 @@ export const useScheduleStore = create<ScheduleState & ScheduleActions>(
                         },
                     };
                 });
-
-                saveMatrixToLocalStorage(state.idSchoolInformation, newRows);
 
                 return {
                     rows: newRows,
@@ -928,8 +964,6 @@ export const useScheduleStore = create<ScheduleState & ScheduleActions>(
                     }
                     return row;
                 });
-
-                saveMatrixToLocalStorage(state.idSchoolInformation, newRows);
 
                 return {
                     rows: newRows,
@@ -1092,14 +1126,20 @@ export const useScheduleStore = create<ScheduleState & ScheduleActions>(
 
         setClassExtraActivity: (rowId, className, extraName) => {
             set((state) => {
+                const clsObj = state.classes.find((c) => c.name === className || c.id === className);
                 const newRows = state.rows.map((row) => {
                     if (row.id !== rowId) return row;
+                    const updated = {
+                        ...(row.classExtraActivities || {}),
+                        [className]: extraName,
+                    };
+                    if (clsObj) {
+                        if (clsObj.name) updated[clsObj.name] = extraName;
+                        if (clsObj.id) updated[clsObj.id] = extraName;
+                    }
                     return {
                         ...row,
-                        classExtraActivities: {
-                            ...(row.classExtraActivities || {}),
-                            [className]: extraName,
-                        },
+                        classExtraActivities: updated,
                     };
                 });
 
@@ -1195,10 +1235,6 @@ export const useScheduleStore = create<ScheduleState & ScheduleActions>(
                         onError: () => {},
                     });
                 }
-                if (!rosterData) {
-                    const activeInfo = get().schoolInformations.find((i) => i.id_school_information === schoolInfoId);
-                    rosterData = getStoredRosterData(schoolInfoId, activeInfo?.periode || undefined);
-                }
 
                 const currentClasses = get().classes;
                 const currentTeachers = get().teachers;
@@ -1269,6 +1305,39 @@ export const useScheduleStore = create<ScheduleState & ScheduleActions>(
             snackbar.info('Jadwal di-reset dan dimuat ulang dari Database MySQL.');
         },
 
+        clearScheduleSlots: async (targetClassName?: string) => {
+            const state = get();
+            const isSpecificClass = Boolean(targetClassName && targetClassName !== 'Semua');
+
+            const newRows = state.rows.map((row) => {
+                const newClassCells = { ...row.classCells };
+                if (isSpecificClass && targetClassName) {
+                    newClassCells[targetClassName] = { teacherCode: null };
+                } else {
+                    Object.keys(newClassCells).forEach((cls) => {
+                        newClassCells[cls] = { teacherCode: null };
+                    });
+                }
+                return {
+                    ...row,
+                    classCells: newClassCells,
+                };
+            });
+
+            const newConflicts = calculateConflicts(newRows, state.teachers, state.guruPiket);
+            set({
+                rows: newRows,
+                conflicts: newConflicts,
+            });
+
+            await get().saveSchedule();
+            if (isSpecificClass && targetClassName) {
+                snackbar.success(`Seluruh slot KBM kelas ${targetClassName} berhasil dikosongkan!`);
+            } else {
+                snackbar.success('Seluruh slot KBM di semua kelas berhasil dikosongkan!');
+            }
+        },
+
         fetchSchoolInformations: async () => {
             try {
                 await schoolInfoService.getAll(
@@ -1318,8 +1387,8 @@ export const useScheduleStore = create<ScheduleState & ScheduleActions>(
                         onError: () => {},
                     },
                     schoolInfoId
-                        ? { params: { id_school_information: schoolInfoId, limit: 200 } }
-                        : { params: { limit: 200 } }
+                        ? { params: { id_school_information: schoolInfoId, limit: 100 } }
+                        : { params: { limit: 100 } }
                 );
             } catch (err) {
                 console.error('Error fetching effective week allocations:', err);
@@ -1328,11 +1397,23 @@ export const useScheduleStore = create<ScheduleState & ScheduleActions>(
 
         fetchClassesFromDatabase: async (schoolInfoId?: string) => {
             try {
+                const targetSchoolInfoId = schoolInfoId || get().selectedSchoolInfoId || get().idSchoolInformation;
                 await classService.getAll(
                     {
                         onSuccess: (res) => {
-                            const classList = res.data || [];
-                            const dbClasses: ClassColumn[] = classList.map((c) => {
+                            const rawList: any[] = Array.isArray(res.data)
+                                ? res.data
+                                : Array.isArray((res.data as any)?.data)
+                                ? (res.data as any).data
+                                : [];
+
+                            // Filter strictly by targetSchoolInfoId if available
+                            const filteredBySchool = targetSchoolInfoId
+                                ? rawList.filter((c: any) => c.id_school_information === targetSchoolInfoId || c.school_information?.id_school_information === targetSchoolInfoId)
+                                : rawList;
+                            const classList = filteredBySchool.length > 0 ? filteredBySchool : rawList;
+
+                            const dbClasses: ClassColumn[] = classList.map((c: any) => {
                                 let grade: 'X' | 'XI' | 'XII' = 'X';
                                 const k = (c.kelas || '').trim().toUpperCase();
                                 const n = (c.name || '').trim().toUpperCase();
@@ -1349,21 +1430,31 @@ export const useScheduleStore = create<ScheduleState & ScheduleActions>(
                                 };
                             });
 
-                            // Urutkan kelas sesuai kaidah pedagogik: Kelas X -> XI -> XII, lalu menurut jurusan
-                            dbClasses.sort(sortClassesByGradeAndName);
-
-                            set({ classes: dbClasses });
-                            if (!dbClasses.some((m) => m.name === get().selectedClassForInput)) {
-                                set({ selectedClassForInput: dbClasses[0]?.name || '' });
+                            // Deduplicate classes by name so duplicate periods don't pollute matrix columns
+                            const seenNames = new Set<string>();
+                            const uniqueClasses: ClassColumn[] = [];
+                            for (const cls of dbClasses) {
+                                if (!seenNames.has(cls.name)) {
+                                    seenNames.add(cls.name);
+                                    uniqueClasses.push(cls);
+                                }
                             }
-                            if (get().selectedClassFilter !== 'Semua' && !dbClasses.some((m) => m.name === get().selectedClassFilter)) {
+
+                            // Urutkan kelas sesuai kaidah pedagogik: Kelas X -> XI -> XII, lalu menurut jurusan
+                            uniqueClasses.sort(sortClassesByGradeAndName);
+
+                            set({ classes: uniqueClasses });
+                            if (!uniqueClasses.some((m) => m.name === get().selectedClassForInput)) {
+                                set({ selectedClassForInput: uniqueClasses[0]?.name || '' });
+                            }
+                            if (get().selectedClassFilter !== 'Semua' && !uniqueClasses.some((m) => m.name === get().selectedClassFilter)) {
                                 set({ selectedClassFilter: 'Semua' });
                             }
                         },
                         onError: () => {},
                     },
-                    schoolInfoId
-                        ? { params: { id_school_information: schoolInfoId, limit: 100 } }
+                    targetSchoolInfoId
+                        ? { params: { id_school_information: targetSchoolInfoId, limit: 100 } }
                         : { params: { limit: 100 } }
                 );
             } catch {
@@ -1372,32 +1463,35 @@ export const useScheduleStore = create<ScheduleState & ScheduleActions>(
         },
 
         setSchoolInformationId: async (id: string) => {
-            set({ idSchoolInformation: id, selectedSchoolInfoId: id, selectedClassFilter: 'Semua' });
+            set({ idSchoolInformation: id, selectedSchoolInfoId: id, selectedClassFilter: 'Semua', teacherRequests: [] });
             await get().loadScheduleFromDatabase(id);
         },
 
-        syncFromDatabaseTeachingStaff: async () => {
+        syncFromDatabaseTeachingStaff: async (customSchoolInfoId?: string) => {
             try {
-                const schoolInfoId = get().idSchoolInformation;
+                const schoolInfoId = customSchoolInfoId || get().idSchoolInformation;
+                if (!schoolInfoId) {
+                    set({ teachingStaff: [], teachers: [] });
+                    return;
+                }
                 await teachingService.getAll(
                     {
                         onSuccess: (res) => {
                             const staffList = res.data || [];
                             set({ teachingStaff: staffList });
 
-                            if (staffList.length > 0) {
-                                const mappedTeachers = mapTeachingStaffToTeacherEntries(staffList);
-                                set((prev) => ({
-                                    teachers: mappedTeachers,
-                                    conflicts: calculateConflicts(prev.rows, mappedTeachers),
-                                }));
-                            }
+                            // Selalu map guru sesuai periode. Jika periode belum ada guru, teachers jadi []
+                            const mappedTeachers = mapTeachingStaffToTeacherEntries(staffList);
+                            set((prev) => ({
+                                teachers: mappedTeachers,
+                                conflicts: calculateConflicts(prev.rows, mappedTeachers),
+                            }));
                         },
-                        onError: () => {},
+                        onError: () => {
+                            set({ teachingStaff: [], teachers: [] });
+                        },
                     },
-                    schoolInfoId
-                        ? { params: { id_school_information: schoolInfoId, limit: 100 } }
-                        : { params: { limit: 100 } }
+                    { params: { id_school_information: schoolInfoId, limit: 100 } }
                 );
             } catch {
                 // Ignore silent sync
@@ -1414,14 +1508,14 @@ export const useScheduleStore = create<ScheduleState & ScheduleActions>(
                 await get().fetchSchoolInformations();
                 await get().fetchCategoryExtras();
                 await get().fetchEffectiveWeekAllocations();
-                schoolInfoId = get().idSchoolInformation;
+                schoolInfoId = customSchoolInfoId || get().idSchoolInformation;
 
                 // 2. Ambil data kelas murni dari database MySQL (classes table)
                 await get().fetchClassesFromDatabase(schoolInfoId);
                 const currentClasses = get().classes;
 
                 // 3. Ambil data guru & penugasan mengajar murni dari database MySQL (teacher_subjects & employees)
-                await get().syncFromDatabaseTeachingStaff();
+                await get().syncFromDatabaseTeachingStaff(schoolInfoId);
                 const currentTeachers = get().teachers;
 
                 // 4. Ambil struktur Roster Jam Belajar dari database MySQL (school_rosters)
@@ -1437,24 +1531,10 @@ export const useScheduleStore = create<ScheduleState & ScheduleActions>(
                     });
                 }
 
-                // Fallback ke localStorage jika belum ada di database
-                if (!rosterData) {
-                    const activeInfo = get().schoolInformations.find((i) => i.id_school_information === schoolInfoId);
-                    rosterData = getStoredRosterData(schoolInfoId, activeInfo?.periode || undefined);
-                    if (rosterData && schoolInfoId) {
-                        // Simpan ke database MySQL di background
-                        rosterScheduleService.saveBySchoolInformation(
-                            schoolInfoId,
-                            { schedules: rosterData, is_synced: true },
-                            { onSuccess: () => {}, onError: () => {} }
-                        );
-                    }
-                }
-
                 // Bangun baris jadwal bersih berdasarkan roster jam belajar dan kelas riil
                 const baseRows = buildScheduleRowsFromRoster(rosterData, currentClasses);
 
-                // 5. Ambil data matriks jadwal dari database MySQL (dengan fallback LocalStorage)
+                // 5. Ambil data matriks jadwal dari database MySQL
                 let savedRows: ScheduleRow[] | null = null;
                 if (schoolInfoId) {
                     await matrixService.getBySchoolInformation(schoolInfoId, {
@@ -1462,9 +1542,13 @@ export const useScheduleStore = create<ScheduleState & ScheduleActions>(
                             if (res && res.matrix_data && Array.isArray(res.matrix_data) && res.matrix_data.length > 0) {
                                 savedRows = res.matrix_data;
                             }
-                            if (res && res.guru_piket_data && Array.isArray(res.guru_piket_data) && res.guru_piket_data.length > 0) {
-                                set({ guruPiket: res.guru_piket_data });
+                            let piketList: GuruPiketEntry[] = [];
+                            if (res && res.guru_piket_data) {
+                                piketList = typeof res.guru_piket_data === 'string'
+                                    ? JSON.parse(res.guru_piket_data)
+                                    : res.guru_piket_data;
                             }
+                            set({ guruPiket: Array.isArray(piketList) ? piketList : [] });
                             if (res && res.approval_data) {
                                 set({ approvalData: res.approval_data });
                             }
@@ -1486,20 +1570,37 @@ export const useScheduleStore = create<ScheduleState & ScheduleActions>(
                     });
                 }
 
-                // Fallback ke LocalStorage jika database belum menyimpan
-                if (!savedRows && schoolInfoId) {
-                    savedRows = getMatrixFromLocalStorage(schoolInfoId);
-                }
-
                 const initialMerged = (savedRows && Array.isArray(savedRows) && savedRows.length > 0)
                     ? baseRows.map((bRow) => {
-                        const matchedSaved = savedRows!.find(
-                            (s) => s.day === bRow.day && String(s.jp) === String(bRow.jp)
-                        );
+                        // Pencocokan presisi: ID persis, atau Hari + Waktu (timeRange), atau Hari + JP (hanya untuk KBM)
+                        const matchedSaved = savedRows!.find((s) => {
+                            if (s.id && bRow.id && s.id === bRow.id) return true;
+                            if (s.day === bRow.day && s.timeRange && bRow.timeRange && s.timeRange.trim() === bRow.timeRange.trim()) return true;
+                            if (bRow.jp !== '-' && s.jp !== '-' && s.day === bRow.day && String(s.jp) === String(bRow.jp)) return true;
+                            return false;
+                        });
+
                         if (matchedSaved) {
+                            // Jaga integritas jenis aktivitas dari Roster Jam Belajar (Roster adalah source-of-truth)
+                            // Jika bRow dari roster adalah EKSTRA, jangan pernah tertimpa menjadi ISTIRAHAT
+                            let resolvedSpecialActivity = bRow.specialActivity;
+                            if (!resolvedSpecialActivity && matchedSaved.specialActivity) {
+                                resolvedSpecialActivity = matchedSaved.specialActivity;
+                            } else if (resolvedSpecialActivity && matchedSaved.specialActivity) {
+                                const isBaseEkstra = resolvedSpecialActivity.activityType.toString().includes('EKSTRA') ||
+                                    resolvedSpecialActivity.activityType === 'PRAMUKA' ||
+                                    resolvedSpecialActivity.title.toUpperCase().includes('EKSTRA');
+                                if (isBaseEkstra) {
+                                    resolvedSpecialActivity = {
+                                        ...resolvedSpecialActivity,
+                                        subtitle: matchedSaved.specialActivity.subtitle || resolvedSpecialActivity.subtitle,
+                                    };
+                                }
+                            }
+
                             return {
                                 ...bRow,
-                                ...(matchedSaved.specialActivity ? { specialActivity: matchedSaved.specialActivity } : {}),
+                                specialActivity: resolvedSpecialActivity,
                                 ...(matchedSaved.classExtraActivities ? { classExtraActivities: { ...matchedSaved.classExtraActivities } } : {}),
                                 classCells: {
                                     ...bRow.classCells,
@@ -1513,14 +1614,38 @@ export const useScheduleStore = create<ScheduleState & ScheduleActions>(
 
                 // Terapkan data dari tabel khusus schedule_class_extras jika ada
                 const mergedRows = initialMerged.map((row) => {
+                    const isEkstra = Boolean(
+                        row.specialActivity && (
+                            row.specialActivity.activityType.toString().includes('EKSTRA') ||
+                            row.specialActivity.activityType === 'PRAMUKA' ||
+                            row.specialActivity.title.toUpperCase().includes('EKSTRA')
+                        )
+                    );
+                    if (!isEkstra) {
+                        if (row.classExtraActivities) {
+                            const { classExtraActivities, ...rest } = row;
+                            return rest;
+                        }
+                        return row;
+                    }
+
                     const matchingExtras = tableExtras.filter(
-                        (te) => te.row_id === row.id || (te.day === row.day && String(te.jp) === String(row.jp))
+                        (te) => te.row_id === row.id || (
+                            te.day === row.day &&
+                            te.time_range &&
+                            row.timeRange &&
+                            te.time_range.trim() === row.timeRange.trim()
+                        )
                     );
                     if (matchingExtras.length > 0) {
                         const updatedActivities = { ...(row.classExtraActivities || {}) };
                         matchingExtras.forEach((te) => {
-                            if (te.class_name && te.extra_name) {
-                                updatedActivities[te.class_name] = te.extra_name;
+                            const val = te.extra_name ?? '';
+                            if (te.class_name) {
+                                updatedActivities[te.class_name] = val;
+                            }
+                            if (te.id_class) {
+                                updatedActivities[te.id_class] = val;
                             }
                         });
                         return {
@@ -1531,14 +1656,13 @@ export const useScheduleStore = create<ScheduleState & ScheduleActions>(
                     return row;
                 });
 
-                if (schoolInfoId) {
-                    saveMatrixToLocalStorage(schoolInfoId, mergedRows);
-                }
-
                 set({
                     rows: mergedRows,
                     conflicts: calculateConflicts(mergedRows, currentTeachers),
                 });
+
+                // Sinkronkan daftar request jadwal pengajar sesuai guru aktif pada periode ini
+                await get().fetchTeacherRequests();
             } finally {
                 set({ isLoadingDatabase: false });
             }
@@ -1556,8 +1680,6 @@ export const useScheduleStore = create<ScheduleState & ScheduleActions>(
                 }
 
                 if (schoolInfoId) {
-                    saveMatrixToLocalStorage(schoolInfoId, state.rows);
-
                     // 1. Simpan matriks ke school_matrix_schedules (juga otomatis sync backend ke schedule_class_extras)
                     await matrixService.saveBySchoolInformation(
                         schoolInfoId,
@@ -1587,10 +1709,13 @@ export const useScheduleStore = create<ScheduleState & ScheduleActions>(
                                 row.specialActivity.title.toUpperCase().includes('EKSTRA')
                             )
                         );
-                        if (isEkstra || row.classExtraActivities) {
+                        if (isEkstra) {
                             const activities = row.classExtraActivities || {};
                             state.classes.forEach((cls) => {
-                                const extraVal = activities[cls.name] || row.specialActivity?.subtitle || 'Pramuka';
+                                const rawVal = activities[cls.name] !== undefined
+                                    ? activities[cls.name]
+                                    : (cls.id && activities[cls.id] !== undefined ? activities[cls.id] : undefined);
+                                const extraVal = rawVal !== undefined ? rawVal : (row.specialActivity?.subtitle || '');
                                 extraItems.push({
                                     id_school_information: schoolInfoId,
                                     row_id: row.id,
@@ -1632,41 +1757,58 @@ export const useScheduleStore = create<ScheduleState & ScheduleActions>(
             set({ isLoadingRequests: true });
             try {
                 const schoolInfoId = get().idSchoolInformation || get().selectedSchoolInfoId;
+                const activeTeachers = get().teachers;
+
+                // Jika pada periode ini belum ada guru yang terdaftar, kosongkan request
+                if (!schoolInfoId || activeTeachers.length === 0) {
+                    set({ teacherRequests: [] });
+                    return;
+                }
+
                 await teacherRequestService.getAll(
                     {
                         onSuccess: (dataList) => {
                             if (Array.isArray(dataList) && dataList.length > 0) {
-                                const formatted: TeacherScheduleRequest[] = dataList.map((item) => ({
-                                    id: item.id_schedule_request || item.id || `req-${item.teacher_code}`,
-                                    id_schedule_request: item.id_schedule_request,
-                                    id_school_information: item.id_school_information,
-                                    teacherCode: item.teacher_code,
-                                    teacherName: item.teacher_name,
-                                    subjectName: item.subject_name,
-                                    preferredSlots: Array.isArray(item.preferred_slots)
-                                        ? item.preferred_slots
-                                        : typeof item.preferred_slots === 'string'
-                                        ? JSON.parse(item.preferred_slots)
-                                        : [],
-                                    status: (item.status as any) || 'VALID',
-                                    statusText: item.status_text || '✓ Tersedia & Bebas Bentrok',
-                                    conflictReason: item.conflict_reason,
-                                    notes: item.notes,
-                                    createdAt: item.created_at,
-                                }));
+                                const formatted: TeacherScheduleRequest[] = dataList
+                                    .map((item) => ({
+                                        id: item.id_schedule_request || item.id || `req-${item.teacher_code}`,
+                                        id_schedule_request: item.id_schedule_request,
+                                        id_school_information: item.id_school_information,
+                                        teacherCode: item.teacher_code,
+                                        teacherName: item.teacher_name,
+                                        subjectName: item.subject_name,
+                                        preferredSlots: Array.isArray(item.preferred_slots)
+                                            ? item.preferred_slots
+                                            : typeof item.preferred_slots === 'string'
+                                            ? JSON.parse(item.preferred_slots)
+                                            : [],
+                                        status: (item.status as any) || 'VALID',
+                                        statusText: item.status_text || '✓ Tersedia & Bebas Bentrok',
+                                        conflictReason: item.conflict_reason,
+                                        notes: item.notes,
+                                        createdAt: item.created_at,
+                                    }))
+                                    // Pastikan hanya request untuk guru yang terdaftar di periode aktif
+                                    .filter((req) =>
+                                        activeTeachers.some(
+                                            (t) =>
+                                                t.code === req.teacherCode ||
+                                                (t.name && req.teacherName && t.name.trim().toLowerCase() === req.teacherName.trim().toLowerCase())
+                                        )
+                                    );
                                 set({ teacherRequests: formatted });
                             } else {
-                                set({ teacherRequests: DEFAULT_TEACHER_REQUESTS });
+                                set({ teacherRequests: [] });
                             }
                         },
                         onError: () => {
-                            set({ teacherRequests: DEFAULT_TEACHER_REQUESTS });
+                            set({ teacherRequests: [] });
                         },
                     },
                     schoolInfoId || undefined
                 );
             } catch {
-                set({ teacherRequests: DEFAULT_TEACHER_REQUESTS });
+                set({ teacherRequests: [] });
             } finally {
                 set({ isLoadingRequests: false });
             }
@@ -1936,14 +2078,20 @@ export const useScheduleStore = create<ScheduleState & ScheduleActions>(
             // Tracking occupied teacher in each slot (baris) untuk mencegah bentrok double-booking
             const slotTeacherOccupied: Record<string, Set<number>> = {};
             const teacherAssignedHours: Record<number, number> = {};
-            // Tracking jam per mata pelajaran per kelas: classSubjectAssigned[className][subjectCode] = jam
+            // Tracking jam per mata pelajaran per kelas secara MINGGUAN: classSubjectAssigned[className][subjectCode] = jam
             const classSubjectAssigned: Record<string, Record<string, number>> = {};
+            // Tracking jam per mata pelajaran per kelas PER HARI (maksimal 4 JP per hari): classSubjectDailyAssigned[className][day][subjectCode] = jam
+            const classSubjectDailyAssigned: Record<string, Record<string, Record<string, number>>> = {};
+            // Tracking 1 mapel = 1 guru per kelas: classSubjectTeacher[className][subjectCode] = teacherCode
+            const classSubjectTeacher: Record<string, Record<string, number>> = {};
 
             currentTeachers.forEach((t) => {
                 teacherAssignedHours[t.code] = 0;
             });
             classNames.forEach((cn) => {
                 classSubjectAssigned[cn] = {};
+                classSubjectDailyAssigned[cn] = {};
+                classSubjectTeacher[cn] = {};
             });
             generatedRows.forEach((row) => {
                 slotTeacherOccupied[row.id] = new Set<number>();
@@ -1959,36 +2107,62 @@ export const useScheduleStore = create<ScheduleState & ScheduleActions>(
                 return 4; // Standar 4 JP per minggu per kelas
             };
 
+            // Helper penugasan sel dengan update kuota mingguan dan harian
+            const assignCell = (
+                row: ScheduleRow,
+                className: string,
+                teacher: TeacherCodeEntry,
+                subjCode: string,
+                subjectName?: string
+            ) => {
+                row.classCells[className] = {
+                    teacherCode: teacher.code,
+                    teacherName: teacher.name,
+                    subjectName: subjectName || teacher.subjectName,
+                    subjectCode: subjCode,
+                    category: teacher.category || 'UMUM',
+                };
+                slotTeacherOccupied[row.id].add(teacher.code);
+                teacherAssignedHours[teacher.code] = (teacherAssignedHours[teacher.code] || 0) + 1;
+                classSubjectAssigned[className][subjCode] = (classSubjectAssigned[className][subjCode] || 0) + 1;
+                if (!classSubjectDailyAssigned[className][row.day]) {
+                    classSubjectDailyAssigned[className][row.day] = {};
+                }
+                classSubjectDailyAssigned[className][row.day][subjCode] =
+                    (classSubjectDailyAssigned[className][row.day][subjCode] || 0) + 1;
+                // Track 1 mapel = 1 guru per kelas
+                classSubjectTeacher[className][subjCode] = teacher.code;
+            };
+
             let requestsFulfilled = 0;
 
-            // Step 1: Prioritas Request Pengajar dari Panel (Maksimal target JP per kelas)
+            // Step 1: Rekomendasi Request Pengajar (Maksimal target JP per minggu dan 4 JP per hari)
             if (prioritizeRequests && requests.length > 0) {
                 requests.forEach((req) => {
                     if (req.status !== 'CONFLICT' && req.preferredSlots && req.preferredSlots.length > 0) {
                         const teacherInfo = currentTeachers.find((t) => t.code === req.teacherCode);
-                        const subjCode = teacherInfo?.subjectCode || `SUBJ-${req.teacherCode}`;
-                        const targetJp = teacherInfo ? getSubjectTargetJp(teacherInfo, subjCode) : 4;
+                        if (!teacherInfo) return;
+                        const subjCode = teacherInfo.subjectCode || `SUBJ-${req.teacherCode}`;
+                        const targetJp = getSubjectTargetJp(teacherInfo, subjCode);
+
+                        // Cari kelas yang alokasi mapel ini masih kurang dari target JP dan sesuai jurusannya
+                        let candidateClasses = classNames.filter((cn) => {
+                            const classObj = currentClasses.find((c) => c.name === cn);
+                            if (!classObj) return false;
+                            return isTeacherEligibleForClass(teacherInfo, classObj, effectiveAllocations, subjCode);
+                        });
+
+                        // Filter berdasarkan recommendedClasses dari request (jika ada)
+                        if (req.recommendedClasses && req.recommendedClasses.length > 0) {
+                            const recommended = candidateClasses.filter((cn) =>
+                                req.recommendedClasses!.includes(cn)
+                            );
+                            if (recommended.length > 0) candidateClasses = recommended;
+                        }
 
                         let fulfilledForThisTeacher = false;
 
-                        // Cari kelas yang alokasi mapel ini masih kurang dari target JP dan sesuai jurusannya
-                        const candidateClasses = classNames.filter((cn) => {
-                            const classObj = currentClasses.find((c) => c.name === cn);
-                            if (!classObj) return false;
-                            if (teacherInfo && !isTeacherEligibleForClass(teacherInfo, classObj, effectiveAllocations, subjCode)) {
-                                return false;
-                            }
-                            return (classSubjectAssigned[cn][subjCode] || 0) < targetJp;
-                        });
-                        if (candidateClasses.length === 0) return;
-
-                        const targetClass = candidateClasses[Math.floor(Math.random() * candidateClasses.length)];
-
                         req.preferredSlots.forEach((slot) => {
-                            // Cek jika kuota JP mapel ini di kelas target sudah penuh, stop alokasi
-                            const currentClassJp = classSubjectAssigned[targetClass][subjCode] || 0;
-                            if (currentClassJp >= targetJp) return;
-
                             const matchingRows = generatedRows.filter((r) => {
                                 if (r.specialActivity) return false;
                                 if (r.day !== slot.day) return false;
@@ -2003,25 +2177,25 @@ export const useScheduleStore = create<ScheduleState & ScheduleActions>(
                             });
 
                             matchingRows.forEach((row) => {
-                                const currentJpNow = classSubjectAssigned[targetClass][subjCode] || 0;
-                                if (currentJpNow >= targetJp) return;
+                                // Jika guru sudah terpakai di slot ini pada kelas lain, jangan bentrok
+                                if (slotTeacherOccupied[row.id].has(req.teacherCode)) return;
 
-                                // Pastikan guru belum bentrok mengajar di kelas lain pada baris/slot ini
-                                if (!slotTeacherOccupied[row.id].has(req.teacherCode)) {
-                                    const existingCell = row.classCells[targetClass];
-                                    if (!existingCell || !existingCell.teacherCode) {
-                                        row.classCells[targetClass] = {
-                                            teacherCode: req.teacherCode,
-                                            teacherName: req.teacherName,
-                                            subjectName: req.subjectName,
-                                            subjectCode: subjCode,
-                                            category: teacherInfo?.category || 'UMUM',
-                                        };
-                                        slotTeacherOccupied[row.id].add(req.teacherCode);
-                                        teacherAssignedHours[req.teacherCode] = (teacherAssignedHours[req.teacherCode] || 0) + 1;
-                                        classSubjectAssigned[targetClass][subjCode] = currentJpNow + 1;
-                                        fulfilledForThisTeacher = true;
-                                    }
+                                // Cari kelas yang belum terisi di jam ini, belum tembus target mingguan, dan belum 4 JP hari ini
+                                const availableClass = candidateClasses.find((cn) => {
+                                    const existingCell = row.classCells[cn];
+                                    if (existingCell && existingCell.teacherCode) return false;
+                                    const weeklyCount = classSubjectAssigned[cn][subjCode] || 0;
+                                    const dailyCount = classSubjectDailyAssigned[cn]?.[row.day]?.[subjCode] || 0;
+                                    if (weeklyCount >= targetJp || dailyCount >= 4) return false;
+                                    // 1 Mapel = 1 Guru per Kelas
+                                    const existingTeacher = classSubjectTeacher[cn]?.[subjCode];
+                                    if (existingTeacher !== undefined && existingTeacher !== req.teacherCode) return false;
+                                    return true;
+                                });
+
+                                if (availableClass) {
+                                    assignCell(row, availableClass, teacherInfo, subjCode, req.subjectName);
+                                    fulfilledForThisTeacher = true;
                                 }
                             });
                         });
@@ -2049,10 +2223,11 @@ export const useScheduleStore = create<ScheduleState & ScheduleActions>(
                     if (existing && existing.teacherCode) return; // Slot ini sudah terisi
 
                     // Filter kandidat guru:
-                    // 1. Jurusan & tingkat kelas sesuai aturan Alokasi JP (jangan masuk ke jurusan lain jika tidak tercantum)
+                    // 1. Jurusan & tingkat kelas sesuai aturan Alokasi JP
                     // 2. Belum bentrok mengajar di kelas lain pada jam/slot yang sama
                     // 3. Tidak sedang bertugas piket (KBM 1 s/d jumlahJp piket)
-                    // 4. Mapelnya di kelas ini BELUM memenuhi kuota target JP (misal 4 JP)
+                    // 4. Batasan harian: MAKSIMAL 4 JP per hari untuk mapel ini di kelas ini
+                    // 5. Batasan mingguan: BELUM memenuhi kuota target JP (misal 4 JP per minggu)
                     const classObj = currentClasses.find((c) => c.name === className);
 
                     const eligibleCandidates = currentTeachers.filter((t) => {
@@ -2075,32 +2250,49 @@ export const useScheduleStore = create<ScheduleState & ScheduleActions>(
                                     (p.name.toLowerCase().includes(t.name.toLowerCase()) ||
                                         t.name.toLowerCase().includes(p.name.toLowerCase())));
                             if (!matches) return false;
-                            const maxJp = Number(p.jumlahJp) || 4;
-                            return jpNum <= maxJp;
+                            return p.slots && p.slots.length > 0
+                                ? p.slots.includes(jpNum)
+                                : jpNum <= (Number(p.jumlahJp) || 4);
                         });
                         if (isPiketBusy) return false;
 
-                        // 4. Cek pemenuhan target JP mapel di kelas ini (TIDAK BOLEH LEBIH dari targetJp)
+                        // 4. Batasan harian: maksimal 4 JP per hari
+                        const dailyCount = classSubjectDailyAssigned[className]?.[row.day]?.[subjCode] || 0;
+                        if (dailyCount >= 4) return false;
+
+                        // 5. Cek pemenuhan target JP mingguan (TIDAK BOLEH LEBIH dari targetJp)
                         const targetJp = getSubjectTargetJp(t, subjCode);
                         const assignedJpInThisClass = classSubjectAssigned[className][subjCode] || 0;
 
-                        return assignedJpInThisClass < targetJp;
+                        if (assignedJpInThisClass >= targetJp) return false;
+
+                        // 6. Validasi 1 Mapel = 1 Guru per Kelas
+                        // Jika mapel ini sudah diajar guru lain di kelas ini, tolak
+                        const existingTeacher = classSubjectTeacher[className]?.[subjCode];
+                        if (existingTeacher !== undefined && existingTeacher !== t.code) return false;
+
+                        return true;
                     });
 
                     // Urutkan prioritas:
+                    // - Rekomendasi slot request pengajar
+                    // - Kesinambungan jam (chaining 2-4 JP berurutan)
                     // - Siang prioritaskan kejuruan, pagi prioritaskan umum
-                    // - Prioritaskan mapel yang masih paling banyak sisa JP-nya
+                    // - Keseimbangan beban jam mengajar guru
                     let candidatePool = [...eligibleCandidates];
 
                     if (candidatePool.length === 0) {
                         // Jika semua mapel di kelas ini sudah mencapai target JP, cari guru yang jurusannya cocok
-                        // dan tidak bentrok (sebagai rekomendasi pengisi slot sisa)
+                        // dan tidak bentrok (sebagai rekomendasi pengisi slot sisa) dengan tetap taat batas 4 JP/hari
                         const nonConflictTeachers = currentTeachers.filter((t) => {
                             const subjCode = t.subjectCode || `SUBJ-${t.code}`;
                             if (classObj && !isTeacherEligibleForClass(t, classObj, effectiveAllocations, subjCode)) {
                                 return false;
                             }
                             if (slotTeacherOccupied[row.id].has(t.code)) return false;
+                            const dailyCount = classSubjectDailyAssigned[className]?.[row.day]?.[subjCode] || 0;
+                            if (dailyCount >= 4) return false;
+
                             const isPiketBusy = currentGuruPiket.some((p) => {
                                 if (p.hari !== row.day) return false;
                                 const matches =
@@ -2109,21 +2301,71 @@ export const useScheduleStore = create<ScheduleState & ScheduleActions>(
                                         (p.name.toLowerCase().includes(t.name.toLowerCase()) ||
                                             t.name.toLowerCase().includes(p.name.toLowerCase())));
                                 if (!matches) return false;
-                                return jpNum <= (Number(p.jumlahJp) || 4);
+                                return p.slots && p.slots.length > 0
+                                    ? p.slots.includes(jpNum)
+                                    : jpNum <= (Number(p.jumlahJp) || 4);
                             });
-                            return !isPiketBusy;
+                            if (isPiketBusy) return false;
+
+                            // Validasi 1 Mapel = 1 Guru per Kelas (fallback pool)
+                            const existingTeacher = classSubjectTeacher[className]?.[subjCode];
+                            if (existingTeacher !== undefined && existingTeacher !== t.code) return false;
+
+                            return true;
                         });
 
                         candidatePool = nonConflictTeachers;
                     }
 
                     if (candidatePool.length > 0) {
+                        // Prioritaskan guru yang merekomendasikan slot ini pada request jadwal
+                        const isRequested = (t: TeacherCodeEntry): boolean => {
+                            return requests.some((req) => {
+                                if (req.teacherCode !== t.code || req.status === 'CONFLICT') return false;
+                                return (req.preferredSlots || []).some((ps) => {
+                                    if (ps.day !== row.day) return false;
+                                    if (ps.jpStart && ps.jpEnd) {
+                                        return jpNum >= ps.jpStart && jpNum <= ps.jpEnd;
+                                    }
+                                    if (ps.timeRange && row.timeRange.includes(ps.timeRange.split(' - ')[0])) {
+                                        return true;
+                                    }
+                                    return false;
+                                });
+                            });
+                        };
+
+                        // Prioritaskan kesinambungan jam pelajaran di kelas ini (blok 2-4 JP berurutan)
+                        const isChainedWithPreviousJp = (t: TeacherCodeEntry): boolean => {
+                            const prevRow = generatedRows.find(
+                                (r) => r.day === row.day && Number(r.jp) === jpNum - 1
+                            );
+                            return prevRow?.classCells[className]?.teacherCode === t.code;
+                        };
+
+                        candidatePool.sort((a, b) => {
+                            const reqA = isRequested(a) ? 1 : 0;
+                            const reqB = isRequested(b) ? 1 : 0;
+                            if (reqB !== reqA) return reqB - reqA;
+
+                            const chainA = isChainedWithPreviousJp(a) ? 1 : 0;
+                            const chainB = isChainedWithPreviousJp(b) ? 1 : 0;
+                            if (chainB !== chainA) return chainB - chainA;
+
+                            return 0;
+                        });
+
                         if (randomizeTeachers) {
-                            candidatePool.sort(() => Math.random() - 0.5);
+                            candidatePool.sort((a, b) => {
+                                if (isRequested(a) || isRequested(b)) return 0;
+                                if (isChainedWithPreviousJp(a) || isChainedWithPreviousJp(b)) return 0;
+                                return Math.random() - 0.5;
+                            });
                         }
 
                         if (balanceDistribution) {
                             candidatePool.sort((a, b) => {
+                                if (isRequested(a) || isRequested(b)) return 0;
                                 const diffA = (a.targetJp || 24) - (teacherAssignedHours[a.code] || 0);
                                 const diffB = (b.targetJp || 24) - (teacherAssignedHours[b.code] || 0);
                                 return diffB - diffA;
@@ -2132,43 +2374,47 @@ export const useScheduleStore = create<ScheduleState & ScheduleActions>(
 
                         // Preferensi jam: kejuruan di jam siang, umum di jam pagi
                         if (isAfternoonSlot) {
-                            candidatePool.sort((a, b) => (b.category === 'KEJURUAN' ? 1 : 0) - (a.category === 'KEJURUAN' ? 1 : 0));
+                            candidatePool.sort((a, b) => {
+                                if (isRequested(a) || isRequested(b)) return 0;
+                                return (b.category === 'KEJURUAN' ? 1 : 0) - (a.category === 'KEJURUAN' ? 1 : 0);
+                            });
                         } else {
-                            candidatePool.sort((a, b) => (b.category === 'UMUM' ? 1 : 0) - (a.category === 'UMUM' ? 1 : 0));
+                            candidatePool.sort((a, b) => {
+                                if (isRequested(a) || isRequested(b)) return 0;
+                                return (b.category === 'UMUM' ? 1 : 0) - (a.category === 'UMUM' ? 1 : 0);
+                            });
                         }
 
                         const chosenTeacher = candidatePool[0];
                         if (chosenTeacher) {
                             const subjCode = chosenTeacher.subjectCode || `SUBJ-${chosenTeacher.code}`;
-                            row.classCells[className] = {
-                                teacherCode: chosenTeacher.code,
-                                teacherName: chosenTeacher.name,
-                                subjectName: chosenTeacher.subjectName,
-                                subjectCode: subjCode,
-                                category: chosenTeacher.category,
-                            };
-                            slotTeacherOccupied[row.id].add(chosenTeacher.code);
-                            teacherAssignedHours[chosenTeacher.code] = (teacherAssignedHours[chosenTeacher.code] || 0) + 1;
-                            classSubjectAssigned[className][subjCode] = (classSubjectAssigned[className][subjCode] || 0) + 1;
+                            assignCell(row, className, chosenTeacher, subjCode);
                         }
                     }
                 });
             });
 
-            // Step 3: Enrich Extracurriculars and Special Activities
+            // Step 3: Enrich Extracurriculars and Special Activities (HANYA untuk baris yang berjenis EKSTRA)
             if (includeSpecialActivities) {
                 generatedRows.forEach((row) => {
                     if (row.specialActivity) {
-                        if (row.day === 'Senin' && row.jp === '-') {
-                            row.specialActivity.title = 'EKSTRA WAJIB KARAKTER & BUDAYA KERJA';
-                        } else if (row.day === 'Kamis' && row.id.includes('ekstra-1')) {
-                            row.specialActivity.title = 'EKSTRA PILIHAN: SENI MUSIK, BAND, FUTSAL, ROBOTIKA & PMR';
-                        } else if (row.day === 'Kamis' && row.id.includes('ekstra-2')) {
-                            row.specialActivity.title = 'EKSTRA PILIHAN KELAS XII & BOLA BASKET / DANCE';
-                        } else if (row.day === 'Jumat' && row.id.includes('pramuka')) {
-                            row.specialActivity.title = 'PRAMUKA GUGUS DEPAN (Wajib Kelas X & XI)';
-                        } else if (row.day === 'Jumat' && row.id.includes('ekstra')) {
-                            row.specialActivity.title = 'P1 / PROJEK PANCASILA (P5) & PADUAN SUARA / CHOIR';
+                        const isEkstra = Boolean(
+                            row.specialActivity.activityType.toString().includes('EKSTRA') ||
+                            row.specialActivity.activityType === 'PRAMUKA' ||
+                            row.specialActivity.title.toUpperCase().includes('EKSTRA')
+                        );
+                        if (isEkstra) {
+                            if (row.day === 'Senin') {
+                                row.specialActivity.title = 'EKSTRA WAJIB KARAKTER & BUDAYA KERJA';
+                            } else if (row.day === 'Kamis' && row.id.includes('ekstra-1')) {
+                                row.specialActivity.title = 'EKSTRA PILIHAN: SENI MUSIK, BAND, FUTSAL, ROBOTIKA & PMR';
+                            } else if (row.day === 'Kamis' && row.id.includes('ekstra-2')) {
+                                row.specialActivity.title = 'EKSTRA PILIHAN KELAS XII & BOLA BASKET / DANCE';
+                            } else if (row.day === 'Jumat' && row.id.includes('pramuka')) {
+                                row.specialActivity.title = 'PRAMUKA GUGUS DEPAN (Wajib Kelas X & XI)';
+                            } else if (row.day === 'Jumat' && row.id.includes('ekstra')) {
+                                row.specialActivity.title = 'P1 / PROJEK PANCASILA (P5) & PADUAN SUARA / CHOIR';
+                            }
                         }
                     }
                 });

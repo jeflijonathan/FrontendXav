@@ -20,6 +20,7 @@ import DashboardSubject from "@pages/dashboardSubject";
 import DashboardAcademicCalendar from "@pages/dashboardAcademicCalendar";
 import DashboardEffectiveHours from "@pages/dashboardEffectiveHours";
 import DashboardSchedule from "@pages/dashboardSchedule";
+import DashboardAttendance from "@pages/dashboardAttendance";
 import DashboardProfile from "@pages/dashboardProfile";
 import { ProtectedRoute } from "./common/components/Auth/ProtectedRoute";
 
@@ -123,6 +124,10 @@ const routes = createBrowserRouter([
       {
         path: "/jadwal-pelajaran",
         element: <DashboardSchedule />,
+      },
+      {
+        path: "/presensi-siswa",
+        element: <DashboardAttendance />,
       },
       {
         path: "/dashboard-profile",

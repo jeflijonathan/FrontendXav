@@ -23,6 +23,7 @@ import {
     Tooltip,
     Typography,
 } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import { useScheduleStore, sortClassesByGradeAndName } from '../store/useScheduleStore';
 import type {
@@ -33,6 +34,9 @@ import type {
 } from '../types';
 
 const ScheduleMatrixTable: React.FC = () => {
+    const theme = useTheme();
+    const isDark = theme.palette.mode === 'dark';
+
     const {
         rows,
         classes,
@@ -324,19 +328,19 @@ const ScheduleMatrixTable: React.FC = () => {
             elevation={0}
             sx={{
                 borderRadius: 3,
-                border: '1px solid #cbd5e1',
+                border: isDark ? '1px solid #27272a' : '1px solid #cbd5e1',
                 overflow: 'hidden',
-                bgcolor: '#ffffff',
+                bgcolor: isDark ? '#141416' : '#ffffff',
                 mb: 4,
-                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
+                boxShadow: isDark ? '0 4px 20px rgba(0,0,0,0.5)' : '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
             }}
         >
             {/* Header Document Bar */}
             <Box
                 sx={{
                     p: 2,
-                    bgcolor: '#f8fafc',
-                    borderBottom: '2px solid #e2e8f0',
+                    bgcolor: isDark ? '#18181b' : '#f8fafc',
+                    borderBottom: isDark ? '2px solid #27272a' : '2px solid #e2e8f0',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
@@ -345,23 +349,23 @@ const ScheduleMatrixTable: React.FC = () => {
                 <Box>
                     <Typography
                         variant="subtitle1"
-                        sx={{ fontWeight: 800, color: '#0f172a', letterSpacing: 0.5 }}
+                        sx={{ fontWeight: 800, color: isDark ? '#f4f4f5' : '#0f172a', letterSpacing: 0.5 }}
                     >
                         TABEL MATRIKS JADWAL PELAJARAN (LAMPIRAN 3)
                     </Typography>
-                    <Typography variant="caption" sx={{ color: '#64748b' }}>
+                    <Typography variant="caption" sx={{ color: isDark ? '#a1a1aa' : '#64748b' }}>
                         SMK XAVERIUS PALEMBANG • Angka pada sel adalah Nomor Kode Guru Pengajar
                     </Typography>
                 </Box>
                 <Chip
                     size="small"
                     label={`${filteredRows.length} Slot Waktu • ${filteredClasses.length} Kelas Aktif`}
-                    sx={{ bgcolor: '#e2e8f0', fontWeight: 700 }}
+                    sx={{ bgcolor: isDark ? '#27272a' : '#e2e8f0', color: isDark ? '#e4e4e7' : '#0f172a', fontWeight: 700 }}
                 />
             </Box>
 
-            <TableContainer sx={{ maxHeight: '78vh' }}>
-                <Table stickyHeader size="small" sx={{ minWidth: 1050 }}>
+            <TableContainer sx={{ maxHeight: '78vh', bgcolor: isDark ? '#141416' : '#ffffff' }}>
+                <Table stickyHeader size="small" sx={{ minWidth: 1050, bgcolor: isDark ? '#141416' : '#ffffff' }}>
                     {/* Multi-tiered Table Head */}
                     <TableHead>
                         {/* Tier 1: Top Grouping */}
@@ -443,14 +447,15 @@ const ScheduleMatrixTable: React.FC = () => {
                                 ).length;
                                 return (
                                     <TableCell
-                                        key={cls.name}
+                                        key={cls.id || cls.name}
                                         sx={{
-                                            bgcolor: '#f1f5f9',
-                                            color: '#0f172a',
+                                            bgcolor: isDark ? '#1e1e24' : '#f1f5f9',
+                                            color: isDark ? '#f4f4f5' : '#0f172a',
                                             fontWeight: 800,
                                             fontSize: '11px',
                                             textAlign: 'center',
-                                            borderRight: '1px solid #cbd5e1',
+                                            borderRight: isDark ? '1px solid #27272a' : '1px solid #cbd5e1',
+                                            borderBottom: isDark ? '1px solid #27272a' : undefined,
                                             py: 1,
                                             width: `${100 / (filteredClasses.length + 3)}%`,
                                             whiteSpace: 'nowrap',
@@ -501,20 +506,20 @@ const ScheduleMatrixTable: React.FC = () => {
                                             maxWidth: 480,
                                             mx: 'auto',
                                             p: 3,
-                                            bgcolor: '#f8fafc',
+                                            bgcolor: isDark ? '#18181b' : '#f8fafc',
                                             borderRadius: 3,
-                                            border: '1px dashed #cbd5e1',
+                                            border: isDark ? '1px dashed #3f3f46' : '1px dashed #cbd5e1',
                                         }}
                                     >
                                         <Typography
                                             variant="subtitle1"
-                                            sx={{ fontWeight: 800, color: '#334155', mb: 0.5 }}
+                                            sx={{ fontWeight: 800, color: isDark ? '#f4f4f5' : '#334155', mb: 0.5 }}
                                         >
                                             Belum Ada Slot Waktu pada Roster Jam Belajar
                                         </Typography>
                                         <Typography
                                             variant="body2"
-                                            sx={{ color: '#64748b', fontSize: '13px' }}
+                                            sx={{ color: isDark ? '#a1a1aa' : '#64748b', fontSize: '13px' }}
                                         >
                                             Struktur baris tabel jadwal pelajaran mengikuti konfigurasi Roster Jam Belajar. Silakan atur slot jam KBM pada menu <strong>Jam & JP (Roster Jam Belajar)</strong> terlebih dahulu.
                                         </Typography>
@@ -558,13 +563,13 @@ const ScheduleMatrixTable: React.FC = () => {
                                                 <TableCell
                                                     rowSpan={visualRowSpan}
                                                     sx={{
-                                                        bgcolor: '#f8fafc',
-                                                        color: '#0f172a',
+                                                        bgcolor: isDark ? '#18181b' : '#f8fafc',
+                                                        color: isDark ? '#f4f4f5' : '#0f172a',
                                                         fontWeight: 800,
                                                         fontSize: '13px',
                                                         textAlign: 'center',
                                                         verticalAlign: 'middle',
-                                                        borderRight: '1px solid #cbd5e1',
+                                                        borderRight: isDark ? '1px solid #27272a' : '1px solid #cbd5e1',
                                                         letterSpacing: 1,
                                                     }}
                                                 >
@@ -577,9 +582,9 @@ const ScheduleMatrixTable: React.FC = () => {
                                                     textAlign: 'center',
                                                     fontWeight: 700,
                                                     fontSize: '12px',
-                                                    color: '#64748b',
-                                                    borderRight: '1px solid #e2e8f0',
-                                                    bgcolor: '#f0fdf4',
+                                                    color: isDark ? '#86efac' : '#64748b',
+                                                    borderRight: isDark ? '1px solid #27272a' : '1px solid #e2e8f0',
+                                                    bgcolor: isDark ? '#142a1d' : '#f0fdf4',
                                                     verticalAlign: 'middle',
                                                 }}
                                             >
@@ -592,10 +597,10 @@ const ScheduleMatrixTable: React.FC = () => {
                                                     fontSize: '11px',
                                                     fontFamily: 'monospace',
                                                     fontWeight: 600,
-                                                    color: '#475569',
-                                                    borderRight: '2px solid #cbd5e1',
+                                                    color: isDark ? '#86efac' : '#475569',
+                                                    borderRight: isDark ? '2px solid #27272a' : '2px solid #cbd5e1',
                                                     whiteSpace: 'nowrap',
-                                                    bgcolor: '#f0fdf4',
+                                                    bgcolor: isDark ? '#142a1d' : '#f0fdf4',
                                                     verticalAlign: 'middle',
                                                 }}
                                             >
@@ -604,21 +609,21 @@ const ScheduleMatrixTable: React.FC = () => {
                                             <TableCell
                                                 colSpan={filteredClasses.length}
                                                 sx={{
-                                                    bgcolor: '#dcfce7',
-                                                    color: '#166534',
+                                                    bgcolor: isDark ? 'rgba(22, 101, 52, 0.45)' : '#dcfce7',
+                                                    color: isDark ? '#86efac' : '#166534',
                                                     fontWeight: 800,
                                                     textAlign: 'center',
                                                     py: 0.6,
                                                     letterSpacing: 1.5,
                                                     fontSize: '12px',
-                                                    borderBottom: '1px solid #bbf7d0',
+                                                    borderBottom: isDark ? '1px solid rgba(22, 101, 52, 0.6)' : '1px solid #bbf7d0',
                                                 }}
                                             >
                                                 EKSTRA
                                             </TableCell>
                                         </TableRow>
                                         {/* Row 2: Per-class Select dropdowns */}
-                                        <TableRow sx={{ borderBottom: '1px solid #e2e8f0' }}>
+                                        <TableRow sx={{ borderBottom: isDark ? '1px solid #27272a' : '1px solid #e2e8f0' }}>
                                             {filteredClasses.map((cls) => {
                                                 const allCats = categoryExtras.length > 0
                                                     ? categoryExtras
@@ -632,19 +637,30 @@ const ScheduleMatrixTable: React.FC = () => {
                                                       ];
                                                 const activeCats = allCats.filter((cat) => cat.status !== false);
                                                 const activeOptions = activeCats.map((cat) => cat.name);
-                                                const currentExtra = row.classExtraActivities?.[cls.name]
-                                                    || row.specialActivity?.subtitle
-                                                    || (activeOptions.length > 0 ? activeOptions[0] : 'Pramuka');
+                                                const rawVal = row.classExtraActivities?.[cls.name] !== undefined
+                                                    ? row.classExtraActivities[cls.name]
+                                                    : (cls.id && row.classExtraActivities?.[cls.id] !== undefined
+                                                        ? row.classExtraActivities[cls.id]
+                                                        : undefined);
+                                                const currentExtra = rawVal !== undefined
+                                                    ? rawVal
+                                                    : (row.specialActivity?.subtitle ?? (activeOptions.length > 0 ? activeOptions[0] : ''));
+                                                const isSelectedEmpty = currentExtra === '';
+                                                const selectValue = (isSelectedEmpty || activeOptions.includes(currentExtra))
+                                                    ? currentExtra
+                                                    : (activeOptions[0] || '');
                                                 const isMatchingSearch =
                                                     searchQuery.trim() !== '' &&
-                                                    (currentExtra.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                                                    ((currentExtra && currentExtra.toLowerCase().includes(searchQuery.toLowerCase())) ||
                                                      'ekstra'.includes(searchQuery.toLowerCase()));
                                                 return (
                                                     <TableCell
-                                                        key={cls.name}
+                                                        key={cls.id || cls.name}
                                                         sx={{
-                                                            bgcolor: isMatchingSearch ? '#fef08a' : '#f0fdf4',
-                                                            border: '1px solid #bbf7d0',
+                                                            bgcolor: isDark
+                                                                ? (isMatchingSearch ? 'rgba(234, 179, 8, 0.25)' : (isSelectedEmpty ? '#18181b' : 'rgba(22, 101, 52, 0.15)'))
+                                                                : (isMatchingSearch ? '#fef08a' : (isSelectedEmpty ? '#f8fafc' : '#f0fdf4')),
+                                                            border: isDark ? '1px solid #27272a' : (isSelectedEmpty ? '1px solid #e2e8f0' : '1px solid #bbf7d0'),
                                                             textAlign: 'center',
                                                             p: 0.5,
                                                             verticalAlign: 'middle',
@@ -652,23 +668,29 @@ const ScheduleMatrixTable: React.FC = () => {
                                                     >
                                                         <Select
                                                             size="small"
-                                                            value={activeOptions.includes(currentExtra) ? currentExtra : activeOptions[0] || currentExtra}
+                                                            displayEmpty
+                                                            value={selectValue}
                                                             onChange={(e) => {
                                                                 setClassExtraActivity(row.id, cls.name, e.target.value as string);
                                                             }}
                                                             sx={{
                                                                 height: 28,
                                                                 fontSize: '11px',
-                                                                fontWeight: 700,
-                                                                color: '#15803d',
-                                                                bgcolor: '#ffffff',
+                                                                fontWeight: isSelectedEmpty ? 500 : 700,
+                                                                fontStyle: isSelectedEmpty ? 'italic' : 'normal',
+                                                                color: isSelectedEmpty
+                                                                    ? (isDark ? '#a1a1aa' : '#64748b')
+                                                                    : (isDark ? '#86efac' : '#15803d'),
+                                                                bgcolor: isDark ? '#27272a' : '#ffffff',
                                                                 borderRadius: 1,
                                                                 minWidth: 100,
                                                                 '& .MuiOutlinedInput-notchedOutline': {
-                                                                    borderColor: '#86efac',
+                                                                    borderColor: isDark
+                                                                        ? (isSelectedEmpty ? '#3f3f46' : '#166534')
+                                                                        : (isSelectedEmpty ? '#cbd5e1' : '#86efac'),
                                                                 },
                                                                 '&:hover .MuiOutlinedInput-notchedOutline': {
-                                                                    borderColor: '#22c55e',
+                                                                    borderColor: isDark ? '#22c55e' : '#22c55e',
                                                                 },
                                                                 '& .MuiSelect-select': {
                                                                     py: '4px',
@@ -676,6 +698,9 @@ const ScheduleMatrixTable: React.FC = () => {
                                                                 },
                                                             }}
                                                         >
+                                                            <MenuItem value="" sx={{ fontSize: '12px', fontStyle: 'italic', color: isDark ? '#a1a1aa' : '#64748b' }}>
+                                                                <em>- Kosong -</em>
+                                                            </MenuItem>
                                                             {activeOptions.map((opt) => (
                                                                 <MenuItem key={opt} value={opt} sx={{ fontSize: '12px' }}>
                                                                     {opt}
@@ -696,8 +721,8 @@ const ScheduleMatrixTable: React.FC = () => {
                                     onDragOver={handleCellDragOver}
                                     onDrop={(e) => handleRowDrop(e, row.id)}
                                     sx={{
-                                        '&:hover': { bgcolor: '#f8fafc' },
-                                        borderBottom: '1px solid #e2e8f0',
+                                        '&:hover': { bgcolor: isDark ? '#1e1e24' : '#f8fafc' },
+                                        borderBottom: isDark ? '1px solid #27272a' : '1px solid #e2e8f0',
                                     }}
                                 >
                                     {/* Hari Column (Rowspan per Day) */}
@@ -705,13 +730,13 @@ const ScheduleMatrixTable: React.FC = () => {
                                         <TableCell
                                             rowSpan={visualRowSpan}
                                             sx={{
-                                                bgcolor: '#f8fafc',
-                                                color: '#0f172a',
+                                                bgcolor: isDark ? '#18181b' : '#f8fafc',
+                                                color: isDark ? '#f4f4f5' : '#0f172a',
                                                 fontWeight: 800,
                                                 fontSize: '13px',
                                                 textAlign: 'center',
                                                 verticalAlign: 'middle',
-                                                borderRight: '1px solid #cbd5e1',
+                                                borderRight: isDark ? '1px solid #27272a' : '1px solid #cbd5e1',
                                                 letterSpacing: 1,
                                             }}
                                         >
@@ -725,9 +750,13 @@ const ScheduleMatrixTable: React.FC = () => {
                                             textAlign: 'center',
                                             fontWeight: 700,
                                             fontSize: '12px',
-                                            color: row.jp === 0 || row.jp === '-' ? '#64748b' : '#1e293b',
-                                            borderRight: '1px solid #e2e8f0',
-                                            bgcolor: row.jp === 0 || row.jp === '-' ? '#f8fafc' : '#ffffff',
+                                            color: isDark
+                                                ? (row.jp === 0 || row.jp === '-' ? '#71717a' : '#f4f4f5')
+                                                : (row.jp === 0 || row.jp === '-' ? '#64748b' : '#1e293b'),
+                                            borderRight: isDark ? '1px solid #27272a' : '1px solid #e2e8f0',
+                                            bgcolor: isDark
+                                                ? (row.jp === 0 || row.jp === '-' ? '#18181b' : '#141416')
+                                                : (row.jp === 0 || row.jp === '-' ? '#f8fafc' : '#ffffff'),
                                         }}
                                     >
                                         {row.jp}
@@ -740,10 +769,12 @@ const ScheduleMatrixTable: React.FC = () => {
                                             fontSize: '11px',
                                             fontFamily: 'monospace',
                                             fontWeight: 600,
-                                            color: '#475569',
-                                            borderRight: '2px solid #cbd5e1',
+                                            color: isDark ? '#a1a1aa' : '#475569',
+                                            borderRight: isDark ? '2px solid #27272a' : '2px solid #cbd5e1',
                                             whiteSpace: 'nowrap',
-                                            bgcolor: row.jp === 0 || row.jp === '-' ? '#f8fafc' : '#ffffff',
+                                            bgcolor: isDark
+                                                ? (row.jp === 0 || row.jp === '-' ? '#18181b' : '#141416')
+                                                : (row.jp === 0 || row.jp === '-' ? '#f8fafc' : '#ffffff'),
                                         }}
                                     >
                                         {row.timeRange}
@@ -755,9 +786,9 @@ const ScheduleMatrixTable: React.FC = () => {
                                         <TableCell
                                             colSpan={filteredClasses.length}
                                             sx={{
-                                                bgcolor: row.specialActivity.colorScheme.bg,
-                                                color: row.specialActivity.colorScheme.text,
-                                                border: `1px dashed ${row.specialActivity.colorScheme.border}`,
+                                                bgcolor: isDark ? 'rgba(234, 179, 8, 0.12)' : row.specialActivity.colorScheme.bg,
+                                                color: isDark ? '#fde047' : row.specialActivity.colorScheme.text,
+                                                border: `1px dashed ${isDark ? '#eab308' : row.specialActivity.colorScheme.border}`,
                                                 textAlign: 'center',
                                                 py: 0.8,
                                             }}
@@ -769,9 +800,9 @@ const ScheduleMatrixTable: React.FC = () => {
                                                     fontWeight: 900,
                                                     letterSpacing: 1,
                                                     fontSize: '11px',
-                                                    bgcolor: row.specialActivity.colorScheme.bg,
-                                                    color: row.specialActivity.colorScheme.text,
-                                                    border: `1px solid ${row.specialActivity.colorScheme.border}`,
+                                                    bgcolor: isDark ? 'rgba(234, 179, 8, 0.2)' : row.specialActivity.colorScheme.bg,
+                                                    color: isDark ? '#fde047' : row.specialActivity.colorScheme.text,
+                                                    border: `1px solid ${isDark ? '#eab308' : row.specialActivity.colorScheme.border}`,
                                                     height: 24,
                                                 }}
                                             />
@@ -801,7 +832,7 @@ const ScheduleMatrixTable: React.FC = () => {
 
                                             return (
                                                 <TableCell
-                                                    key={cls.name}
+                                                    key={cls.id || cls.name}
                                                     draggable={Boolean(cell.teacherCode)}
                                                     onDragStart={(e) =>
                                                         handleCellDragStart(e, row.id, cls.name, cell)
@@ -811,22 +842,24 @@ const ScheduleMatrixTable: React.FC = () => {
                                                     onClick={() => handleCellClick(row, cls.name, cell)}
                                                     sx={{
                                                         textAlign: 'center',
-                                                        borderRight: '1px solid #e2e8f0',
+                                                        borderRight: isDark ? '1px solid #27272a' : '1px solid #e2e8f0',
                                                         p: 0.75,
                                                         cursor: 'pointer',
                                                         bgcolor: hasConflict
-                                                            ? '#fee2e2'
+                                                            ? (isDark ? 'rgba(239, 68, 68, 0.25)' : '#fee2e2')
                                                             : isMatchingSearch
-                                                            ? '#fef08a'
+                                                            ? (isDark ? 'rgba(234, 179, 8, 0.25)' : '#fef08a')
                                                             : cell.category === 'KEJURUAN'
-                                                            ? '#fffbeb'
-                                                            : '#ffffff',
+                                                            ? (isDark ? 'rgba(249, 115, 22, 0.15)' : '#fffbeb')
+                                                            : (isDark ? '#141416' : '#ffffff'),
                                                         transition: 'all 0.15s ease',
                                                         '&:hover': {
-                                                            bgcolor: hasConflict ? '#fecaca' : '#f1f5f9',
+                                                            bgcolor: hasConflict
+                                                                ? (isDark ? 'rgba(239, 68, 68, 0.35)' : '#fecaca')
+                                                                : (isDark ? '#1e1e24' : '#f1f5f9'),
                                                             transform: 'scale(1.02)',
                                                             zIndex: 2,
-                                                            boxShadow: '0 2px 4px rgba(0,0,0,0.08)',
+                                                            boxShadow: isDark ? '0 2px 8px rgba(0,0,0,0.4)' : '0 2px 4px rgba(0,0,0,0.08)',
                                                         },
                                                     }}
                                                 >
@@ -879,11 +912,11 @@ const ScheduleMatrixTable: React.FC = () => {
                                                                 width: 28,
                                                                 height: 28,
                                                                 borderRadius: 1,
-                                                                border: '1px dashed #cbd5e1',
+                                                                border: isDark ? '1px dashed #3f3f46' : '1px dashed #cbd5e1',
                                                                 display: 'inline-flex',
                                                                 alignItems: 'center',
                                                                 justifyContent: 'center',
-                                                                color: '#94a3b8',
+                                                                color: isDark ? '#71717a' : '#94a3b8',
                                                                 fontSize: '11px',
                                                                 fontWeight: 600,
                                                             }}
@@ -909,70 +942,102 @@ const ScheduleMatrixTable: React.FC = () => {
                 onClose={() => setSelectedCellTarget(null)}
                 maxWidth="xs"
                 fullWidth
+                slotProps={{
+                    paper: {
+                        sx: {
+                            bgcolor: isDark ? '#18181b' : '#ffffff',
+                            color: isDark ? '#f4f4f5' : '#0f172a',
+                            border: isDark ? '1px solid #27272a' : undefined,
+                            borderRadius: 3,
+                        },
+                    },
+                }}
             >
-                <DialogTitle sx={{ fontWeight: 800, pb: 1 }}>
+                <DialogTitle sx={{ fontWeight: 800, pb: 1, color: isDark ? '#f4f4f5' : '#0f172a' }}>
                     Input / Ubah Nomor Guru
                 </DialogTitle>
                 <DialogContent>
                     {selectedCellTarget && (
                         <Box sx={{ pt: 1 }}>
-                            <Box sx={{ mb: 2, p: 1.5, bgcolor: '#f8fafc', borderRadius: 2 }}>
-                                <Typography variant="caption" sx={{ color: '#64748b', display: 'block' }}>
+                            <Box sx={{ mb: 2, p: 1.5, bgcolor: isDark ? '#27272a' : '#f8fafc', borderRadius: 2 }}>
+                                <Typography variant="caption" sx={{ color: isDark ? '#a1a1aa' : '#64748b', display: 'block' }}>
                                     Target Slot:
                                 </Typography>
-                                <Typography variant="body2" sx={{ fontWeight: 800, color: '#0f172a' }}>
+                                <Typography variant="body2" sx={{ fontWeight: 800, color: isDark ? '#f4f4f5' : '#0f172a' }}>
                                     {selectedCellTarget.day} • Jam Ke-{selectedCellTarget.jp} ({selectedCellTarget.timeRange})
                                 </Typography>
-                                <Typography variant="caption" sx={{ color: '#4338ca', fontWeight: 700 }}>
+                                <Typography variant="caption" sx={{ color: isDark ? '#818cf8' : '#4338ca', fontWeight: 700 }}>
                                     Kelas: {selectedCellTarget.className}
                                 </Typography>
                             </Box>
 
-                            <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
+                            <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1, color: isDark ? '#f4f4f5' : '#0f172a' }}>
                                 Pilih Guru / Nomor Kode:
                             </Typography>
-                            <Select
-                                fullWidth
-                                size="small"
-                                value={selectedTeacherCode}
-                                onChange={(e) => {
-                                    const val = e.target.value as any;
-                                    setSelectedTeacherCode(val);
-                                    if (val !== '') {
-                                        const t = teachers.find((item) => item.code === Number(val));
-                                        if (t && t.subjects && t.subjects.length > 0) {
-                                            setSelectedSubjectCode(t.subjects[0].subjectCode);
+                            {teachers.length === 0 ? (
+                                <Alert severity="warning" sx={{ mb: 2, fontSize: '12px' }}>
+                                    ⚠️ Belum ada pengajar yang diinput pada periode ini. Silakan input penugasan mengajar di menu <strong>Pengajaran</strong> terlebih dahulu.
+                                </Alert>
+                            ) : (
+                                <Select
+                                    fullWidth
+                                    size="small"
+                                    value={selectedTeacherCode}
+                                    onChange={(e) => {
+                                        const val = e.target.value as any;
+                                        setSelectedTeacherCode(val);
+                                        if (val !== '') {
+                                            const t = teachers.find((item) => item.code === Number(val));
+                                            if (t && t.subjects && t.subjects.length > 0) {
+                                                setSelectedSubjectCode(t.subjects[0].subjectCode);
+                                            }
                                         }
-                                    }
-                                }}
-                                displayEmpty
-                                sx={{ mb: 2 }}
-                            >
-                                <MenuItem value="">
-                                    <em>-- Kosongkan Slot (Tanpa Guru) --</em>
-                                </MenuItem>
-                                {teachers.map((t) => (
-                                    <MenuItem key={t.code} value={t.code}>
-                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
-                                            <Chip
-                                                size="small"
-                                                label={`#${t.code}`}
-                                                sx={{
-                                                    fontWeight: 800,
-                                                    bgcolor: t.category === 'KEJURUAN' ? '#ffedd5' : '#e0e7ff',
-                                                    color: t.category === 'KEJURUAN' ? '#c2410c' : '#3730a3',
-                                                }}
-                                            />
-                                            <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                                                {t.name}
-                                            </Typography>
-                                            <Typography variant="caption" sx={{ ml: 'auto', color: '#64748b' }}>
-                                                {t.subjectCode}
-                                            </Typography>
-                                        </Box>
+                                    }}
+                                    displayEmpty
+                                    sx={{ mb: 2 }}
+                                >
+                                    <MenuItem value="">
+                                        <em>-- Kosongkan Slot (Tanpa Guru) --</em>
                                     </MenuItem>
-                                ))}
-                            </Select>
+                                    {teachers.map((t) => {
+                                        const isAssignedToThisClass = selectedCellTarget?.className &&
+                                            t.assignedClassNames &&
+                                            t.assignedClassNames.some((c) =>
+                                                c.trim().toUpperCase() === selectedCellTarget.className.trim().toUpperCase()
+                                            );
+                                        return (
+                                            <MenuItem key={t.code} value={t.code}>
+                                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
+                                                    <Chip
+                                                        size="small"
+                                                        label={`#${t.code}`}
+                                                        sx={{
+                                                            fontWeight: 800,
+                                                            bgcolor: t.category === 'KEJURUAN' ? '#ffedd5' : '#e0e7ff',
+                                                            color: t.category === 'KEJURUAN' ? '#c2410c' : '#3730a3',
+                                                        }}
+                                                    />
+                                                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                                        {t.name}
+                                                    </Typography>
+                                                    {isAssignedToThisClass && (
+                                                        <Chip
+                                                            size="small"
+                                                            label="Mengajar di Kelas Ini"
+                                                            color="success"
+                                                            variant="outlined"
+                                                            sx={{ height: 20, fontSize: '10px', fontWeight: 700 }}
+                                                        />
+                                                    )}
+                                                    <Typography variant="caption" sx={{ ml: 'auto', color: '#64748b' }}>
+                                                        {t.subjectCode}
+                                                    </Typography>
+                                                </Box>
+                                            </MenuItem>
+                                        );
+                                    })}
+                                </Select>
+                            )}
 
                             {/* Pilihan Mata Pelajaran Pengajaran */}
                             {selectedTeacher && selectedSubjects.length > 0 && (
@@ -1046,7 +1111,7 @@ const ScheduleMatrixTable: React.FC = () => {
 
                             {/* Fitur Tarik / Fill-Down ke Bawah Seperti Excel */}
                             {selectedTeacherCode !== '' && availableFillDownRows.length > 0 && (
-                                <Box sx={{ mb: 2, p: 1.5, bgcolor: '#f1f5f9', borderRadius: 2 }}>
+                                <Box sx={{ mb: 2, p: 1.5, bgcolor: isDark ? '#27272a' : '#f1f5f9', borderRadius: 2 }}>
                                     <FormControlLabel
                                         control={
                                             <Checkbox
@@ -1057,7 +1122,7 @@ const ScheduleMatrixTable: React.FC = () => {
                                             />
                                         }
                                         label={
-                                            <Typography variant="body2" sx={{ fontWeight: 700, color: '#0f172a' }}>
+                                            <Typography variant="body2" sx={{ fontWeight: 700, color: isDark ? '#f4f4f5' : '#0f172a' }}>
                                                 Tarik data ke bawah (seperti Excel)
                                             </Typography>
                                         }
@@ -1065,7 +1130,7 @@ const ScheduleMatrixTable: React.FC = () => {
 
                                     {fillDown && (
                                         <Box sx={{ mt: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
-                                            <Typography variant="caption" sx={{ color: '#475569', fontWeight: 600 }}>
+                                            <Typography variant="caption" sx={{ color: isDark ? '#a1a1aa' : '#475569', fontWeight: 600 }}>
                                                 Isi sebanyak:
                                             </Typography>
                                             <TextField
@@ -1084,7 +1149,7 @@ const ScheduleMatrixTable: React.FC = () => {
                                                     },
                                                 }}
                                             />
-                                            <Typography variant="caption" sx={{ color: '#475569' }}>
+                                            <Typography variant="caption" sx={{ color: isDark ? '#a1a1aa' : '#475569' }}>
                                                 slot KBM berikutnya (tersedia maks {availableFillDownRows.length})
                                             </Typography>
                                         </Box>
@@ -1098,7 +1163,7 @@ const ScheduleMatrixTable: React.FC = () => {
                                     icon={<ArrowDownwardIcon />}
                                     sx={{
                                         cursor: 'pointer',
-                                        '&:hover': { bgcolor: '#e0f2fe' },
+                                        '&:hover': { bgcolor: isDark ? 'rgba(56, 189, 248, 0.2)' : '#e0f2fe' },
                                     }}
                                     onClick={() => handleDirectToTeacher(Number(selectedTeacherCode))}
                                 >
@@ -1110,7 +1175,7 @@ const ScheduleMatrixTable: React.FC = () => {
                         </Box>
                     )}
                 </DialogContent>
-                <DialogActions sx={{ p: 2 }}>
+                <DialogActions sx={{ p: 2, bgcolor: isDark ? '#18181b' : '#ffffff', borderTop: isDark ? '1px solid #27272a' : '1px solid #e2e8f0' }}>
                     <Button
                         onClick={() => setSelectedCellTarget(null)}
                         sx={{ textTransform: 'none', color: '#64748b' }}

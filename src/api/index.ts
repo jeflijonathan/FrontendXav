@@ -27,7 +27,7 @@ export class API {
       (config) => {
         const token =
           getCookie("access_token") ||
-          LocalStorage().getItem<string>("accessToken");
+          getCookie("accessToken");
         if (token && config.headers) {
           config.headers.Authorization = `Bearer ${token}`;
         }
@@ -49,7 +49,7 @@ export class API {
           originalRequest._retry = true;
           const refreshToken =
             getCookie("refresh_token") ||
-            LocalStorage().getItem<string>("refreshToken");
+            getCookie("refreshToken");
           if (refreshToken) {
             try {
               const refreshRes = await axios.post(
@@ -60,14 +60,17 @@ export class API {
               if (refreshRes.data?.data?.access_token) {
                 const newAccessToken = refreshRes.data.data.access_token;
                 setCookie("access_token", newAccessToken, { maxAge: 3600 });
-                LocalStorage().setItem("accessToken", newAccessToken);
+                setCookie("accessToken", newAccessToken, { maxAge: 3600 });
                 originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
                 return this.api(originalRequest);
               }
             } catch {
               deleteCookie("access_token");
+              deleteCookie("accessToken");
               deleteCookie("refresh_token");
+              deleteCookie("refreshToken");
               deleteCookie("active_role");
+              deleteCookie("user");
               LocalStorage().removeItem("accessToken");
               LocalStorage().removeItem("refreshToken");
               LocalStorage().removeItem("user");
@@ -87,7 +90,7 @@ export class API {
     };
     const token =
       getCookie("access_token") ||
-      LocalStorage().getItem<string>("accessToken");
+      getCookie("accessToken");
     if (token) {
       headers.Authorization = `Bearer ${token}`;
     }

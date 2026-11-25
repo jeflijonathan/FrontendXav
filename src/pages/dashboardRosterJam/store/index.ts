@@ -333,14 +333,6 @@ export const createFlat45Schedule = (kbmMinutes: number = 45): Record<DayName, S
 });
 
 const loadStoredPeriods = (): Record<string, Record<DayName, ScheduleSlot[]>> => {
-    try {
-        const stored = localStorage.getItem('smk_roster_period_schedules');
-        if (stored) {
-            return JSON.parse(stored);
-        }
-    } catch {
-        // ignore
-    }
     return {};
 };
 
@@ -422,11 +414,7 @@ export const useRosterJamStore = create<RosterJamStore>((set, get) => ({
             updatedPeriods[targetPeriodeName] ||
             createEmptySchedule();
 
-        try {
-            localStorage.setItem('smk_roster_period_schedules', JSON.stringify(updatedPeriods));
-        } catch {
-            // ignore
-        }
+
 
         set((prev) => ({
             state: {
@@ -461,11 +449,7 @@ export const useRosterJamStore = create<RosterJamStore>((set, get) => ({
             const newSchedules = { ...prev.state.schedules, [day]: updated };
             const key = prev.state.selectedSchoolInfoId || prev.state.periode;
             const newPeriods = { ...prev.state.periodSchedules, [key]: newSchedules };
-            try {
-                localStorage.setItem('smk_roster_period_schedules', JSON.stringify(newPeriods));
-            } catch {
-                // ignore
-            }
+
             return {
                 state: {
                     ...prev.state,
@@ -490,11 +474,7 @@ export const useRosterJamStore = create<RosterJamStore>((set, get) => ({
             const newSchedules = { ...prev.state.schedules, [day]: updated };
             const key = prev.state.selectedSchoolInfoId || prev.state.periode;
             const newPeriods = { ...prev.state.periodSchedules, [key]: newSchedules };
-            try {
-                localStorage.setItem('smk_roster_period_schedules', JSON.stringify(newPeriods));
-            } catch {
-                // ignore
-            }
+
             return {
                 state: {
                     ...prev.state,
@@ -519,11 +499,7 @@ export const useRosterJamStore = create<RosterJamStore>((set, get) => ({
             const newSchedules = { ...prev.state.schedules, [day]: updated };
             const key = prev.state.selectedSchoolInfoId || prev.state.periode;
             const newPeriods = { ...prev.state.periodSchedules, [key]: newSchedules };
-            try {
-                localStorage.setItem('smk_roster_period_schedules', JSON.stringify(newPeriods));
-            } catch {
-                // ignore
-            }
+
             return {
                 state: {
                     ...prev.state,
@@ -546,11 +522,7 @@ export const useRosterJamStore = create<RosterJamStore>((set, get) => ({
             const newSchedules = { ...prev.state.schedules, [day]: updated };
             const key = prev.state.selectedSchoolInfoId || prev.state.periode;
             const newPeriods = { ...prev.state.periodSchedules, [key]: newSchedules };
-            try {
-                localStorage.setItem('smk_roster_period_schedules', JSON.stringify(newPeriods));
-            } catch {
-                // ignore
-            }
+
             return {
                 state: {
                     ...prev.state,
@@ -576,11 +548,7 @@ export const useRosterJamStore = create<RosterJamStore>((set, get) => ({
             const newSchedules = { ...prev.state.schedules, [day]: updated };
             const key = prev.state.selectedSchoolInfoId || prev.state.periode;
             const newPeriods = { ...prev.state.periodSchedules, [key]: newSchedules };
-            try {
-                localStorage.setItem('smk_roster_period_schedules', JSON.stringify(newPeriods));
-            } catch {
-                // ignore
-            }
+
             return {
                 state: {
                     ...prev.state,
@@ -610,11 +578,7 @@ export const useRosterJamStore = create<RosterJamStore>((set, get) => ({
             const newSchedules = { ...prev.state.schedules, [day]: updated };
             const key = prev.state.selectedSchoolInfoId || prev.state.periode;
             const newPeriods = { ...prev.state.periodSchedules, [key]: newSchedules };
-            try {
-                localStorage.setItem('smk_roster_period_schedules', JSON.stringify(newPeriods));
-            } catch {
-                // ignore
-            }
+
             return {
                 state: {
                     ...prev.state,
@@ -641,11 +605,7 @@ export const useRosterJamStore = create<RosterJamStore>((set, get) => ({
             const newSchedules = { ...prev.state.schedules, [day]: updated };
             const key = prev.state.selectedSchoolInfoId || prev.state.periode;
             const newPeriods = { ...prev.state.periodSchedules, [key]: newSchedules };
-            try {
-                localStorage.setItem('smk_roster_period_schedules', JSON.stringify(newPeriods));
-            } catch {
-                // ignore
-            }
+
             return {
                 state: {
                     ...prev.state,
@@ -701,11 +661,7 @@ export const useRosterJamStore = create<RosterJamStore>((set, get) => ({
         const key = state.selectedSchoolInfoId || state.periode;
         set((prev) => {
             const newPeriods = { ...prev.state.periodSchedules, [key]: sched };
-            try {
-                localStorage.setItem('smk_roster_period_schedules', JSON.stringify(newPeriods));
-            } catch {
-                // ignore
-            }
+
             return {
                 state: {
                     ...prev.state,
@@ -722,11 +678,7 @@ export const useRosterJamStore = create<RosterJamStore>((set, get) => ({
         const key = state.selectedSchoolInfoId || state.periode;
         set((prev) => {
             const newPeriods = { ...prev.state.periodSchedules, [key]: sched };
-            try {
-                localStorage.setItem('smk_roster_period_schedules', JSON.stringify(newPeriods));
-            } catch {
-                // ignore
-            }
+
             return {
                 state: {
                     ...prev.state,
@@ -744,11 +696,7 @@ export const useRosterJamStore = create<RosterJamStore>((set, get) => ({
         const key = state.selectedSchoolInfoId || state.periode;
         set((prev) => {
             const newPeriods = { ...prev.state.periodSchedules, [key]: empty };
-            try {
-                localStorage.setItem('smk_roster_period_schedules', JSON.stringify(newPeriods));
-            } catch {
-                // ignore
-            }
+
             return {
                 state: {
                     ...prev.state,

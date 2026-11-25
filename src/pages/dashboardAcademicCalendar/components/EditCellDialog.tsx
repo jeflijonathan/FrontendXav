@@ -19,6 +19,7 @@ import {
   Collapse,
 } from "@mui/material";
 import useAcademicCalendarStore from "../store/useAcademicCalendarStore";
+import { useCalendarPermissions } from "../utils/permissions";
 import type { DayCellType } from "@api/academicCalendar/model";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import EventIcon from "@mui/icons-material/Event";
@@ -36,6 +37,7 @@ const COLOR_PRESETS = [
 
 const EditCellDialog: React.FC = () => {
   const { editingCell, setEditingCell, updateCell, calendarData } = useAcademicCalendarStore();
+  const { canEdit } = useCalendarPermissions();
 
   const [selectedOptionKey, setSelectedOptionKey] = useState<string>("custom");
   const [label, setLabel] = useState("");
@@ -248,7 +250,7 @@ const EditCellDialog: React.FC = () => {
 
   return (
     <Dialog
-      open={Boolean(editingCell)}
+      open={Boolean(editingCell) && canEdit}
       onClose={handleClose}
       maxWidth="sm"
       fullWidth

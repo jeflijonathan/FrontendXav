@@ -6,6 +6,7 @@ import useDashboardEmployeeStore from "@pages/dashboardEmployee/store";
 import useEmployeeList from "@pages/dashboardEmployee/List/hook/useEmployeeList";
 import { snackbar } from "@utils/snackbar";
 import { filterEmployeeMapper } from "@pages/dashboardEmployee/List/utils/FilterEmployeeMapper";
+import { parseErrorDetails, formatErrorDetails } from "@utils/parseErrorDetails";
 
 const useUpdateEmployee = () => {
     const { handleSubmit, setError } = useFormContext<UpdateEmployeeRequestModel>();
@@ -135,26 +136,7 @@ const useUpdateEmployee = () => {
                         onSuccessCallback?.();
                     },
                     onError: ({ message, detail }: ErrorType) => {
-                        // Parse detail errors dari backend → simpan ke state
-                        let parsedErrors: { field?: string; message: string }[] = [];
-
-                        if (Array.isArray(detail) && detail.length > 0) {
-                            parsedErrors = detail.map((d: any) => {
-                                if (typeof d.message === "string") {
-                                    return { field: d.field || undefined, message: d.message };
-                                } else if (d.msg) {
-                                    const loc = Array.isArray(d.loc) ? d.loc.filter((l: any) => l !== "body").join(" → ") : undefined;
-                                    return { field: loc || undefined, message: d.msg };
-                                }
-                                return { message: JSON.stringify(d) };
-                            });
-                        } else if (typeof detail === "string") {
-                            parsedErrors = [{ message: detail }];
-                        } else if (detail && typeof (detail as any).message === "string") {
-                            parsedErrors = [{ message: (detail as any).message }];
-                        } else {
-                            parsedErrors = [{ message: message || "Failed to update employee" }];
-                        }
+                        const parsedErrors = parseErrorDetails(detail || message);
 
                         setState((prev) => ({
                             ...prev,
@@ -162,8 +144,11 @@ const useUpdateEmployee = () => {
                             detailError: { ...prev.detailError, update: parsedErrors },
                         }));
 
-                        const firstMsg = parsedErrors[0]?.message || "Failed to update employee";
-                        setError("root.serverError", { type: "server", message: parsedErrors.map((e) => (e.field ? `${e.field}: ${e.message}` : e.message)).join("\n") });
+                        const firstMsg = parsedErrors[0]?.message || message || "Failed to update employee";
+                        setError("root.serverError", {
+                            type: "server",
+                            message: formatErrorDetails(parsedErrors),
+                        });
                         snackbar.error(firstMsg);
                     },
                 });

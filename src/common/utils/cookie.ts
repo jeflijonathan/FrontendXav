@@ -63,10 +63,34 @@ export function deleteCookie(name: string, path = "/"): void {
   document.cookie = `${encodeURIComponent(name)}=; path=${path}; expires=Thu, 01 Jan 1970 00:00:00 GMT; max-age=0; SameSite=Lax`;
 }
 
+export function getJSONCookie<T>(name: string): T | null {
+  const val = getCookie(name);
+  if (!val) return null;
+  try {
+    return JSON.parse(val) as T;
+  } catch {
+    return null;
+  }
+}
+
+export function setJSONCookie<T>(
+  name: string,
+  value: T,
+  options: CookieOptions = {}
+): void {
+  try {
+    setCookie(name, JSON.stringify(value), options);
+  } catch {
+    // ignore
+  }
+}
+
 export const CookieUtil = {
   get: getCookie,
   set: setCookie,
   delete: deleteCookie,
+  getJSON: getJSONCookie,
+  setJSON: setJSONCookie,
 };
 
 export default CookieUtil;

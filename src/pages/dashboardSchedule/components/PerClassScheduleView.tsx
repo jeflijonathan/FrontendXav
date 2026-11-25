@@ -26,6 +26,7 @@ import {
     Tooltip,
     Typography,
 } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutlined';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutlined';
@@ -41,6 +42,9 @@ import type { DayName, ScheduleCell, ScheduleRow } from '../types';
 const DAYS: DayName[] = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
 
 const PerClassScheduleView: React.FC = () => {
+    const theme = useTheme();
+    const isDark = theme.palette.mode === 'dark';
+
     const {
         rows,
         classes,
@@ -285,10 +289,10 @@ const PerClassScheduleView: React.FC = () => {
                 sx={{
                     p: { xs: 2.5, md: 3 },
                     mb: 3,
-                    bgcolor: '#ffffff',
+                    bgcolor: isDark ? '#141416' : '#ffffff',
                     borderRadius: 3,
-                    border: '1px solid #e2e8f0',
-                    boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.05)',
+                    border: isDark ? '1px solid #27272a' : '1px solid #e2e8f0',
+                    boxShadow: isDark ? '0 4px 20px rgba(0,0,0,0.5)' : '0 1px 3px 0 rgba(0, 0, 0, 0.05)',
                 }}
             >
                 <Box
@@ -299,7 +303,7 @@ const PerClassScheduleView: React.FC = () => {
                         alignItems: { xs: 'flex-start', md: 'center' },
                         gap: 2,
                         pb: 2.5,
-                        borderBottom: '1px solid #f1f5f9',
+                        borderBottom: isDark ? '1px solid #27272a' : '1px solid #f1f5f9',
                     }}
                 >
                     <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
@@ -403,17 +407,17 @@ const PerClassScheduleView: React.FC = () => {
                         sx={{
                             p: 2,
                             borderRadius: 2,
-                            bgcolor: '#f8fafc',
-                            border: '1px solid #e2e8f0',
+                            bgcolor: isDark ? '#1e1e24' : '#f8fafc',
+                            border: isDark ? '1px solid #27272a' : '1px solid #e2e8f0',
                         }}
                     >
-                        <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 600 }}>
+                        <Typography variant="caption" sx={{ color: isDark ? '#a1a1aa' : '#64748b', fontWeight: 600 }}>
                             TOTAL JP KBM TERJADWAL
                         </Typography>
-                        <Typography variant="h5" sx={{ fontWeight: 800, color: '#0f172a', mt: 0.5 }}>
-                            {kpiStats.totalJpAllocated} <span style={{ fontSize: '14px', fontWeight: 500 }}>/ 48 JP</span>
+                        <Typography variant="h5" sx={{ fontWeight: 800, color: isDark ? '#f4f4f5' : '#0f172a', mt: 0.5 }}>
+                            {kpiStats.totalJpAllocated} <span style={{ fontSize: '14px', fontWeight: 500, color: isDark ? '#a1a1aa' : '#64748b' }}>/ 48 JP</span>
                         </Typography>
-                        <Typography variant="caption" sx={{ color: '#16a34a', fontWeight: 600 }}>
+                        <Typography variant="caption" sx={{ color: isDark ? '#4ade80' : '#16a34a', fontWeight: 600 }}>
                             Target Pekan: 48 Jam Pelajaran
                         </Typography>
                     </Box>
@@ -422,17 +426,17 @@ const PerClassScheduleView: React.FC = () => {
                         sx={{
                             p: 2,
                             borderRadius: 2,
-                            bgcolor: '#f8fafc',
-                            border: '1px solid #e2e8f0',
+                            bgcolor: isDark ? '#1e1e24' : '#f8fafc',
+                            border: isDark ? '1px solid #27272a' : '1px solid #e2e8f0',
                         }}
                     >
-                        <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 600 }}>
+                        <Typography variant="caption" sx={{ color: isDark ? '#a1a1aa' : '#64748b', fontWeight: 600 }}>
                             GURU PENGAJAR DI KELAS INI
                         </Typography>
-                        <Typography variant="h5" sx={{ fontWeight: 800, color: '#0f172a', mt: 0.5 }}>
+                        <Typography variant="h5" sx={{ fontWeight: 800, color: isDark ? '#f4f4f5' : '#0f172a', mt: 0.5 }}>
                             {kpiStats.uniqueTeacherCount} Guru
                         </Typography>
-                        <Typography variant="caption" sx={{ color: '#64748b' }}>
+                        <Typography variant="caption" sx={{ color: isDark ? '#a1a1aa' : '#64748b' }}>
                             {assignedDbTeachers.length > 0
                                 ? `${assignedDbTeachers.length} mapel terdaftar di database`
                                 : 'Terjadwal di rombel ini'}
@@ -443,14 +447,22 @@ const PerClassScheduleView: React.FC = () => {
                         sx={{
                             p: 2,
                             borderRadius: 2,
-                            bgcolor: kpiStats.clashCount === 0 ? '#f0fdf4' : '#fef2f2',
-                            border: `1px solid ${kpiStats.clashCount === 0 ? '#bbf7d0' : '#fecaca'}`,
+                            bgcolor: kpiStats.clashCount === 0
+                                ? (isDark ? 'rgba(22, 101, 52, 0.2)' : '#f0fdf4')
+                                : (isDark ? 'rgba(239, 68, 68, 0.2)' : '#fef2f2'),
+                            border: `1px solid ${
+                                kpiStats.clashCount === 0
+                                    ? (isDark ? 'rgba(22, 101, 52, 0.4)' : '#bbf7d0')
+                                    : (isDark ? 'rgba(239, 68, 68, 0.4)' : '#fecaca')
+                            }`,
                         }}
                     >
                         <Typography
                             variant="caption"
                             sx={{
-                                color: kpiStats.clashCount === 0 ? '#166534' : '#991b1b',
+                                color: kpiStats.clashCount === 0
+                                    ? (isDark ? '#4ade80' : '#166534')
+                                    : (isDark ? '#f87171' : '#991b1b'),
                                 fontWeight: 600,
                             }}
                         >
@@ -459,21 +471,21 @@ const PerClassScheduleView: React.FC = () => {
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
                             {kpiStats.clashCount === 0 ? (
                                 <>
-                                    <CheckCircleOutlineIcon sx={{ color: '#16a34a' }} />
-                                    <Typography variant="h6" sx={{ fontWeight: 800, color: '#166534' }}>
+                                    <CheckCircleOutlineIcon sx={{ color: isDark ? '#4ade80' : '#16a34a' }} />
+                                    <Typography variant="h6" sx={{ fontWeight: 800, color: isDark ? '#4ade80' : '#166534' }}>
                                         0 Bentrok
                                     </Typography>
                                 </>
                             ) : (
                                 <>
-                                    <ErrorOutlineIcon sx={{ color: '#dc2626' }} />
-                                    <Typography variant="h6" sx={{ fontWeight: 800, color: '#991b1b' }}>
+                                    <ErrorOutlineIcon sx={{ color: isDark ? '#f87171' : '#dc2626' }} />
+                                    <Typography variant="h6" sx={{ fontWeight: 800, color: isDark ? '#f87171' : '#991b1b' }}>
                                         {kpiStats.clashCount} Bentrok!
                                     </Typography>
                                 </>
                             )}
                         </Box>
-                        <Typography variant="caption" sx={{ color: '#64748b' }}>
+                        <Typography variant="caption" sx={{ color: isDark ? '#a1a1aa' : '#64748b' }}>
                             {kpiStats.clashCount === 0 ? 'Semua slot aman' : 'Cek slot merah di bawah'}
                         </Typography>
                     </Box>
@@ -482,17 +494,17 @@ const PerClassScheduleView: React.FC = () => {
                         sx={{
                             p: 2,
                             borderRadius: 2,
-                            bgcolor: '#eff6ff',
-                            border: '1px solid #bfdbfe',
+                            bgcolor: isDark ? 'rgba(37, 99, 235, 0.15)' : '#eff6ff',
+                            border: isDark ? '1px solid rgba(37, 99, 235, 0.3)' : '1px solid #bfdbfe',
                         }}
                     >
-                        <Typography variant="caption" sx={{ color: '#1e40af', fontWeight: 600 }}>
+                        <Typography variant="caption" sx={{ color: isDark ? '#93c5fd' : '#1e40af', fontWeight: 600 }}>
                             REKOMENDASI PEDAGOGIK JP
                         </Typography>
-                        <Typography variant="body2" sx={{ fontWeight: 700, color: '#1e3a8a', mt: 0.5 }}>
+                        <Typography variant="body2" sx={{ fontWeight: 700, color: isDark ? '#bfdbfe' : '#1e3a8a', mt: 0.5 }}>
                             💡 Praktik: JP 6-8 (Siang)
                         </Typography>
-                        <Typography variant="caption" sx={{ color: '#3b82f6' }}>
+                        <Typography variant="caption" sx={{ color: isDark ? '#60a5fa' : '#3b82f6' }}>
                             Teori/Eksak: JP 1-3 (Pagi Segar)
                         </Typography>
                     </Box>
@@ -514,40 +526,50 @@ const PerClassScheduleView: React.FC = () => {
                 elevation={0}
                 sx={{
                     borderRadius: 3,
-                    border: '1px solid #e2e8f0',
-                    boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.05)',
+                    border: isDark ? '1px solid #27272a' : '1px solid #e2e8f0',
+                    boxShadow: isDark ? '0 4px 20px rgba(0,0,0,0.5)' : '0 1px 3px 0 rgba(0, 0, 0, 0.05)',
                     overflow: 'hidden',
                     mb: 3,
+                    bgcolor: isDark ? '#141416' : '#ffffff',
                 }}
             >
                 <Box
                     sx={{
                         p: 2,
-                        bgcolor: '#f8fafc',
-                        borderBottom: '1px solid #e2e8f0',
+                        bgcolor: isDark ? '#18181b' : '#f8fafc',
+                        borderBottom: isDark ? '1px solid #27272a' : '1px solid #e2e8f0',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
                     }}
                 >
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                        <SchoolIcon sx={{ color: '#2563eb' }} />
-                        <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#0f172a' }}>
+                        <SchoolIcon sx={{ color: isDark ? '#60a5fa' : '#2563eb' }} />
+                        <Typography variant="subtitle1" sx={{ fontWeight: 800, color: isDark ? '#f4f4f5' : '#0f172a' }}>
                             Jadwal Pembelajaran Kelas {selectedClassForInput}
                         </Typography>
                         <Chip
                             label={`${classRows.length} Slot Waktu`}
                             size="small"
-                            sx={{ fontWeight: 700, bgcolor: '#e2e8f0' }}
+                            sx={{ fontWeight: 700, bgcolor: isDark ? '#27272a' : '#e2e8f0', color: isDark ? '#e4e4e7' : '#0f172a' }}
                         />
                     </Box>
-                    <Typography variant="caption" sx={{ color: '#64748b' }}>
+                    <Typography variant="caption" sx={{ color: isDark ? '#a1a1aa' : '#64748b' }}>
                         Klik tombol <b>Edit (✏️)</b> pada slot atau drag kartu guru ke baris untuk mengisi jam pelajaran.
                     </Typography>
                 </Box>
 
-                <TableContainer component={Paper} elevation={0}>
+                <TableContainer component={Paper} elevation={0} sx={{ bgcolor: isDark ? '#141416' : '#ffffff' }}>
                     <Table size="small">
+                        <TableHead sx={{ bgcolor: isDark ? '#18181b' : '#f8fafc' }}>
+                            <TableRow>
+                                <TableCell sx={{ fontWeight: 800, color: isDark ? '#cbd5e1' : '#334155', borderBottom: isDark ? '1px solid #27272a' : undefined }}>HARI</TableCell>
+                                <TableCell sx={{ fontWeight: 800, color: isDark ? '#cbd5e1' : '#334155', borderBottom: isDark ? '1px solid #27272a' : undefined }}>JAM KE</TableCell>
+                                <TableCell sx={{ fontWeight: 800, color: isDark ? '#cbd5e1' : '#334155', borderBottom: isDark ? '1px solid #27272a' : undefined }}>WAKTU</TableCell>
+                                <TableCell sx={{ fontWeight: 800, color: isDark ? '#cbd5e1' : '#334155', borderBottom: isDark ? '1px solid #27272a' : undefined }}>GURU & MATA PELAJARAN</TableCell>
+                                <TableCell sx={{ fontWeight: 800, color: isDark ? '#cbd5e1' : '#334155', borderBottom: isDark ? '1px solid #27272a' : undefined, textAlign: 'center', width: 110 }}>AKSI</TableCell>
+                            </TableRow>
+                        </TableHead>
                         <TableHead>
                             <TableRow sx={{ bgcolor: '#0f172a' }}>
                                 <TableCell sx={{ color: '#ffffff', fontWeight: 800, width: 90, textAlign: 'center' }}>
@@ -600,16 +622,16 @@ const PerClassScheduleView: React.FC = () => {
                                         onDrop={(e) => handleDrop(e, row)}
                                         sx={{
                                             bgcolor: isSpecial
-                                                ? row.specialActivity?.colorScheme.bg
+                                                ? (isDark ? 'rgba(234, 179, 8, 0.15)' : row.specialActivity?.colorScheme.bg)
                                                 : isClashing
-                                                ? '#fef2f2'
-                                                : '#ffffff',
+                                                ? (isDark ? 'rgba(239, 68, 68, 0.25)' : '#fef2f2')
+                                                : (isDark ? '#141416' : '#ffffff'),
                                             '&:hover': {
                                                 bgcolor: isSpecial
-                                                    ? row.specialActivity?.colorScheme.bg
-                                                    : '#f8fafc',
+                                                    ? (isDark ? 'rgba(234, 179, 8, 0.25)' : row.specialActivity?.colorScheme.bg)
+                                                    : (isDark ? '#1e1e24' : '#f8fafc'),
                                             },
-                                            borderBottom: '1px solid #f1f5f9',
+                                            borderBottom: isDark ? '1px solid #27272a' : '1px solid #f1f5f9',
                                         }}
                                     >
                                         {/* Day */}
@@ -617,9 +639,9 @@ const PerClassScheduleView: React.FC = () => {
                                             sx={{
                                                 textAlign: 'center',
                                                 fontWeight: 800,
-                                                color: '#1e293b',
-                                                bgcolor: '#f8fafc',
-                                                borderRight: '1px solid #e2e8f0',
+                                                color: isDark ? '#f4f4f5' : '#1e293b',
+                                                bgcolor: isDark ? '#18181b' : '#f8fafc',
+                                                borderRight: isDark ? '1px solid #27272a' : '1px solid #e2e8f0',
                                             }}
                                         >
                                             {row.day}
@@ -630,7 +652,9 @@ const PerClassScheduleView: React.FC = () => {
                                             sx={{
                                                 textAlign: 'center',
                                                 fontWeight: 700,
-                                                color: row.jp === 0 ? '#6d28d9' : '#0f172a',
+                                                color: row.jp === 0
+                                                    ? (isDark ? '#c084fc' : '#6d28d9')
+                                                    : (isDark ? '#f4f4f5' : '#0f172a'),
                                             }}
                                         >
                                             {row.jp === 0
@@ -641,30 +665,52 @@ const PerClassScheduleView: React.FC = () => {
                                         </TableCell>
 
                                         {/* Time Range */}
-                                        <TableCell sx={{ textAlign: 'center', fontSize: '12px', color: '#64748b', fontWeight: 600 }}>
+                                        <TableCell sx={{ textAlign: 'center', fontSize: '12px', color: isDark ? '#a1a1aa' : '#64748b', fontWeight: 600 }}>
                                             {row.timeRange}
                                         </TableCell>
 
                                         {/* Teacher & Subject or Special Activity */}
                                         <TableCell>
-                                            {isSpecial ? (
-                                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                                    <Chip
-                                                        label={row.specialActivity?.title}
-                                                        size="small"
-                                                        sx={{
-                                                            bgcolor: row.specialActivity?.colorScheme.bg,
-                                                            color: row.specialActivity?.colorScheme.text,
-                                                            border: `1px solid ${row.specialActivity?.colorScheme.border}`,
-                                                            fontWeight: 800,
-                                                            fontSize: '11px',
-                                                        }}
-                                                    />
-                                                    <Typography variant="caption" sx={{ color: '#64748b' }}>
-                                                        {row.specialActivity?.subtitle || 'Seluruh rombel sekolah'}
-                                                    </Typography>
-                                                </Box>
-                                            ) : cell.teacherCode ? (
+                                            {isSpecial ? (() => {
+                                                const isEkstraAct = Boolean(
+                                                    row.specialActivity && (
+                                                        row.specialActivity.activityType.toString().includes('EKSTRA') ||
+                                                        row.specialActivity.activityType === 'PRAMUKA' ||
+                                                        row.specialActivity.title.toUpperCase().includes('EKSTRA')
+                                                    )
+                                                );
+                                                const classExtraVal = isEkstraAct && selectedClassName
+                                                    ? (row.classExtraActivities?.[selectedClassName] ?? (selectedClass?.id ? row.classExtraActivities?.[selectedClass.id] : undefined))
+                                                    : undefined;
+                                                const displaySubtitle = classExtraVal !== undefined
+                                                    ? (classExtraVal === '' ? '- Kosong -' : classExtraVal)
+                                                    : (row.specialActivity?.subtitle || 'Seluruh rombel sekolah');
+
+                                                return (
+                                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                        <Chip
+                                                            label={row.specialActivity?.title}
+                                                            size="small"
+                                                            sx={{
+                                                                bgcolor: isDark ? 'rgba(234, 179, 8, 0.2)' : row.specialActivity?.colorScheme.bg,
+                                                                color: isDark ? '#fde047' : row.specialActivity?.colorScheme.text,
+                                                                border: `1px solid ${isDark ? '#eab308' : row.specialActivity?.colorScheme.border}`,
+                                                                fontWeight: 800,
+                                                                fontSize: '11px',
+                                                            }}
+                                                        />
+                                                        <Typography
+                                                            variant="caption"
+                                                            sx={{
+                                                                color: isDark ? '#a1a1aa' : '#64748b',
+                                                                fontStyle: classExtraVal === '' ? 'italic' : 'normal',
+                                                            }}
+                                                        >
+                                                            {displaySubtitle}
+                                                        </Typography>
+                                                    </Box>
+                                                );
+                                            })() : cell.teacherCode ? (
                                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                                                     <Box
                                                         sx={{
@@ -684,10 +730,10 @@ const PerClassScheduleView: React.FC = () => {
                                                         {cell.teacherCode}
                                                     </Box>
                                                     <Box>
-                                                        <Typography variant="body2" sx={{ fontWeight: 700, color: '#0f172a' }}>
+                                                        <Typography variant="body2" sx={{ fontWeight: 700, color: isDark ? '#f4f4f5' : '#0f172a' }}>
                                                             {cell.teacherName || teacher?.name || `Guru #${cell.teacherCode}`}
                                                         </Typography>
-                                                        <Typography variant="caption" sx={{ color: '#64748b' }}>
+                                                        <Typography variant="caption" sx={{ color: isDark ? '#a1a1aa' : '#64748b' }}>
                                                             {cell.subjectName || teacher?.subjectName || 'Mata Pelajaran'} • {cell.subjectCode || teacher?.subjectCode}
                                                         </Typography>
                                                     </Box>
@@ -699,11 +745,14 @@ const PerClassScheduleView: React.FC = () => {
                                                     startIcon={<AutoAwesomeIcon sx={{ fontSize: '14px' }} />}
                                                     onClick={() => handleOpenSlotEditor(row)}
                                                     sx={{
-                                                        color: '#94a3b8',
+                                                        color: isDark ? '#71717a' : '#94a3b8',
                                                         textTransform: 'none',
                                                         fontSize: '12px',
                                                         fontStyle: 'italic',
-                                                        '&:hover': { color: '#2563eb', bgcolor: '#eff6ff' },
+                                                        '&:hover': {
+                                                            color: isDark ? '#60a5fa' : '#2563eb',
+                                                            bgcolor: isDark ? 'rgba(37, 99, 235, 0.15)' : '#eff6ff',
+                                                        },
                                                     }}
                                                 >
                                                     + Klik untuk isi Guru & Mapel
@@ -857,35 +906,35 @@ const PerClassScheduleView: React.FC = () => {
                 elevation={0}
                 sx={{
                     borderRadius: 3,
-                    border: '1px solid #e2e8f0',
+                    border: isDark ? '1px solid #27272a' : '1px solid #e2e8f0',
                     p: 2.5,
-                    bgcolor: '#ffffff',
+                    bgcolor: isDark ? '#141416' : '#ffffff',
                 }}
             >
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
-                    <AssignmentIcon sx={{ color: '#4f46e5' }} />
+                    <AssignmentIcon sx={{ color: isDark ? '#818cf8' : '#4f46e5' }} />
                     <Box>
-                        <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#0f172a' }}>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 800, color: isDark ? '#f4f4f5' : '#0f172a' }}>
                             Rekap Guru Pengampu di Kelas {selectedClassForInput}
                         </Typography>
-                        <Typography variant="caption" sx={{ color: '#64748b' }}>
+                        <Typography variant="caption" sx={{ color: isDark ? '#a1a1aa' : '#64748b' }}>
                             Dihitung otomatis dari slot jadwal KBM yang teralokasi di atas
                         </Typography>
                     </Box>
                 </Box>
 
-                <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid #e2e8f0', borderRadius: 2 }}>
+                <TableContainer component={Paper} elevation={0} sx={{ border: isDark ? '1px solid #27272a' : '1px solid #e2e8f0', borderRadius: 2, bgcolor: isDark ? '#141416' : '#ffffff' }}>
                     <Table size="small">
                         <TableHead>
-                            <TableRow sx={{ bgcolor: '#f8fafc' }}>
-                                <TableCell sx={{ fontWeight: 800, width: 60, textAlign: 'center' }}>#KODE</TableCell>
-                                <TableCell sx={{ fontWeight: 800 }}>NAMA GURU</TableCell>
-                                <TableCell sx={{ fontWeight: 800 }}>MATA PELAJARAN</TableCell>
-                                <TableCell sx={{ fontWeight: 800, textAlign: 'center' }}>KATEGORI</TableCell>
-                                <TableCell sx={{ fontWeight: 800, width: 140, textAlign: 'center' }}>
+                            <TableRow sx={{ bgcolor: isDark ? '#18181b' : '#f8fafc' }}>
+                                <TableCell sx={{ fontWeight: 800, width: 60, textAlign: 'center', color: isDark ? '#cbd5e1' : '#334155' }}>#KODE</TableCell>
+                                <TableCell sx={{ fontWeight: 800, color: isDark ? '#cbd5e1' : '#334155' }}>NAMA GURU</TableCell>
+                                <TableCell sx={{ fontWeight: 800, color: isDark ? '#cbd5e1' : '#334155' }}>MATA PELAJARAN</TableCell>
+                                <TableCell sx={{ fontWeight: 800, textAlign: 'center', color: isDark ? '#cbd5e1' : '#334155' }}>KATEGORI</TableCell>
+                                <TableCell sx={{ fontWeight: 800, width: 140, textAlign: 'center', color: isDark ? '#cbd5e1' : '#334155' }}>
                                     REALISASI JP
                                 </TableCell>
-                                <TableCell sx={{ fontWeight: 800, width: 140, textAlign: 'center' }}>
+                                <TableCell sx={{ fontWeight: 800, width: 140, textAlign: 'center', color: isDark ? '#cbd5e1' : '#334155' }}>
                                     STATUS BEBAN
                                 </TableCell>
                             </TableRow>
@@ -893,13 +942,13 @@ const PerClassScheduleView: React.FC = () => {
                         <TableBody>
                             {classTeacherSummary.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={6} sx={{ textAlign: 'center', py: 3, color: '#94a3b8' }}>
+                                    <TableCell colSpan={6} sx={{ textAlign: 'center', py: 3, color: isDark ? '#71717a' : '#94a3b8' }}>
                                         Belum ada guru yang dijadwalkan pada kelas {selectedClassForInput}. Silakan isi jadwal pada tabel di atas.
                                     </TableCell>
                                 </TableRow>
                             ) : (
                                 classTeacherSummary.map((item) => (
-                                    <TableRow key={item.code} sx={{ '&:hover': { bgcolor: '#f8fafc' } }}>
+                                    <TableRow key={item.code} sx={{ '&:hover': { bgcolor: isDark ? '#1e1e24' : '#f8fafc' }, borderBottom: isDark ? '1px solid #27272a' : undefined }}>
                                         <TableCell sx={{ textAlign: 'center' }}>
                                             <Chip
                                                 label={item.code}
@@ -912,10 +961,10 @@ const PerClassScheduleView: React.FC = () => {
                                                 }}
                                             />
                                         </TableCell>
-                                        <TableCell sx={{ fontWeight: 700, color: '#1e293b' }}>
+                                        <TableCell sx={{ fontWeight: 700, color: isDark ? '#f4f4f5' : '#1e293b' }}>
                                             {item.name}
                                         </TableCell>
-                                        <TableCell sx={{ color: '#475569' }}>
+                                        <TableCell sx={{ color: isDark ? '#a1a1aa' : '#475569' }}>
                                             {item.subjectName}
                                         </TableCell>
                                         <TableCell sx={{ textAlign: 'center' }}>
@@ -926,12 +975,16 @@ const PerClassScheduleView: React.FC = () => {
                                                     fontSize: '10px',
                                                     height: 20,
                                                     fontWeight: 700,
-                                                    bgcolor: item.category === 'KEJURUAN' ? '#ffedd5' : '#eff6ff',
-                                                    color: item.category === 'KEJURUAN' ? '#c2410c' : '#1d4ed8',
+                                                    bgcolor: item.category === 'KEJURUAN'
+                                                        ? (isDark ? 'rgba(234, 88, 12, 0.25)' : '#ffedd5')
+                                                        : (isDark ? 'rgba(37, 99, 235, 0.25)' : '#eff6ff'),
+                                                    color: item.category === 'KEJURUAN'
+                                                        ? (isDark ? '#fb923c' : '#c2410c')
+                                                        : (isDark ? '#93c5fd' : '#1d4ed8'),
                                                 }}
                                             />
                                         </TableCell>
-                                        <TableCell sx={{ textAlign: 'center', fontWeight: 800 }}>
+                                        <TableCell sx={{ textAlign: 'center', fontWeight: 800, color: isDark ? '#f4f4f5' : '#0f172a' }}>
                                             {item.scheduledJp} JP
                                         </TableCell>
                                         <TableCell sx={{ textAlign: 'center' }}>
@@ -945,8 +998,12 @@ const PerClassScheduleView: React.FC = () => {
                                                 sx={{
                                                     fontWeight: 700,
                                                     fontSize: '10px',
-                                                    bgcolor: item.scheduledJp >= item.targetJp ? '#dcfce7' : '#fef3c7',
-                                                    color: item.scheduledJp >= item.targetJp ? '#166534' : '#b45309',
+                                                    bgcolor: item.scheduledJp >= item.targetJp
+                                                        ? (isDark ? 'rgba(22, 101, 52, 0.25)' : '#dcfce7')
+                                                        : (isDark ? 'rgba(217, 119, 6, 0.25)' : '#fef3c7'),
+                                                    color: item.scheduledJp >= item.targetJp
+                                                        ? (isDark ? '#86efac' : '#166534')
+                                                        : (isDark ? '#fcd34d' : '#b45309'),
                                                 }}
                                             />
                                         </TableCell>
@@ -964,23 +1021,33 @@ const PerClassScheduleView: React.FC = () => {
                 onClose={() => setSelectedSlot(null)}
                 maxWidth="sm"
                 fullWidth
+                slotProps={{
+                    paper: {
+                        sx: {
+                            bgcolor: isDark ? '#18181b' : '#ffffff',
+                            color: isDark ? '#f4f4f5' : '#0f172a',
+                            border: isDark ? '1px solid #27272a' : undefined,
+                            borderRadius: 3,
+                        },
+                    },
+                }}
             >
-                <DialogTitle sx={{ fontWeight: 800, bgcolor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                <DialogTitle sx={{ fontWeight: 800, bgcolor: isDark ? '#18181b' : '#f8fafc', borderBottom: isDark ? '1px solid #27272a' : '1px solid #e2e8f0' }}>
                     <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-                        <ClassIcon sx={{ color: '#2563eb' }} />
-                        <Typography variant="h6" sx={{ fontWeight: 800 }}>
+                        <ClassIcon sx={{ color: isDark ? '#60a5fa' : '#2563eb' }} />
+                        <Typography variant="h6" sx={{ fontWeight: 800, color: isDark ? '#f4f4f5' : '#0f172a' }}>
                             Pilih Guru: {selectedSlot?.day} • JP {selectedSlot?.jp} ({selectedSlot?.timeRange})
                         </Typography>
                     </Stack>
-                    <Typography variant="caption" sx={{ color: '#64748b' }}>
+                    <Typography variant="caption" sx={{ color: isDark ? '#a1a1aa' : '#64748b' }}>
                         Kelas: <b>{selectedClassForInput}</b>
                     </Typography>
                 </DialogTitle>
 
                 <DialogContent sx={{ pt: 3 }}>
                     {/* Multi-slot consecutive JP option */}
-                    <Box sx={{ mb: 2.5, p: 2, bgcolor: '#eff6ff', borderRadius: 2, border: '1px solid #bfdbfe' }}>
-                        <Typography variant="caption" sx={{ fontWeight: 700, color: '#1e40af', display: 'block', mb: 1 }}>
+                    <Box sx={{ mb: 2.5, p: 2, bgcolor: isDark ? '#1e1e24' : '#eff6ff', borderRadius: 2, border: isDark ? '1px solid #27272a' : '1px solid #bfdbfe' }}>
+                        <Typography variant="caption" sx={{ fontWeight: 700, color: isDark ? '#93c5fd' : '#1e40af', display: 'block', mb: 1 }}>
                             OPSI ALOKASI BLOK JAM PELAJARAN:
                         </Typography>
                         <Stack direction="row" spacing={1}>
@@ -1006,7 +1073,7 @@ const PerClassScheduleView: React.FC = () => {
                     {/* Section 1: Guru Ditugaskan di Kelas Ini dari Database */}
                     {assignedDbTeachers.length > 0 && (
                         <Box sx={{ mb: 3 }}>
-                            <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#0f172a', mb: 1 }}>
+                            <Typography variant="subtitle2" sx={{ fontWeight: 800, color: isDark ? '#f4f4f5' : '#0f172a', mb: 1 }}>
                                 📌 Guru Pengampu Terdaftar di Database untuk Rombel Ini:
                             </Typography>
                             <Stack spacing={1}>
@@ -1024,12 +1091,12 @@ const PerClassScheduleView: React.FC = () => {
                                             border: `2px solid ${
                                                 selectedTeacherCode === dbT.matchedTeacherCode
                                                     ? '#2563eb'
-                                                    : '#e2e8f0'
+                                                    : (isDark ? '#27272a' : '#e2e8f0')
                                             }`,
                                             bgcolor:
                                                 selectedTeacherCode === dbT.matchedTeacherCode
-                                                    ? '#eff6ff'
-                                                    : '#ffffff',
+                                                    ? (isDark ? 'rgba(37, 99, 235, 0.2)' : '#eff6ff')
+                                                    : (isDark ? '#141416' : '#ffffff'),
                                             cursor: 'pointer',
                                             display: 'flex',
                                             alignItems: 'center',
@@ -1039,10 +1106,10 @@ const PerClassScheduleView: React.FC = () => {
                                         }}
                                     >
                                         <Box>
-                                            <Typography variant="body2" sx={{ fontWeight: 700, color: '#0f172a' }}>
+                                            <Typography variant="body2" sx={{ fontWeight: 700, color: isDark ? '#f4f4f5' : '#0f172a' }}>
                                                 {dbT.teacherName}
                                             </Typography>
-                                            <Typography variant="caption" sx={{ color: '#64748b' }}>
+                                            <Typography variant="caption" sx={{ color: isDark ? '#a1a1aa' : '#64748b' }}>
                                                 {dbT.subjectName} • Target: {dbT.jpAmount} JP
                                             </Typography>
                                         </Box>
@@ -1062,7 +1129,7 @@ const PerClassScheduleView: React.FC = () => {
 
                     {/* Section 2: Pilih dari Semua Guru Terdaftar */}
                     <Box>
-                        <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#0f172a', mb: 1 }}>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 800, color: isDark ? '#f4f4f5' : '#0f172a', mb: 1 }}>
                             Semua Guru Terdaftar (#Kode 1 s/d 25):
                         </Typography>
 
@@ -1114,7 +1181,7 @@ const PerClassScheduleView: React.FC = () => {
                     </Box>
                 </DialogContent>
 
-                <DialogActions sx={{ p: 2, bgcolor: '#f8fafc', borderTop: '1px solid #e2e8f0' }}>
+                <DialogActions sx={{ p: 2, bgcolor: isDark ? '#18181b' : '#f8fafc', borderTop: isDark ? '1px solid #27272a' : '1px solid #e2e8f0' }}>
                     <Button
                         color="error"
                         onClick={() => {
@@ -1125,7 +1192,7 @@ const PerClassScheduleView: React.FC = () => {
                         Kosongkan Slot
                     </Button>
                     <Box sx={{ flex: 1 }} />
-                    <Button onClick={() => setSelectedSlot(null)}>Batal</Button>
+                    <Button onClick={() => setSelectedSlot(null)} sx={{ color: isDark ? '#a1a1aa' : undefined }}>Batal</Button>
                     <Button variant="contained" onClick={handleSaveSlot} sx={{ fontWeight: 700 }}>
                         Terapkan ke Slot
                     </Button>
