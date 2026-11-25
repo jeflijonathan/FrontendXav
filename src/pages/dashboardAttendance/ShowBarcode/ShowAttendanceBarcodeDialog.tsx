@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
     Box,
     Stack,
@@ -6,13 +6,10 @@ import {
     Button,
     Chip,
     IconButton,
-    Alert,
-    CircularProgress,
     Tooltip,
 } from '@mui/material';
 import { BaseDialog, DialogHeader, DialogBody, DialogFooter } from '@components/Dialog';
 import { QRCodeSVG } from 'qrcode.react';
-import QrCode2Icon from '@mui/icons-material/QrCode2';
 import FullscreenIcon from '@mui/icons-material/Fullscreen';
 import FullscreenExitIcon from '@mui/icons-material/FullscreenExit';
 import RefreshIcon from '@mui/icons-material/Refresh';
@@ -20,9 +17,10 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import SchoolIcon from '@mui/icons-material/School';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
-import PersonIcon from '@mui/icons-material/Person';
 import FaceRetouchingNaturalIcon from '@mui/icons-material/FaceRetouchingNatural';
 import ShieldIcon from '@mui/icons-material/Shield';
+import LockIcon from '@mui/icons-material/Lock';
+import LockOpenIcon from '@mui/icons-material/LockOpen';
 import { useTheme } from '@mui/material/styles';
 import useDashboardAttendanceStore from '../store';
 import useAttendanceList from '../List/hook/useAttendanceList';
@@ -42,6 +40,8 @@ export const ShowAttendanceBarcodeDialog: React.FC = () => {
         selectedMeeting,
         students,
         teacherDisplayName,
+        sessionOpenStatus,
+        sessionToken,
     } = state;
 
     const { loadAttendanceSheet } = useAttendanceList();
@@ -52,7 +52,7 @@ export const ShowAttendanceBarcodeDialog: React.FC = () => {
 
     // Payload QR Code JSON yang akan dibaca oleh kamera siswa
     const qrPayload = useMemo(() => {
-        if (!selectedMeeting) return '';
+        if (!selectedMeeting || sessionOpenStatus !== 'DIBUKA' || !sessionToken) return '';
         const payloadObj = {
             app: 'SMK_XAVERIUS_PALEMBANG',
             type: 'PRESENSI_KBM',
@@ -66,6 +66,7 @@ export const ShowAttendanceBarcodeDialog: React.FC = () => {
             time_range: selectedMeeting.time_range,
             teacher_name: teacherDisplayName || selectedMeeting.teacher_name || '',
             session_code: `PRES-${selectedClassObj?.name || 'CLS'}-${selectedMeeting.date}-${selectedMeeting.jp}`,
+            session_token: sessionToken,
             timestamp: Date.now(),
         };
         return JSON.stringify(payloadObj);
@@ -76,22 +77,13 @@ export const ShowAttendanceBarcodeDialog: React.FC = () => {
         selectedSubject,
         selectedMeeting,
         teacherDisplayName,
+        sessionOpenStatus,
+        sessionToken,
     ]);
 
     // Hitung statistik kehadiran terkini
     const hadirCount = students.filter((s) => s.status === 'HADIR').length;
     const totalSiswa = students.length;
-
-    // Polling berkala saat dialog barcode terbuka agar nama siswa yang baru scan langsung muncul
-    useEffect(() => {
-        if (!isBarcodeDialogOpen) return;
-
-        const interval = setInterval(() => {
-            loadAttendanceSheet();
-        }, 4000);
-
-        return () => clearInterval(interval);
-    }, [isBarcodeDialogOpen, loadAttendanceSheet]);
 
     const handleClose = () => {
         setIsFullscreen(false);
@@ -147,6 +139,31 @@ export const ShowAttendanceBarcodeDialog: React.FC = () => {
                                 size="small"
                                 sx={{ fontWeight: 700 }}
                             />
+                            <Chip
+                                icon={
+                                    sessionOpenStatus === 'DIBUKA' ? (
+                                        <LockOpenIcon sx={{ fontSize: '14px !important' }} />
+                                    ) : (
+                                        <LockIcon sx={{ fontSize: '14px !important' }} />
+                                    )
+                                }
+                                label={
+                                    sessionOpenStatus === 'DIBUKA'
+                                        ? 'Status: Dibuka'
+                                        : sessionOpenStatus === 'DITUTUP'
+                                        ? 'Status: Ditutup'
+                                        : 'Status: Belum Dibuka'
+                                }
+                                color={
+                                    sessionOpenStatus === 'DIBUKA'
+                                        ? 'success'
+                                        : sessionOpenStatus === 'DITUTUP'
+                                        ? 'error'
+                                        : 'default'
+                                }
+                                size="small"
+                                sx={{ fontWeight: 800 }}
+                            />
                         </Stack>
 
                         <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
@@ -185,6 +202,7 @@ export const ShowAttendanceBarcodeDialog: React.FC = () => {
                         {/* High-Contrast QR Code Card */}
                         <Box
                             sx={{
+                                position: 'relative',
                                 p: { xs: 2.5, sm: 3 },
                                 bgcolor: '#ffffff',
                                 borderRadius: 3,
@@ -193,15 +211,34 @@ export const ShowAttendanceBarcodeDialog: React.FC = () => {
                                 flexDirection: 'column',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                border: '3px solid #2563eb',
+                                border:
+                                    sessionOpenStatus === 'DIBUKA'
+                                        ? '3px solid #2563eb'
+                                        : '3px solid #ef4444',
+                                minWidth: isFullscreen ? 380 : 320,
+                                minHeight: isFullscreen ? 380 : 320,
                             }}
                         >
-                            <QRCodeSVG
-                                value={qrPayload}
-                                size={isFullscreen ? 340 : 250}
-                                level="H"
-                                includeMargin
-                            />
+                            {sessionOpenStatus === 'DIBUKA' && qrPayload ? (
+                                <QRCodeSVG
+                                    value={qrPayload}
+                                    size={isFullscreen ? 340 : 280}
+                                    level="L"
+                                    includeMargin
+                                />
+                            ) : (
+                                <Stack spacing={1.5} sx={{ alignItems: 'center', textAlign: 'center', px: 2, py: 4 }}>
+                                    <LockIcon sx={{ fontSize: 52, color: '#ef4444' }} />
+                                    <Typography variant="subtitle1" sx={{ fontWeight: 900, color: '#0f172a' }}>
+                                        {sessionOpenStatus === 'DITUTUP'
+                                            ? 'Presensi Ditutup'
+                                            : 'Presensi Belum Dibuka'}
+                                    </Typography>
+                                    <Typography variant="caption" sx={{ color: '#64748b', maxWidth: 240 }}>
+                                        Silakan buka presensi terlebih dahulu melalui tombol di halaman utama sebelum menampilkan barcode.
+                                    </Typography>
+                                </Stack>
+                            )}
                             <Typography
                                 variant="caption"
                                 sx={{

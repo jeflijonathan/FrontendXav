@@ -24,7 +24,7 @@ import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import LockPersonIcon from '@mui/icons-material/LockPerson';
 import TodayIcon from '@mui/icons-material/Today';
 import { useTheme } from '@mui/material/styles';
-import type { AcademicYearMeetingItem, AccessibleClassItem } from '@api/attendance/model';
+import type { AcademicYearMeetingItem, AccessibleClassItem, AttendanceSessionOpenStatus } from '@api/attendance/model';
 
 interface AttendanceSessionFilterProps {
     isAdminView: boolean;
@@ -39,6 +39,7 @@ interface AttendanceSessionFilterProps {
     selectedMeeting: AcademicYearMeetingItem | null;
     onSelectMeeting: (meeting: AcademicYearMeetingItem) => void;
     disabled?: boolean;
+    sessionOpenStatus?: AttendanceSessionOpenStatus | null;
 }
 
 const formatDisplayDate = (dateStr: string) => {
@@ -67,6 +68,7 @@ export const AttendanceSessionFilter: React.FC<AttendanceSessionFilterProps> = (
     selectedMeeting,
     onSelectMeeting,
     disabled = false,
+    sessionOpenStatus,
 }) => {
     const theme = useTheme();
     const isDark = theme.palette.mode === 'dark';
@@ -545,13 +547,37 @@ export const AttendanceSessionFilter: React.FC<AttendanceSessionFilterProps> = (
                                                     <Typography variant="caption" sx={{ fontSize: '10px', color: isDark ? '#a1a1aa' : '#64748b' }}>
                                                         {m.semester}
                                                     </Typography>
-                                                    <Chip
-                                                        label={m.is_recorded ? 'Sudah Diabsen' : 'Belum Diabsen'}
-                                                        size="small"
-                                                        color={m.is_recorded ? 'success' : 'warning'}
-                                                        variant={m.is_recorded ? 'filled' : 'outlined'}
-                                                        sx={{ height: 18, fontSize: '9.5px', fontWeight: 700 }}
-                                                    />
+                                                    <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
+                                                        {/* Status sesi: hanya tampil di kartu yang dipilih */}
+                                                        {selectedMeeting?.id === m.id && sessionOpenStatus && (
+                                                            <Chip
+                                                                label={
+                                                                    sessionOpenStatus === 'DIBUKA'
+                                                                        ? 'Dibuka'
+                                                                        : sessionOpenStatus === 'DITUTUP'
+                                                                        ? 'Ditutup'
+                                                                        : 'Belum Dibuka'
+                                                                }
+                                                                size="small"
+                                                                color={
+                                                                    sessionOpenStatus === 'DIBUKA'
+                                                                        ? 'success'
+                                                                        : sessionOpenStatus === 'DITUTUP'
+                                                                        ? 'error'
+                                                                        : 'default'
+                                                                }
+                                                                variant="filled"
+                                                                sx={{ height: 18, fontSize: '9.5px', fontWeight: 700 }}
+                                                            />
+                                                        )}
+                                                        <Chip
+                                                            label={m.is_recorded ? 'Sudah Diabsen' : 'Belum Diabsen'}
+                                                            size="small"
+                                                            color={m.is_recorded ? 'success' : 'warning'}
+                                                            variant={m.is_recorded ? 'filled' : 'outlined'}
+                                                            sx={{ height: 18, fontSize: '9.5px', fontWeight: 700 }}
+                                                        />
+                                                    </Stack>
                                                 </Stack>
                                             </Box>
                                         </Grid>

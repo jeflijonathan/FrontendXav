@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Card, Stack, Typography, Button, CircularProgress } from '@mui/material';
+import { Box, Card, Stack, Typography, Button, CircularProgress, Chip } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import InfoIcon from '@mui/icons-material/Info';
 import LocalHospitalIcon from '@mui/icons-material/LocalHospital';
@@ -9,11 +9,17 @@ import DoneAllIcon from '@mui/icons-material/DoneAll';
 import QrCodeScannerIcon from '@mui/icons-material/QrCodeScanner';
 import QrCode2Icon from '@mui/icons-material/QrCode2';
 import TuneIcon from '@mui/icons-material/Tune';
+import LockIcon from '@mui/icons-material/Lock';
+import LockOpenIcon from '@mui/icons-material/LockOpen';
 import { useTheme } from '@mui/material/styles';
+import type { AttendanceSessionOpenStatus } from '@api/attendance/model';
 import type { AttendanceRecap } from '../List/utils/attendanceFormatter';
 
 interface AttendanceCreateToolbarProps {
     recap: AttendanceRecap;
+    sessionOpenStatus: AttendanceSessionOpenStatus;
+    isUpdatingSessionStatus?: boolean;
+    onToggleSessionStatus: (action: 'OPEN' | 'CLOSE') => void;
     onMarkAllHadir: () => void;
     onMarkAllAlpa: () => void;
     onSave: () => void;
@@ -26,6 +32,9 @@ interface AttendanceCreateToolbarProps {
 
 export const AttendanceCreateToolbar: React.FC<AttendanceCreateToolbarProps> = ({
     recap,
+    sessionOpenStatus,
+    isUpdatingSessionStatus = false,
+    onToggleSessionStatus,
     onMarkAllHadir,
     onMarkAllAlpa,
     onSave,
@@ -197,12 +206,90 @@ export const AttendanceCreateToolbar: React.FC<AttendanceCreateToolbarProps> = (
                         spacing={1.25}
                         sx={{ flexWrap: 'wrap', gap: 1.25, alignItems: { sm: 'center' } }}
                     >
+                        <Chip
+                            icon={
+                                sessionOpenStatus === 'DIBUKA' ? (
+                                    <LockOpenIcon sx={{ fontSize: '15px !important' }} />
+                                ) : (
+                                    <LockIcon sx={{ fontSize: '15px !important' }} />
+                                )
+                            }
+                            label={
+                                sessionOpenStatus === 'DIBUKA'
+                                    ? 'Presensi: Dibuka'
+                                    : sessionOpenStatus === 'DITUTUP'
+                                    ? 'Presensi: Ditutup'
+                                    : 'Presensi: Belum Dibuka'
+                            }
+                            color={
+                                sessionOpenStatus === 'DIBUKA'
+                                    ? 'success'
+                                    : sessionOpenStatus === 'DITUTUP'
+                                    ? 'error'
+                                    : 'default'
+                            }
+                            variant={sessionOpenStatus === 'BELUM_DIBUKA' ? 'outlined' : 'filled'}
+                            sx={{ fontWeight: 800, height: 34 }}
+                        />
+
+                        {sessionOpenStatus === 'DIBUKA' ? (
+                            <Button
+                                variant="outlined"
+                                color="error"
+                                startIcon={
+                                    isUpdatingSessionStatus ? (
+                                        <CircularProgress size={16} color="inherit" />
+                                    ) : (
+                                        <LockIcon />
+                                    )
+                                }
+                                onClick={() => onToggleSessionStatus('CLOSE')}
+                                disabled={disabled || isUpdatingSessionStatus || recap.TOTAL === 0}
+                                sx={{
+                                    textTransform: 'none',
+                                    fontWeight: 800,
+                                    borderRadius: 2,
+                                    px: 2,
+                                    py: 1,
+                                    whiteSpace: 'nowrap',
+                                }}
+                            >
+                                Tutup Presensi
+                            </Button>
+                        ) : (
+                            <Button
+                                variant="contained"
+                                color="success"
+                                startIcon={
+                                    isUpdatingSessionStatus ? (
+                                        <CircularProgress size={16} color="inherit" />
+                                    ) : (
+                                        <LockOpenIcon />
+                                    )
+                                }
+                                onClick={() => onToggleSessionStatus('OPEN')}
+                                disabled={disabled || isUpdatingSessionStatus || recap.TOTAL === 0}
+                                sx={{
+                                    textTransform: 'none',
+                                    fontWeight: 800,
+                                    borderRadius: 2,
+                                    px: 2,
+                                    py: 1,
+                                    whiteSpace: 'nowrap',
+                                }}
+                            >
+                                {sessionOpenStatus === 'DITUTUP'
+                                    ? 'Buka Kembali Presensi'
+                                    : 'Buka Presensi'}
+                            </Button>
+                        )}
+
                         <Button
                             variant="contained"
                             color="secondary"
                             startIcon={<QrCode2Icon />}
                             onClick={onOpenBarcode}
-                            disabled={disabled || recap.TOTAL === 0}
+                            disabled={disabled || recap.TOTAL === 0 || sessionOpenStatus !== 'DIBUKA'}
                             sx={{
                                 textTransform: 'none',
                                 fontWeight: 800,

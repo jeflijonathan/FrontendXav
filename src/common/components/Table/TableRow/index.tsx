@@ -32,7 +32,7 @@ const TableRow = ({
             <MuiTableRow className="bg-transparent text-gray-100">
                 {/* Tombol expand hanya dirender jika hasExpandableCols bernilai true */}
                 {hasExpandableCols && (
-                    <TableCell sx={{ py: 1, width: "40px" }}>
+                    <TableCell sx={{ py: 1, width: "40px", verticalAlign: "middle" }}>
                         {!isLoading && header && header.length > maxVisible && (
                             <IconButton size="small" onClick={() => setOpen(!open)} sx={{ color: "text.secondary" }}>
                                 {open ? <KeyboardArrowUp /> : <KeyboardArrowDown />}
@@ -42,12 +42,12 @@ const TableRow = ({
                 )}
 
                 {selectAction !== undefined && (
-                    <TableCell sx={{ py: 0.5, px: 1, width: "48px" }}>
+                    <TableCell sx={{ py: 0.5, px: 1, width: "48px", verticalAlign: "middle" }}>
                         {!isLoading ? selectAction : null}
                     </TableCell>
                 )}
 
-                <TableCell sx={{ py: 1, fontSize: "1rem", width: "50px" }}>
+                <TableCell sx={{ py: 1, fontSize: "1rem", width: "50px", verticalAlign: "middle" }}>
                     {!isLoading ? index + 1 : null}
                 </TableCell>
 
@@ -60,11 +60,15 @@ const TableRow = ({
                     return React.cloneElement(childElement, {
                         key: idx,
                         className: headerItem?.className || childElement.props.className,
+                        sx: {
+                            verticalAlign: "middle",
+                            ...childElement.props.sx,
+                        },
                     });
                 })}
 
                 {actions && !isLoading && (
-                    <TableCell sx={{ fontSize: "1rem", minWidth: "100px", width: "auto", whiteSpace: "nowrap" }}>
+                    <TableCell sx={{ fontSize: "1rem", minWidth: "120px", width: "120px", whiteSpace: "nowrap", verticalAlign: "middle" }}>
                         {actions}
                     </TableCell>
                 )}

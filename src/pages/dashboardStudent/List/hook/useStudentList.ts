@@ -37,14 +37,14 @@ const useStudentList = (): ReturnHook => {
     };
 
     const studentHeaders: TableHeaderType[] = [
-        { label: "NIS", width: "120px" },
+        { label: "NIS", width: "110px" },
         { label: "NISN", width: "120px" },
-        { label: "Name", width: "180px" },
-        { label: "Role", width: "160px" },
+        { label: "Name", width: "190px" },
+        { label: "Role", width: "190px" },
         { label: "Phone", width: "150px" },
         { label: "Gender", width: "100px" },
         { label: "Status", width: "100px" },
-        { label: "Created At", width: "140px" },
+        { label: "Created At", width: "130px" },
     ];
 
     const sortOptions: SortOptionType[] = [

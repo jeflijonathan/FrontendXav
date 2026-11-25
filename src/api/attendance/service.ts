@@ -9,6 +9,8 @@ import type {
     AttendanceSettingsModel,
     ScanAttendancePayload,
     ScanAttendanceResponse,
+    StudentAttendanceMatrixResponse,
+    AttendanceSessionStatusResponse,
 } from "./model";
 
 export class AttendanceService {
@@ -193,6 +195,49 @@ export class AttendanceService {
 
     async scanAttendance(payload: ScanAttendancePayload): Promise<ScanAttendanceResponse> {
         const res = await this.service.POST<ScanAttendanceResponse>(`${this.basePath}/scan`, payload);
+        return res.data;
+    }
+
+    // Alias untuk kompatibilitas StudentAttendanceScanView
+    async scan(payload: ScanAttendancePayload): Promise<{ data: ScanAttendanceResponse }> {
+        const res = await this.service.POST<ScanAttendanceResponse>(`${this.basePath}/scan`, payload);
+        return res;
+    }
+
+    async getStudentMatrix(idSchoolInformation: string): Promise<StudentAttendanceMatrixResponse> {
+        const res = await this.service.GET<StudentAttendanceMatrixResponse>(
+            `${this.basePath}/student-matrix`,
+            { id_school_information: idSchoolInformation }
+        );
+        return res.data;
+    }
+
+    async getSessionStatus(params: {
+        id_school_information: string;
+        id_class: string;
+        date: string;
+        jp?: string;
+        subject_name?: string;
+    }): Promise<AttendanceSessionStatusResponse> {
+        const res = await this.service.GET<AttendanceSessionStatusResponse>(
+            `${this.basePath}/session-status`,
+            params
+        );
+        return res.data;
+    }
+
+    async updateSessionStatus(payload: {
+        id_school_information: string;
+        id_class: string;
+        date: string;
+        jp?: string;
+        subject_name?: string;
+        action: 'OPEN' | 'CLOSE';
+    }): Promise<AttendanceSessionStatusResponse> {
+        const res = await this.service.POST<AttendanceSessionStatusResponse>(
+            `${this.basePath}/session-status`,
+            payload
+        );
         return res.data;
     }
 }

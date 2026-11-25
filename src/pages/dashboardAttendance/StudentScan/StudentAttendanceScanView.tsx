@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
     Box,
     Card,
@@ -10,8 +10,11 @@ import {
     CircularProgress,
     Paper,
     Divider,
+    MenuItem,
+    Select,
+    FormControl,
+    InputLabel,
 } from '@mui/material';
-import { Html5Qrcode } from 'html5-qrcode';
 import QrCodeScannerIcon from '@mui/icons-material/QrCodeScanner';
 import FaceRetouchingNaturalIcon from '@mui/icons-material/FaceRetouchingNatural';
 import ShieldIcon from '@mui/icons-material/Shield';
@@ -39,11 +42,28 @@ interface ScannedSessionData {
     time_range?: string;
     teacher_name?: string;
     session_code?: string;
+    session_token?: string;
 }
 
-const STUDENT_QR_READER_ID = 'student-qr-code-reader';
+interface StudentAttendanceScanViewProps {
+    onScanSuccess?: () => void;
+    onClose?: () => void;
+}
 
-export const StudentAttendanceScanView: React.FC = () => {
+// ─── Native QR Scanner hook using getUserMedia + jsQR ───────────────────────
+// jsQR is loaded dynamically to keep bundle lean for non-student roles
+let jsQRModule: any = null;
+const loadJsQR = async () => {
+    if (!jsQRModule) {
+        jsQRModule = (await import('jsqr')).default;
+    }
+    return jsQRModule;
+};
+
+export const StudentAttendanceScanView: React.FC<StudentAttendanceScanViewProps> = ({
+    onScanSuccess,
+    onClose,
+}) => {
     const theme = useTheme();
     const isDark = theme.palette.mode === 'dark';
     const { user } = useAuthStore();
@@ -52,154 +72,289 @@ export const StudentAttendanceScanView: React.FC = () => {
     const [step, setStep] = useState<1 | 2 | 3>(1);
     const [scannedSession, setScannedSession] = useState<ScannedSessionData | null>(null);
 
-    // QR scanner state
-    const [isScanningQR, setIsScanningQR] = useState(false);
-    const [qrScannerError, setQrScannerError] = useState<string | null>(null);
-    const qrScannerRef = useRef<Html5Qrcode | null>(null);
+    // ── QR scan state (native getUserMedia) ──
+    const qrVideoRef = useRef<HTMLVideoElement | null>(null);
+    const qrCanvasRef = useRef<HTMLCanvasElement | null>(null);
+    const qrStreamRef = useRef<MediaStream | null>(null);
+    const qrRafRef = useRef<number | null>(null);
+    const isProcessingQRRef = useRef(false);
+    const qrFileInputRef = useRef<HTMLInputElement | null>(null);
 
-    // Selfie camera state
+    const [isScanningQR, setIsScanningQR] = useState(false);
+    const [isStartingQR, setIsStartingQR] = useState(false);
+    const [qrScannerError, setQrScannerError] = useState<string | null>(null);
+    const [availableCameras, setAvailableCameras] = useState<MediaDeviceInfo[]>([]);
+    const [selectedCameraId, setSelectedCameraId] = useState<string>('');
+
+    // ── Face camera state ──
     const faceVideoRef = useRef<HTMLVideoElement | null>(null);
-    const [faceStream, setFaceStream] = useState<MediaStream | null>(null);
+    const faceStreamRef = useRef<MediaStream | null>(null);
+    const [faceReady, setFaceReady] = useState(false);
     const [faceSnapshot, setFaceSnapshot] = useState<string | null>(null);
 
-    // Geolocation & submission state
+    // ── Submission state ──
     const [gpsCoords, setGpsCoords] = useState<{ latitude: number; longitude: number } | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState<string | null>(null);
     const [successResult, setSuccessResult] = useState<any | null>(null);
 
-    // Ambil GPS otomatis
+    // ── GPS ──
     useEffect(() => {
         if ('geolocation' in navigator) {
             navigator.geolocation.getCurrentPosition(
-                (pos) => {
-                    setGpsCoords({
-                        latitude: pos.coords.latitude,
-                        longitude: pos.coords.longitude,
-                    });
-                },
+                (pos) => setGpsCoords({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
                 () => {},
                 { enableHighAccuracy: true, timeout: 10000 }
             );
         }
     }, []);
 
-    // 1. Inisialisasi scanner QR Guru
-    const startQRScanner = async () => {
-        setQrScannerError(null);
-        try {
-            if (qrScannerRef.current) {
-                try {
-                    await qrScannerRef.current.stop();
-                } catch {}
-            }
+    // ── Enumerate cameras ──
+    useEffect(() => {
+        navigator.mediaDevices.enumerateDevices().then((devices) => {
+            const cams = devices.filter((d) => d.kind === 'videoinput');
+            setAvailableCameras(cams);
+        }).catch(() => {});
+    }, []);
 
-            const scanner = new Html5Qrcode(STUDENT_QR_READER_ID);
-            qrScannerRef.current = scanner;
-
-            await scanner.start(
-                { facingMode: 'environment' },
-                {
-                    fps: 10,
-                    qrbox: { width: 250, height: 250 },
-                },
-                (decodedText) => {
-                    handleQRScannedSuccess(decodedText);
-                },
-                () => {}
-            );
-            setIsScanningQR(true);
-        } catch (err: any) {
-            setQrScannerError(
-                err?.message || 'Gagal mengakses kamera belakang. Pastikan izin kamera telah diberikan.'
-            );
-            setIsScanningQR(false);
+    // ── QR frame decode loop ──
+    const qrScanLoop = useCallback(async () => {
+        const video = qrVideoRef.current;
+        const canvas = qrCanvasRef.current;
+        if (!video || !canvas || isProcessingQRRef.current) {
+            qrRafRef.current = requestAnimationFrame(qrScanLoop);
+            return;
         }
-    };
+        if (video.readyState < video.HAVE_ENOUGH_DATA) {
+            qrRafRef.current = requestAnimationFrame(qrScanLoop);
+            return;
+        }
 
-    const stopQRScanner = async () => {
-        if (qrScannerRef.current) {
-            try {
-                if (qrScannerRef.current.isScanning) {
-                    await qrScannerRef.current.stop();
-                }
-                qrScannerRef.current.clear();
-            } catch {}
-            qrScannerRef.current = null;
+        const { videoWidth: vw, videoHeight: vh } = video;
+        if (!vw || !vh) {
+            qrRafRef.current = requestAnimationFrame(qrScanLoop);
+            return;
+        }
+
+        canvas.width = vw;
+        canvas.height = vh;
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        if (!ctx) {
+            qrRafRef.current = requestAnimationFrame(qrScanLoop);
+            return;
+        }
+        ctx.drawImage(video, 0, 0, vw, vh);
+        const imageData = ctx.getImageData(0, 0, vw, vh);
+
+        try {
+            const jsQR = await loadJsQR();
+            const code = jsQR(imageData.data, vw, vh, { inversionAttempts: 'dontInvert' });
+            if (code && code.data) {
+                isProcessingQRRef.current = true;
+                handleQRDecoded(code.data);
+                return; // stop loop on success
+            }
+        } catch {/* ignore decode errors */}
+
+        qrRafRef.current = requestAnimationFrame(qrScanLoop);
+    }, []); // eslint-disable-line
+
+    const stopQRStream = useCallback(() => {
+        if (qrRafRef.current !== null) {
+            cancelAnimationFrame(qrRafRef.current);
+            qrRafRef.current = null;
+        }
+        if (qrStreamRef.current) {
+            qrStreamRef.current.getTracks().forEach((t) => t.stop());
+            qrStreamRef.current = null;
         }
         setIsScanningQR(false);
+    }, []);
+
+    const startQRScanner = async (overrideCameraId?: string) => {
+        setQrScannerError(null);
+        setIsStartingQR(true);
+        isProcessingQRRef.current = false;
+
+        // Stop old stream first
+        stopQRStream();
+
+        try {
+            // Determine camera constraint
+            let videoConstraint: MediaStreamConstraints['video'];
+            const camId = overrideCameraId || selectedCameraId;
+            if (camId) {
+                videoConstraint = { deviceId: { exact: camId }, width: { ideal: 1280 }, height: { ideal: 720 } };
+            } else {
+                // prefer back camera on mobile
+                videoConstraint = { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } };
+            }
+
+            const stream = await navigator.mediaDevices.getUserMedia({ video: videoConstraint, audio: false });
+            qrStreamRef.current = stream;
+
+            // Re-enumerate to get labels (requires permission)
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            const cams = devices.filter((d) => d.kind === 'videoinput');
+            if (cams.length > 0) setAvailableCameras(cams);
+
+            // Identify which camera is active
+            const activeTrack = stream.getVideoTracks()[0];
+            const activeDeviceId = activeTrack?.getSettings()?.deviceId;
+            if (activeDeviceId) setSelectedCameraId(activeDeviceId);
+
+            setIsScanningQR(true);
+
+            // Wait for DOM paint before assigning srcObject
+            await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
+
+            if (qrVideoRef.current) {
+                qrVideoRef.current.srcObject = stream;
+                await qrVideoRef.current.play();
+            }
+
+            // Load jsQR in background while camera warms up
+            loadJsQR().catch(() => {});
+
+            // Start decode loop
+            qrRafRef.current = requestAnimationFrame(qrScanLoop);
+        } catch (err: any) {
+            const msg = err?.name === 'NotAllowedError'
+                ? 'Izin kamera ditolak. Aktifkan izin kamera di pengaturan browser Anda.'
+                : err?.name === 'NotFoundError'
+                    ? 'Tidak ada kamera yang ditemukan pada perangkat ini.'
+                    : err?.message || 'Gagal membuka kamera. Pastikan tidak digunakan aplikasi lain.';
+            setQrScannerError(msg);
+            setIsScanningQR(false);
+        } finally {
+            setIsStartingQR(false);
+        }
     };
 
-    // Bersihkan scanner saat unmount
-    useEffect(() => {
-        return () => {
-            if (qrScannerRef.current) {
-                try {
-                    if (qrScannerRef.current.isScanning) {
-                        qrScannerRef.current.stop();
-                    }
-                } catch {}
-            }
-            if (faceStream) {
-                faceStream.getTracks().forEach((t) => t.stop());
-            }
-        };
-    }, [faceStream]);
+    const handleQRDecoded = (decodedText: string) => {
+        // Stop scan loop immediately
+        if (qrRafRef.current !== null) {
+            cancelAnimationFrame(qrRafRef.current);
+            qrRafRef.current = null;
+        }
+        stopQRStream();
 
-    const handleQRScannedSuccess = async (decodedText: string) => {
         try {
             const data: ScannedSessionData = JSON.parse(decodedText);
             if (data.type !== 'PRESENSI_KBM' || !data.id_school_information || !data.id_class) {
                 setQrScannerError('QR Code tidak valid. Pastikan Anda memindai QR Presensi Resmi dari Guru.');
+                isProcessingQRRef.current = false;
                 return;
             }
-
-            await stopQRScanner();
             setScannedSession(data);
             setStep(2);
             startFaceCamera();
         } catch {
             setQrScannerError('Gagal membaca format QR Code. Silakan coba lagi.');
+            isProcessingQRRef.current = false;
         }
     };
 
-    // 2. Inisialisasi kamera depan untuk Verifikasi Wajah Anti-Spoofing
+    const handleScanQRFromFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        e.target.value = '';
+        if (!file) return;
+        setQrScannerError(null);
+        try {
+            const jsQR = await loadJsQR();
+            const img = new Image();
+            const url = URL.createObjectURL(file);
+            img.src = url;
+            await new Promise<void>((resolve, reject) => {
+                img.onload = () => resolve();
+                img.onerror = () => reject(new Error('Gagal memuat gambar'));
+            });
+            URL.revokeObjectURL(url);
+            const canvas = document.createElement('canvas');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            const ctx = canvas.getContext('2d')!;
+            ctx.drawImage(img, 0, 0);
+            const imageData = ctx.getImageData(0, 0, img.width, img.height);
+            const code = jsQR(imageData.data, img.width, img.height, { inversionAttempts: 'dontInvert' });
+            if (code?.data) {
+                handleQRDecoded(code.data);
+            } else {
+                setQrScannerError('QR Code tidak terdeteksi pada gambar tersebut. Pastikan gambar QR jelas dan tidak terpotong.');
+            }
+        } catch (err: any) {
+            setQrScannerError(err?.message || 'Gagal membaca gambar.');
+        }
+    };
+
+    // ── Stop all streams on unmount ──
+    useEffect(() => {
+        return () => {
+            stopQRStream();
+            if (faceStreamRef.current) {
+                faceStreamRef.current.getTracks().forEach((t) => t.stop());
+            }
+        };
+    }, [stopQRStream]);
+
+    // ── Face camera ──
     const startFaceCamera = async () => {
         setSubmitError(null);
         setFaceSnapshot(null);
+        setFaceReady(false);
         try {
             const stream = await navigator.mediaDevices.getUserMedia({
-                video: {
-                    facingMode: 'user',
-                    width: { ideal: 640 },
-                    height: { ideal: 480 },
-                },
+                video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } },
+                audio: false,
             });
-            setFaceStream(stream);
+            faceStreamRef.current = stream;
+            // Wait for DOM paint so faceVideoRef.current is mounted (step=2)
+            await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
             if (faceVideoRef.current) {
                 faceVideoRef.current.srcObject = stream;
+                faceVideoRef.current.onloadedmetadata = () => {
+                    faceVideoRef.current?.play().catch(() => {});
+                    setFaceReady(true);
+                };
             }
         } catch (err: any) {
             setSubmitError('Gagal mengakses kamera depan: ' + (err?.message || 'Izin ditolak'));
         }
     };
 
-    const captureFaceSnapshot = () => {
-        if (!faceVideoRef.current) return;
-        const video = faceVideoRef.current;
-        const canvas = document.createElement('canvas');
-        canvas.width = video.videoWidth || 640;
-        canvas.height = video.videoHeight || 480;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return;
+    // Attach stream when faceVideoRef becomes available (step transition or retake)
+    useEffect(() => {
+        if (step === 2 && faceVideoRef.current && faceStreamRef.current && !faceSnapshot) {
+            faceVideoRef.current.srcObject = faceStreamRef.current;
+            if (faceVideoRef.current.readyState >= 1) {
+                faceVideoRef.current.play().catch(() => {});
+                setFaceReady(true);
+            } else {
+                faceVideoRef.current.onloadedmetadata = () => {
+                    faceVideoRef.current?.play().catch(() => {});
+                    setFaceReady(true);
+                };
+            }
+        }
+    }, [step, faceSnapshot]);
 
-        // Cerminkan snapshot selfie agar sesuai tampilan pengguna
+    const captureCurrentFrame = (): string | null => {
+        const video = faceVideoRef.current;
+        if (!video) return null;
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth || 1280;
+        canvas.height = video.videoHeight || 720;
+        const ctx = canvas.getContext('2d')!;
         ctx.translate(canvas.width, 0);
         ctx.scale(-1, 1);
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        return canvas.toDataURL('image/jpeg', 0.95);
+    };
 
-        const b64 = canvas.toDataURL('image/jpeg', 0.85);
-        setFaceSnapshot(b64);
+    const captureFaceSnapshot = () => {
+        const frame = captureCurrentFrame();
+        if (!frame) return;
+        setFaceSnapshot(frame);
     };
 
     const retakeFace = () => {
@@ -207,16 +362,14 @@ export const StudentAttendanceScanView: React.FC = () => {
         setSubmitError(null);
     };
 
-    // 3. Submit Presensi dengan Verifikasi Wajah + Anti-Spoofing
+    // ── Submit attendance ──
     const handleSubmitAttendance = async () => {
         if (!scannedSession || !faceSnapshot) {
             setSubmitError('Foto wajah diperlukan untuk verifikasi presensi.');
             return;
         }
-
         setIsSubmitting(true);
         setSubmitError(null);
-
         try {
             const payload = {
                 id_school_information: scannedSession.id_school_information,
@@ -224,29 +377,37 @@ export const StudentAttendanceScanView: React.FC = () => {
                 subject_name: scannedSession.subject_name,
                 date: scannedSession.date,
                 day: scannedSession.day,
-                jp: scannedSession.jp,
+                jp: scannedSession.jp !== undefined && scannedSession.jp !== null ? String(scannedSession.jp) : undefined,
                 time_range: scannedSession.time_range,
                 teacher_name: scannedSession.teacher_name,
                 barcode_value: user?.identifier || user?.email || '',
+                session_token: scannedSession.session_token,
                 face_image_base64: faceSnapshot,
                 latitude: gpsCoords?.latitude,
                 longitude: gpsCoords?.longitude,
             };
-
             const response = await attendanceService.scan(payload as any);
             setSuccessResult(response.data);
             setStep(3);
-
-            // Matikan stream kamera
-            if (faceStream) {
-                faceStream.getTracks().forEach((t) => t.stop());
-                setFaceStream(null);
+            onScanSuccess?.();
+            if (faceStreamRef.current) {
+                faceStreamRef.current.getTracks().forEach((t) => t.stop());
+                faceStreamRef.current = null;
             }
         } catch (err: any) {
-            const msg =
-                err?.response?.data?.detail ||
-                err?.message ||
-                'Gagal memverifikasi presensi. Silakan coba lagi.';
+            const rawDetail = err?.response?.data?.detail ?? err?.details ?? err?.message;
+            let msg = 'Gagal memverifikasi presensi. Silakan coba lagi.';
+            if (typeof rawDetail === 'string' && rawDetail.trim()) {
+                msg = rawDetail;
+            } else if (Array.isArray(rawDetail) && rawDetail.length > 0) {
+                msg = rawDetail
+                    .map((item: any) =>
+                        typeof item === 'string' ? item : item?.message || item?.msg || JSON.stringify(item)
+                    )
+                    .join('; ');
+            } else if (rawDetail && typeof rawDetail === 'object') {
+                msg = rawDetail.message || rawDetail.msg || JSON.stringify(rawDetail);
+            }
             setSubmitError(msg);
         } finally {
             setIsSubmitting(false);
@@ -254,13 +415,21 @@ export const StudentAttendanceScanView: React.FC = () => {
     };
 
     const handleResetAll = () => {
+        stopQRStream();
+        if (faceStreamRef.current) {
+            faceStreamRef.current.getTracks().forEach((t) => t.stop());
+            faceStreamRef.current = null;
+        }
         setStep(1);
         setScannedSession(null);
         setFaceSnapshot(null);
+        setFaceReady(false);
         setSubmitError(null);
         setSuccessResult(null);
+        isProcessingQRRef.current = false;
     };
 
+    // ─── Render ──────────────────────────────────────────────────────────────
     return (
         <Box sx={{ maxWidth: 720, mx: 'auto', p: { xs: 2, sm: 3 } }}>
             {/* Header Informasi */}
@@ -294,25 +463,25 @@ export const StudentAttendanceScanView: React.FC = () => {
                             Presensi Mandiri Siswa
                         </Typography>
                         <Typography variant="caption" sx={{ color: isDark ? '#a1a1aa' : '#64748b' }}>
-                            Pindai Barcode Guru di kelas & verifikasi wajah asli dengan teknologi <b>Anti-Spoofing</b>.
+                            Pindai Barcode Guru di kelas &amp; verifikasi wajah asli dengan teknologi <b>Anti-Spoofing</b>.
                         </Typography>
                     </Box>
                 </Stack>
 
-                {/* Indikator Langkah */}
+                {/* Step indicators */}
                 <Stack direction="row" spacing={1} sx={{ mt: 2, flexWrap: 'wrap', gap: 1 }}>
                     <Chip
                         icon={<QrCodeScannerIcon sx={{ fontSize: '15px !important' }} />}
                         label="1. Scan Barcode Guru"
-                        color={step === 1 ? 'primary' : 'default'}
-                        variant={step === 1 ? 'filled' : 'outlined'}
+                        color={step === 1 ? 'primary' : step > 1 ? 'success' : 'default'}
+                        variant={step === 1 ? 'filled' : step > 1 ? 'filled' : 'outlined'}
                         sx={{ fontWeight: 800 }}
                     />
                     <Chip
                         icon={<FaceRetouchingNaturalIcon sx={{ fontSize: '15px !important' }} />}
                         label="2. Verifikasi Wajah Asli"
-                        color={step === 2 ? 'primary' : 'default'}
-                        variant={step === 2 ? 'filled' : 'outlined'}
+                        color={step === 2 ? 'primary' : step > 2 ? 'success' : 'default'}
+                        variant={step === 2 ? 'filled' : step > 2 ? 'filled' : 'outlined'}
                         sx={{ fontWeight: 800 }}
                     />
                     <Chip
@@ -325,7 +494,7 @@ export const StudentAttendanceScanView: React.FC = () => {
                 </Stack>
             </Card>
 
-            {/* LANGKAH 1: SCAN BARCODE GURU */}
+            {/* ═══ LANGKAH 1: SCAN QR ═══ */}
             {step === 1 && (
                 <Card
                     variant="outlined"
@@ -350,52 +519,166 @@ export const StudentAttendanceScanView: React.FC = () => {
                         </Alert>
                     )}
 
+                    {/* Camera selector */}
+                    {isScanningQR && availableCameras.length > 1 && (
+                        <FormControl size="small" sx={{ mb: 2, minWidth: 220 }}>
+                            <InputLabel>Pilih Kamera</InputLabel>
+                            <Select
+                                value={selectedCameraId}
+                                label="Pilih Kamera"
+                                onChange={(e) => {
+                                    setSelectedCameraId(e.target.value);
+                                    startQRScanner(e.target.value);
+                                }}
+                            >
+                                {availableCameras.map((cam, idx) => (
+                                    <MenuItem key={cam.deviceId} value={cam.deviceId}>
+                                        {cam.label || `Kamera ${idx + 1}`}
+                                    </MenuItem>
+                                ))}
+                            </Select>
+                        </FormControl>
+                    )}
+
+                    {/* Video viewfinder */}
                     <Box
-                        id={STUDENT_QR_READER_ID}
                         sx={{
+                            position: 'relative',
                             width: '100%',
-                            minHeight: isScanningQR ? 280 : 0,
+                            aspectRatio: '16/9',
                             mb: 2,
                             borderRadius: 2.5,
                             overflow: 'hidden',
-                            bgcolor: '#000000',
+                            bgcolor: '#09090b',
                             display: isScanningQR ? 'block' : 'none',
                         }}
+                    >
+                        {isStartingQR && (
+                            <Box
+                                sx={{
+                                    position: 'absolute',
+                                    inset: 0,
+                                    zIndex: 2,
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: 1,
+                                    bgcolor: 'rgba(9,9,11,0.85)',
+                                    color: '#ffffff',
+                                }}
+                            >
+                                <CircularProgress size={32} color="inherit" />
+                                <Typography variant="caption" sx={{ fontWeight: 700 }}>
+                                    Membuka kamera...
+                                </Typography>
+                            </Box>
+                        )}
+
+                        {/* Hidden canvas for jsQR decoding */}
+                        <canvas ref={qrCanvasRef} style={{ display: 'none' }} />
+
+                        {/* Actual video element */}
+                        <video
+                            ref={qrVideoRef}
+                            autoPlay
+                            playsInline
+                            muted
+                            style={{
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'cover',
+                                display: 'block',
+                            }}
+                        />
+
+                        {/* QR scan overlay guide */}
+                        <Box
+                            sx={{
+                                position: 'absolute',
+                                inset: 0,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                pointerEvents: 'none',
+                            }}
+                        >
+                            <Box
+                                sx={{
+                                    width: '55%',
+                                    aspectRatio: '1',
+                                    border: '3px solid rgba(59,130,246,0.85)',
+                                    borderRadius: 2,
+                                    boxShadow: '0 0 0 9999px rgba(0,0,0,0.35)',
+                                }}
+                            />
+                        </Box>
+                    </Box>
+
+                    {/* Hidden file input for image upload */}
+                    <input
+                        ref={qrFileInputRef}
+                        type="file"
+                        accept="image/*"
+                        hidden
+                        onChange={handleScanQRFromFile}
                     />
 
                     {!isScanningQR ? (
-                        <Button
-                            variant="contained"
-                            color="primary"
-                            size="large"
-                            startIcon={<QrCodeScannerIcon />}
-                            onClick={startQRScanner}
-                            sx={{
-                                textTransform: 'none',
-                                fontWeight: 800,
-                                borderRadius: 2.5,
-                                px: 4,
-                                py: 1.5,
-                                bgcolor: '#2563eb',
-                                boxShadow: '0 4px 14px rgba(37, 99, 235, 0.3)',
-                            }}
-                        >
-                            Buka Kamera Pemindai Barcode
-                        </Button>
+                        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} sx={{ justifyContent: 'center' }}>
+                            <Button
+                                variant="contained"
+                                color="primary"
+                                size="large"
+                                startIcon={isStartingQR ? <CircularProgress size={18} color="inherit" /> : <QrCodeScannerIcon />}
+                                disabled={isStartingQR}
+                                onClick={() => startQRScanner()}
+                                sx={{
+                                    textTransform: 'none',
+                                    fontWeight: 800,
+                                    borderRadius: 2.5,
+                                    px: 4,
+                                    py: 1.5,
+                                    bgcolor: '#2563eb',
+                                    boxShadow: '0 4px 14px rgba(37, 99, 235, 0.3)',
+                                }}
+                            >
+                                Buka Kamera Pemindai Barcode
+                            </Button>
+                            <Button
+                                variant="outlined"
+                                color="inherit"
+                                size="large"
+                                onClick={() => qrFileInputRef.current?.click()}
+                                sx={{ textTransform: 'none', fontWeight: 700, borderRadius: 2.5, px: 3, py: 1.5 }}
+                            >
+                                Upload Gambar QR
+                            </Button>
+                        </Stack>
                     ) : (
-                        <Button
-                            variant="outlined"
-                            color="error"
-                            onClick={stopQRScanner}
-                            sx={{ textTransform: 'none', fontWeight: 700, borderRadius: 2 }}
-                        >
-                            Tutup Kamera Barcode
-                        </Button>
+                        <Stack direction="row" spacing={1.5} sx={{ justifyContent: 'center' }}>
+                            <Button
+                                variant="outlined"
+                                color="error"
+                                onClick={stopQRStream}
+                                sx={{ textTransform: 'none', fontWeight: 700, borderRadius: 2 }}
+                            >
+                                Tutup Kamera Barcode
+                            </Button>
+                            <Button
+                                variant="outlined"
+                                color="inherit"
+                                onClick={() => qrFileInputRef.current?.click()}
+                                sx={{ textTransform: 'none', fontWeight: 700, borderRadius: 2 }}
+                            >
+                                Upload Gambar QR
+                            </Button>
+                        </Stack>
                     )}
                 </Card>
             )}
 
-            {/* LANGKAH 2: VERIFIKASI WAJAH ASLI (DEEPFACE + ANTI-SPOOFING) */}
+            {/* ═══ LANGKAH 2: VERIFIKASI WAJAH ═══ */}
             {step === 2 && scannedSession && (
                 <Card
                     variant="outlined"
@@ -406,7 +689,7 @@ export const StudentAttendanceScanView: React.FC = () => {
                         borderColor: isDark ? '#27272a' : '#e2e8f0',
                     }}
                 >
-                    {/* Ringkasan Sesi yang Terpindai */}
+                    {/* Ringkasan sesi terpindai */}
                     <Box
                         sx={{
                             p: 2,
@@ -445,36 +728,29 @@ export const StudentAttendanceScanView: React.FC = () => {
                         </Stack>
                     </Box>
 
-                    {/* Instruksi Anti-Spoofing */}
-                    <Alert
-                        severity="info"
-                        icon={<ShieldIcon />}
-                        sx={{ mb: 2.5, borderRadius: 2 }}
-                    >
-                        <Typography variant="body2" sx={{ fontWeight: 800 }}>
-                            Anti-Spoofing Aktif
-                        </Typography>
+                    {/* Anti-Spoofing info */}
+                    <Alert severity="info" icon={<ShieldIcon />} sx={{ mb: 2.5, borderRadius: 2 }}>
+                        <Typography variant="body2" sx={{ fontWeight: 800 }}>Anti-Spoofing Aktif</Typography>
                         <Typography variant="caption" sx={{ display: 'block' }}>
-                            Posisikan wajah Anda secara langsung menghadap kamera. Dilarang menggunakan foto kertas, layar smartphone lain, atau manipulasi gambar.
+                            Posisikan wajah Anda pada jarak ±40–50 cm agar pas di dalam oval dan area sekitar terlihat.
+                            Dilarang menggunakan foto kertas, layar smartphone lain, atau manipulasi gambar.
                         </Typography>
                     </Alert>
 
                     {submitError && (
                         <Alert severity="error" sx={{ mb: 2.5, borderRadius: 2 }}>
-                            <Typography variant="body2" sx={{ fontWeight: 800 }}>
-                                Verifikasi Gagal
-                            </Typography>
+                            <Typography variant="body2" sx={{ fontWeight: 800 }}>Verifikasi Gagal</Typography>
                             <Typography variant="caption">{submitError}</Typography>
                         </Alert>
                     )}
 
-                    {/* Viewfinder Kamera Wajah dengan Bingkai Oval */}
+                    {/* Face viewfinder */}
                     <Box
                         sx={{
                             position: 'relative',
                             width: '100%',
-                            maxWidth: 380,
-                            height: 380,
+                            maxWidth: 480,
+                            aspectRatio: '4 / 3',
                             mx: 'auto',
                             mb: 2.5,
                             borderRadius: 3,
@@ -490,10 +766,31 @@ export const StudentAttendanceScanView: React.FC = () => {
                             <img
                                 src={faceSnapshot}
                                 alt="Selfie Wajah Siswa"
-                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                             />
                         ) : (
                             <>
+                                {!faceReady && (
+                                    <Box
+                                        sx={{
+                                            position: 'absolute',
+                                            inset: 0,
+                                            zIndex: 2,
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            gap: 1,
+                                            bgcolor: 'rgba(9,9,11,0.85)',
+                                            color: '#ffffff',
+                                        }}
+                                    >
+                                        <CircularProgress size={32} color="inherit" />
+                                        <Typography variant="caption" sx={{ fontWeight: 700 }}>
+                                            Membuka kamera depan...
+                                        </Typography>
+                                    </Box>
+                                )}
                                 <video
                                     ref={faceVideoRef}
                                     autoPlay
@@ -502,16 +799,16 @@ export const StudentAttendanceScanView: React.FC = () => {
                                     style={{
                                         width: '100%',
                                         height: '100%',
-                                        objectFit: 'cover',
+                                        objectFit: 'contain',
                                         transform: 'scaleX(-1)',
                                     }}
                                 />
-                                {/* Bingkai Oval Panduan Wajah */}
+                                {/* Oval face guide (proporsional jarak ±40-50 cm) */}
                                 <Box
                                     sx={{
                                         position: 'absolute',
-                                        width: 220,
-                                        height: 290,
+                                        width: 155,
+                                        height: 205,
                                         borderRadius: '50%',
                                         border: '3px dashed #3b82f6',
                                         boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.45)',
@@ -522,7 +819,7 @@ export const StudentAttendanceScanView: React.FC = () => {
                         )}
                     </Box>
 
-                    {/* Tombol Aksi Snapshot & Verifikasi */}
+                    {/* Action buttons */}
                     <Stack spacing={1.5} sx={{ maxWidth: 380, mx: 'auto' }}>
                         {!faceSnapshot ? (
                             <Button
@@ -530,6 +827,7 @@ export const StudentAttendanceScanView: React.FC = () => {
                                 color="primary"
                                 size="large"
                                 startIcon={<CameraAltIcon />}
+                                disabled={!faceReady}
                                 onClick={captureFaceSnapshot}
                                 sx={{
                                     textTransform: 'none',
@@ -539,7 +837,7 @@ export const StudentAttendanceScanView: React.FC = () => {
                                     bgcolor: '#2563eb',
                                 }}
                             >
-                                Ambil Foto Wajah
+                                {faceReady ? 'Ambil Foto Wajah' : 'Menyiapkan Kamera...'}
                             </Button>
                         ) : (
                             <>
@@ -569,7 +867,6 @@ export const StudentAttendanceScanView: React.FC = () => {
                                         ? 'Memverifikasi Wajah (Anti-Spoofing)...'
                                         : 'Verifikasi Wajah & Catat Hadir'}
                                 </Button>
-
                                 <Button
                                     variant="outlined"
                                     color="inherit"
@@ -582,7 +879,6 @@ export const StudentAttendanceScanView: React.FC = () => {
                                 </Button>
                             </>
                         )}
-
                         <Button
                             variant="text"
                             color="inherit"
@@ -596,7 +892,7 @@ export const StudentAttendanceScanView: React.FC = () => {
                 </Card>
             )}
 
-            {/* LANGKAH 3: SUKSES / TERVERIFIKASI HADIR */}
+            {/* ═══ LANGKAH 3: SUKSES ═══ */}
             {step === 3 && successResult && (
                 <Card
                     variant="outlined"
@@ -629,7 +925,7 @@ export const StudentAttendanceScanView: React.FC = () => {
                         Presensi Berhasil Dicatat: HADIR
                     </Typography>
                     <Typography variant="body2" sx={{ color: isDark ? '#a1a1aa' : '#64748b', mb: 3 }}>
-                        Kehadiran Anda telah berhasil diverifikasi secara sah menggunakan DeepFace & Anti-Spoofing.
+                        Kehadiran Anda telah berhasil diverifikasi secara sah menggunakan DeepFace &amp; Anti-Spoofing.
                     </Typography>
 
                     <Paper
@@ -681,27 +977,39 @@ export const StudentAttendanceScanView: React.FC = () => {
                                     Catatan:
                                 </Typography>
                                 <Typography variant="caption" sx={{ fontWeight: 700, color: isDark ? '#d4d4d8' : '#334155' }}>
-                                    {successResult.notes}
+                                    {successResult.notes || '-'}
                                 </Typography>
                             </Stack>
                         </Stack>
                     </Paper>
 
-                    <Button
-                        variant="contained"
-                        color="primary"
-                        onClick={handleResetAll}
-                        sx={{
-                            textTransform: 'none',
-                            fontWeight: 800,
-                            borderRadius: 2,
-                            px: 3.5,
-                            py: 1,
-                            bgcolor: '#2563eb',
-                        }}
-                    >
-                        Selesai / Scan Sesi Lain
-                    </Button>
+                    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} sx={{ justifyContent: 'center' }}>
+                        <Button
+                            variant="outlined"
+                            color="primary"
+                            onClick={handleResetAll}
+                            sx={{ textTransform: 'none', fontWeight: 800, borderRadius: 2, px: 3, py: 1 }}
+                        >
+                            Scan Sesi Lain
+                        </Button>
+                        {onClose && (
+                            <Button
+                                variant="contained"
+                                color="primary"
+                                onClick={onClose}
+                                sx={{
+                                    textTransform: 'none',
+                                    fontWeight: 800,
+                                    borderRadius: 2,
+                                    px: 3.5,
+                                    py: 1,
+                                    bgcolor: '#2563eb',
+                                }}
+                            >
+                                Selesai &amp; Lihat Rekap
+                            </Button>
+                        )}
+                    </Stack>
                 </Card>
             )}
         </Box>

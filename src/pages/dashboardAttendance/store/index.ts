@@ -4,6 +4,7 @@ import type {
     AcademicYearMeetingItem,
     AccessibleClassItem,
     AttendanceApprovalCheckResponse,
+    AttendanceSessionOpenStatus,
     AttendanceSettingsModel,
     StudentAttendanceSheetItem,
 } from '@api/attendance/model';
@@ -33,6 +34,11 @@ export interface AttendanceState {
     students: StudentAttendanceSheetItem[];
     isLoadingSheet: boolean;
     isSaving: boolean;
+
+    // Session open/close status (BELUM_DIBUKA -> DIBUKA -> DITUTUP)
+    sessionOpenStatus: AttendanceSessionOpenStatus;
+    sessionToken: string | null;
+    isUpdatingSessionStatus: boolean;
 
     // Settings & Scan / Barcode dialogs
     settings: AttendanceSettingsModel;
@@ -67,6 +73,9 @@ const initialState: AttendanceState = {
     students: [],
     isLoadingSheet: false,
     isSaving: false,
+    sessionOpenStatus: 'BELUM_DIBUKA',
+    sessionToken: null,
+    isUpdatingSessionStatus: false,
     settings: {
         use_face_verification: true,
         use_geolocation: true,

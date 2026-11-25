@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
     Box,
     Typography,
@@ -28,18 +28,62 @@ import ScanAttendanceDialog from './Scan/ScanAttendanceDialog';
 import AttendanceSettingsDialog from './Settings/AttendanceSettingsDialog';
 import ShowAttendanceBarcodeDialog from './ShowBarcode/ShowAttendanceBarcodeDialog';
 import StudentAttendanceScanView from './StudentScan/StudentAttendanceScanView';
+import StudentAttendanceMatrixView from './StudentMatrix/StudentAttendanceMatrixView';
+import { BaseDialog, DialogHeader, DialogBody } from '@components/Dialog';
+import attendanceService from '@api/attendance/service';
+import { snackbar } from '@utils/snackbar';
 import useAuthStore from '../../common/store/useAuthStore';
 
 export const DashboardAttendance: React.FC = () => {
-    const theme = useTheme();
-    const isDark = theme.palette.mode === 'dark';
     const { user, activeRole } = useAuthStore();
 
     const isStudent =
         activeRole === 'student' ||
-        user?.roles?.some((r: any) =>
-            (typeof r === 'string' ? r : r.name || '').toLowerCase() === 'student'
+        activeRole === 'siswa' ||
+        user?.user_type === 'student' ||
+        user?.roles?.some((r: any) => {
+            const roleName = (typeof r === 'string' ? r : r.name || '').toLowerCase();
+            return roleName === 'student' || roleName === 'siswa';
+        });
+
+    const [isStudentScanOpen, setIsStudentScanOpen] = useState(false);
+    const [studentMatrixRefreshKey, setStudentMatrixRefreshKey] = useState(0);
+
+    if (isStudent) {
+        return (
+            <>
+                <StudentAttendanceMatrixView
+                    onOpenScan={() => setIsStudentScanOpen(true)}
+                    refreshTrigger={studentMatrixRefreshKey}
+                />
+
+                <BaseDialog
+                    isOpen={isStudentScanOpen}
+                    onClose={() => setIsStudentScanOpen(false)}
+                    maxWidth="md"
+                >
+                    <DialogHeader
+                        title="Scan Presensi Mandiri"
+                        description="Tahap 1: Scan Barcode Guru → Tahap 2: Verifikasi Wajah (Anti-Spoofing) → Tahap 3: Hasil"
+                        onClose={() => setIsStudentScanOpen(false)}
+                    />
+                    <DialogBody>
+                        <StudentAttendanceScanView
+                            onScanSuccess={() => setStudentMatrixRefreshKey((k) => k + 1)}
+                            onClose={() => setIsStudentScanOpen(false)}
+                        />
+                    </DialogBody>
+                </BaseDialog>
+            </>
         );
+    }
+
+    return <TeacherAttendanceView />;
+};
+
+const TeacherAttendanceView: React.FC = () => {
+    const theme = useTheme();
+    const isDark = theme.palette.mode === 'dark';
 
     const {
         state,
@@ -66,6 +110,8 @@ export const DashboardAttendance: React.FC = () => {
         students,
         isLoadingSheet,
         isSaving,
+        sessionOpenStatus,
+        isUpdatingSessionStatus,
     } = state;
 
     const { fetchMeetings, loadAttendanceSheet } = useAttendanceList();
@@ -96,12 +142,36 @@ export const DashboardAttendance: React.FC = () => {
 
     const liveRecap = useMemo(() => computeAttendanceRecap(students), [students]);
 
+    const handleToggleSessionStatus = async (action: 'OPEN' | 'CLOSE') => {
+        if (!selectedSchoolInfoId || !selectedClassId || !selectedMeeting) return;
+        setState({ isUpdatingSessionStatus: true });
+        try {
+            const res = await attendanceService.updateSessionStatus({
+                id_school_information: selectedSchoolInfoId,
+                id_class: selectedClassId,
+                date: selectedMeeting.date,
+                jp: String(selectedMeeting.jp),
+                subject_name: selectedSubject || selectedMeeting.subject_name || '',
+                action,
+            });
+            setState({
+                sessionOpenStatus: res.status,
+                sessionToken: res.session_token || null,
+            });
+            if (action === 'OPEN') {
+                snackbar.success('Presensi dibuka dengan barcode baru.');
+            } else {
+                snackbar.info('Presensi ditutup. Barcode sebelumnya tidak dapat digunakan lagi.');
+            }
+        } catch (err: any) {
+            snackbar.error(err?.message || 'Gagal memperbarui status pembukaan presensi.');
+        } finally {
+            setState({ isUpdatingSessionStatus: false });
+        }
+    };
+
     const canShowAttendanceTable =
         isApproved && selectedSubject !== '' && selectedMeeting !== null && classes.length > 0;
-
-    if (isStudent) {
-        return <StudentAttendanceScanView />;
-    }
 
     return (
         <Box sx={{ p: { xs: 1.5, sm: 2.5, md: 3 }, maxWidth: '100%', overflowX: 'hidden' }}>
@@ -251,12 +321,16 @@ export const DashboardAttendance: React.FC = () => {
                         selectedMeeting={selectedMeeting}
                         onSelectMeeting={(m) => setState({ selectedMeeting: m })}
                         disabled={!isApproved || isLoadingMeetings}
+                        sessionOpenStatus={sessionOpenStatus}
                     />
 
                     {canShowAttendanceTable && (
                         <>
                             <AttendanceCreateToolbar
                                 recap={liveRecap}
+                                sessionOpenStatus={sessionOpenStatus}
+                                isUpdatingSessionStatus={isUpdatingSessionStatus}
+                                onToggleSessionStatus={handleToggleSessionStatus}
                                 onMarkAllHadir={handleMarkAllHadir}
                                 onMarkAllAlpa={handleMarkAllAlpa}
                                 onSave={handleSaveBatch}

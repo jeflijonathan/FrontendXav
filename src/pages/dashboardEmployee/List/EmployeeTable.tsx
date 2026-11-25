@@ -87,7 +87,7 @@ const EmployeeTable = () => {
         ];
 
     const renderActions = (item: EmployeeResponseModel) => (
-        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
+        <div style={{ display: "flex", gap: "4px", flexWrap: "nowrap", alignItems: "center" }}>
             {ListActions.map((action, index) => (
                 <IconButton key={index} size="small" color={action.color} onClick={() => action.onClick(item)} title={action.label}>
                     {action.icon}

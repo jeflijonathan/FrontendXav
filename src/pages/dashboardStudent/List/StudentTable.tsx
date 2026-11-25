@@ -70,7 +70,7 @@ const StudentTable = () => {
     ];
 
     const renderActions = (item: StudentResponseModel) => (
-        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
+        <div style={{ display: "flex", gap: "4px", flexWrap: "nowrap", alignItems: "center" }}>
             {ListActions.map((action, index) => (
                 <IconButton key={index} size="small" color={action.color} onClick={() => action.onClick(item)} title={action.label}>
                     {action.icon}
@@ -95,10 +95,10 @@ const StudentTable = () => {
                 <TableBody header={studentHeaders} isLoading={state.isLoading} dataLength={tableData.length} skeletonRows={3}>
                     {tableData.map((row, index) => (
                         <TableRow key={row.id} index={index} header={studentHeaders} actions={renderActions(row)}>
-                            <TableCell sx={{ py: 1 }}>{row.nis}</TableCell>
-                            <TableCell sx={{ py: 1 }}>{row.nisn}</TableCell>
-                            <TableCell sx={{ py: 1 }}>
-                                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                            <TableCell sx={{ py: 1.5, verticalAlign: "middle" }}>{row.nis}</TableCell>
+                            <TableCell sx={{ py: 1.5, verticalAlign: "middle" }}>{row.nisn}</TableCell>
+                            <TableCell sx={{ py: 1.5, verticalAlign: "middle" }}>
+                                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                                     {row.profile_url ? (
                                         <img
                                             src={`${import.meta.env.VITE_BACKEND_URL}/api/upload/${row.profile_url}`}
@@ -110,11 +110,11 @@ const StudentTable = () => {
                                             {row.first_name?.[0]?.toUpperCase() || "-"}
                                         </div>
                                     )}
-                                    <span>{`${row.first_name} ${row.last_name}`}</span>
+                                    <span style={{ fontWeight: 600 }}>{`${row.first_name} ${row.last_name}`}</span>
                                 </div>
                             </TableCell>
-                            <TableCell sx={{ py: 1 }}>
-                                <div style={{ display: "flex", gap: "4px", flexWrap: "wrap" }}>
+                            <TableCell sx={{ py: 1.5, verticalAlign: "middle" }}>
+                                <div style={{ display: "flex", gap: "6px", flexWrap: "nowrap", alignItems: "center", whiteSpace: "nowrap" }}>
                                     {row.roles && row.roles.length > 0 ? (
                                         row.roles.map((r) => (
                                             <Chip
@@ -123,19 +123,20 @@ const StudentTable = () => {
                                                 color={r.name === "pengurus_kelas" ? "primary" : "default"}
                                                 size="small"
                                                 variant={r.name === "pengurus_kelas" ? "filled" : "outlined"}
+                                                sx={{ fontWeight: 600 }}
                                             />
                                         ))
                                     ) : (
-                                        <Chip label="Siswa" size="small" variant="outlined" />
+                                        <Chip label="Siswa" size="small" variant="outlined" sx={{ fontWeight: 600 }} />
                                     )}
                                 </div>
                             </TableCell>
-                            <TableCell sx={{ py: 1 }}>{row.phone_number || "-"}</TableCell>
-                            <TableCell sx={{ py: 1 }}>{row.gender === "L" ? "Laki-laki" : "Perempuan"}</TableCell>
-                            <TableCell sx={{ py: 1 }}>
+                            <TableCell sx={{ py: 1.5, verticalAlign: "middle" }}>{row.phone_number || "-"}</TableCell>
+                            <TableCell sx={{ py: 1.5, verticalAlign: "middle" }}>{row.gender === "L" ? "Laki-laki" : "Perempuan"}</TableCell>
+                            <TableCell sx={{ py: 1.5, verticalAlign: "middle" }}>
                                 <Chip label={statusData[Number(row.status)]?.label ?? "Aktif"} color={statusData[Number(row.status)]?.color ?? "success"} size="small" />
                             </TableCell>
-                            <TableCell sx={{ py: 1 }}>{row.created_at ? new Date(row.created_at).toLocaleDateString() : "-"}</TableCell>
+                            <TableCell sx={{ py: 1.5, verticalAlign: "middle" }}>{row.created_at ? new Date(row.created_at).toLocaleDateString() : "-"}</TableCell>
                         </TableRow>
                     ))}
                 </TableBody>

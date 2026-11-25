@@ -141,9 +141,19 @@ export interface ScanAttendancePayload {
     jp?: string;
     time_range?: string;
     barcode_value: string;
+    session_token?: string | null;
     face_image_base64?: string | null;
+    liveness_image_base64?: string | null;
+    liveness_challenge?: string | null;
     latitude?: number | null;
     longitude?: number | null;
+}
+
+export type AttendanceSessionOpenStatus = 'BELUM_DIBUKA' | 'DIBUKA' | 'DITUTUP';
+
+export interface AttendanceSessionStatusResponse {
+    status: AttendanceSessionOpenStatus;
+    session_token?: string | null;
 }
 
 export interface ScanAttendanceResponse {
@@ -157,4 +167,65 @@ export interface ScanAttendanceResponse {
     geo_verified: boolean;
     distance_meters?: number | null;
     notes: string;
+}
+
+// ─── Student Attendance Matrix Types ───────────────────────────────────────────
+
+export interface StudentMeetingAttendance {
+    pertemuan_ke: number;
+    date: string;
+    day: string;
+    semester: string;
+    jp: string | number | null;
+    time_range: string | null;
+    status: 'HADIR' | 'SAKIT' | 'IZIN' | 'ALPA' | null;
+    points: number | null;
+    notes: string | null;
+    is_future: boolean;
+}
+
+export interface StudentSubjectAttendance {
+    subject_name: string;
+    class_name: string;
+    teacher_name: string;
+    jp: string | null;
+    time_range: string | null;
+    meetings: StudentMeetingAttendance[];
+    total_points: number;
+    completed_meetings: number;
+    hadir_count: number;
+    sakit_count: number;
+    izin_count: number;
+    alpa_count: number;
+    percentage: number;
+    is_below_threshold: boolean;
+}
+
+export interface StudentAttendanceMatrixResponse {
+    student: {
+        id: string;
+        name: string;
+        nis: string;
+        nisn: string | null;
+        profile_url: string | null;
+        class_id: string;
+        class_name: string;
+    };
+    overall: {
+        average_percentage: number;
+        total_points: number;
+        total_completed: number;
+        subjects_below_75: number;
+        total_subjects: number;
+        threshold: number;
+    };
+    point_rules: {
+        HADIR: number;
+        SAKIT: number;
+        IZIN: number;
+        ALPA: number;
+        formula: string;
+    };
+    max_meetings: number;
+    subjects: StudentSubjectAttendance[];
 }

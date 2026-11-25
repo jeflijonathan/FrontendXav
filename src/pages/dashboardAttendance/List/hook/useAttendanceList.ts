@@ -117,13 +117,15 @@ export function useAttendanceList() {
         }
     }, [selectedSchoolInfoId, selectedClassId, setState]);
 
-    const loadAttendanceSheet = useCallback(async () => {
+    const loadAttendanceSheet = useCallback(async (silent = false) => {
         if (!selectedSchoolInfoId || !selectedClassId || !selectedSubject || !isApproved || !selectedMeeting) {
             setState({ students: [] });
             return;
         }
 
-        setState({ isLoadingSheet: true });
+        if (!silent) {
+            setState({ isLoadingSheet: true });
+        }
         try {
             const res = await attendanceService.getAttendanceSheet(
                 selectedSchoolInfoId,
@@ -134,18 +136,49 @@ export function useAttendanceList() {
             );
 
             if (!res.is_schedule_approved || res.is_holiday) {
-                setState({ students: [] });
+                setState({
+                    students: [],
+                    sessionOpenStatus: 'BELUM_DIBUKA',
+                    sessionToken: null,
+                });
             } else if (res.is_authorized === false) {
                 snackbar.error(res.message || 'Anda tidak memiliki akses untuk sesi ini.');
-                setState({ students: [] });
+                setState({
+                    students: [],
+                    sessionOpenStatus: 'BELUM_DIBUKA',
+                    sessionToken: null,
+                });
             } else {
-                setState({ students: res.students || [] });
+                let nextStatus: 'BELUM_DIBUKA' | 'DIBUKA' | 'DITUTUP' = 'BELUM_DIBUKA';
+                let nextToken: string | null = null;
+                try {
+                    const sessionRes = await attendanceService.getSessionStatus({
+                        id_school_information: selectedSchoolInfoId,
+                        id_class: selectedClassId,
+                        date: selectedMeeting.date,
+                        jp: String(selectedMeeting.jp),
+                        subject_name: selectedMeeting.subject_name,
+                    });
+                    nextStatus = sessionRes.status || 'BELUM_DIBUKA';
+                    nextToken = sessionRes.session_token || null;
+                } catch {
+                    // keep default BELUM_DIBUKA
+                }
+                setState({
+                    students: res.students || [],
+                    sessionOpenStatus: nextStatus,
+                    sessionToken: nextToken,
+                });
             }
         } catch (err) {
             console.error('Error loading attendance sheet:', err);
-            setState({ students: [] });
+            if (!silent) {
+                setState({ students: [] });
+            }
         } finally {
-            setState({ isLoadingSheet: false });
+            if (!silent) {
+                setState({ isLoadingSheet: false });
+            }
         }
     }, [selectedSchoolInfoId, selectedClassId, selectedSubject, isApproved, selectedMeeting, setState]);
 

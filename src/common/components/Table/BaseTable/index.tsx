@@ -40,7 +40,15 @@ const BaseTable = ({ children, breakpoint = 768 }: BaseTableProps) => {
                 width: "100%",
             }}
         >
-            <Table sx={{ width: "100%", minWidth: "100%" }}>
+            <Table
+                sx={{
+                    width: "100%",
+                    minWidth: "100%",
+                    "& .MuiTableCell-root": {
+                        verticalAlign: "middle",
+                    },
+                }}
+            >
                 {children}
             </Table>
         </TableContainer>
