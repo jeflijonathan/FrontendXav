@@ -65,13 +65,14 @@ export const DashboardAttendance: React.FC = () => {
                     isOpen={isStudentScanOpen}
                     onClose={() => setIsStudentScanOpen(false)}
                     maxWidth="md"
+                    fullScreenOnMobile
                 >
                     <DialogHeader
                         title="Scan Presensi Mandiri"
                         description="Tahap 1: Scan Barcode Guru → Tahap 2: Verifikasi Wajah (Anti-Spoofing) → Tahap 3: Hasil"
                         onClose={() => setIsStudentScanOpen(false)}
                     />
-                    <DialogBody>
+                    <DialogBody sx={{ p: { xs: 1.5, sm: 3 } }}>
                         <StudentAttendanceScanView
                             onScanSuccess={() => setStudentMatrixRefreshKey((k) => k + 1)}
                             onClose={() => setIsStudentScanOpen(false)}

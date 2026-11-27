@@ -111,6 +111,7 @@ export const StudentAttendanceScanView: React.FC<StudentAttendanceScanViewProps>
 
     // ── Enumerate cameras ──
     useEffect(() => {
+        if (!navigator?.mediaDevices?.enumerateDevices) return;
         navigator.mediaDevices.enumerateDevices().then((devices) => {
             const cams = devices.filter((d) => d.kind === 'videoinput');
             setAvailableCameras(cams);
@@ -168,6 +169,9 @@ export const StudentAttendanceScanView: React.FC<StudentAttendanceScanViewProps>
             qrStreamRef.current.getTracks().forEach((t) => t.stop());
             qrStreamRef.current = null;
         }
+        if (qrVideoRef.current) {
+            qrVideoRef.current.srcObject = null;
+        }
         setIsScanningQR(false);
     }, []);
 
@@ -178,6 +182,12 @@ export const StudentAttendanceScanView: React.FC<StudentAttendanceScanViewProps>
 
         // Stop old stream first
         stopQRStream();
+
+        if (!navigator?.mediaDevices?.getUserMedia) {
+            setQrScannerError('Akses kamera membutuhkan koneksi HTTPS. Silakan buka melalui https://192.168.1.10:8443 (atau localhost).');
+            setIsStartingQR(false);
+            return;
+        }
 
         try {
             // Determine camera constraint
@@ -194,7 +204,9 @@ export const StudentAttendanceScanView: React.FC<StudentAttendanceScanViewProps>
             qrStreamRef.current = stream;
 
             // Re-enumerate to get labels (requires permission)
-            const devices = await navigator.mediaDevices.enumerateDevices();
+            const devices = navigator.mediaDevices.enumerateDevices
+                ? await navigator.mediaDevices.enumerateDevices().catch(() => [])
+                : [];
             const cams = devices.filter((d) => d.kind === 'videoinput');
             if (cams.length > 0) setAvailableCameras(cams);
 
@@ -298,45 +310,129 @@ export const StudentAttendanceScanView: React.FC<StudentAttendanceScanViewProps>
     }, [stopQRStream]);
 
     // ── Face camera ──
-    const startFaceCamera = async () => {
+    const attachFaceStream = useCallback((stream: MediaStream) => {
+        const video = faceVideoRef.current;
+        if (!video) return;
+        if (video.srcObject !== stream) {
+            video.srcObject = stream;
+        }
+        const markReady = () => {
+            video.play().catch(() => {});
+            setFaceReady(true);
+        };
+        if (video.readyState >= 1 || video.videoWidth > 0) {
+            markReady();
+            return;
+        }
+        video.onloadedmetadata = markReady;
+        video.onloadeddata = markReady;
+        video.oncanplay = markReady;
+        video.play().then(() => {
+            if (video.readyState >= 1 || video.videoWidth > 0) {
+                setFaceReady(true);
+            }
+        }).catch(() => {});
+    }, []);
+
+    const startFaceCamera = async (overrideCameraId?: string) => {
         setSubmitError(null);
         setFaceSnapshot(null);
         setFaceReady(false);
+
+        if (faceStreamRef.current) {
+            faceStreamRef.current.getTracks().forEach((t) => t.stop());
+            faceStreamRef.current = null;
+        }
+        if (faceVideoRef.current) {
+            faceVideoRef.current.srcObject = null;
+        }
+
+        if (!navigator?.mediaDevices?.getUserMedia) {
+            setSubmitError('Akses kamera depan membutuhkan koneksi HTTPS. Silakan buka melalui https://192.168.1.10:8443 (atau localhost).');
+            return;
+        }
+
+        // Pastikan QR stream benar-benar berhenti dan beri jeda agar driver webcam melepas perangkat
+        stopQRStream();
+        await new Promise<void>((r) => setTimeout(r, 450));
+
+        const tryAcquireStream = async (): Promise<MediaStream | null> => {
+            const devices = navigator.mediaDevices.enumerateDevices
+                ? await navigator.mediaDevices.enumerateDevices().catch(() => [])
+                : [];
+            const videoInputs = devices.filter((d) => d.kind === 'videoinput');
+            if (videoInputs.length > 0) setAvailableCameras(videoInputs);
+
+            const attempts: MediaStreamConstraints[] = [];
+            if (overrideCameraId) {
+                attempts.push({ video: { deviceId: { exact: overrideCameraId } }, audio: false });
+            } else {
+                attempts.push({ video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false });
+                if (selectedCameraId) {
+                    attempts.push({ video: { deviceId: { exact: selectedCameraId } }, audio: false });
+                }
+                attempts.push({ video: true, audio: false });
+                // Coba semua kamera yang tersedia satu per satu (lewati kamera virtual/rusak yang gagal dibuka)
+                const ordered = [...videoInputs].sort((a, b) => {
+                    const score = (label: string) =>
+                        /obs|virtual|snap|manycam|droidcam/i.test(label) ? 2 :
+                        /front|user|integrated|webcam|hd|usb/i.test(label) ? 0 : 1;
+                    return score(a.label || '') - score(b.label || '');
+                });
+                for (const cam of ordered) {
+                    if (cam.deviceId && cam.deviceId !== selectedCameraId) {
+                        attempts.push({ video: { deviceId: { exact: cam.deviceId } }, audio: false });
+                    }
+                }
+            }
+
+            let lastErr: any = null;
+            for (const constraint of attempts) {
+                try {
+                    return await navigator.mediaDevices.getUserMedia(constraint);
+                } catch (e: any) {
+                    lastErr = e;
+                }
+            }
+            if (lastErr) throw lastErr;
+            return null;
+        };
+
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } },
-                audio: false,
-            });
+            let stream: MediaStream | null = null;
+            try {
+                stream = await tryAcquireStream();
+            } catch (firstErr: any) {
+                // Retry sekali lagi setelah jeda 650ms jika driver webcam Windows masih sibuk
+                await new Promise<void>((r) => setTimeout(r, 650));
+                stream = await tryAcquireStream();
+                if (!stream) throw firstErr;
+            }
+
+            if (!stream) {
+                throw new Error('Kamera tidak tersedia.');
+            }
+
             faceStreamRef.current = stream;
             // Wait for DOM paint so faceVideoRef.current is mounted (step=2)
             await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
-            if (faceVideoRef.current) {
-                faceVideoRef.current.srcObject = stream;
-                faceVideoRef.current.onloadedmetadata = () => {
-                    faceVideoRef.current?.play().catch(() => {});
-                    setFaceReady(true);
-                };
-            }
+            attachFaceStream(stream);
         } catch (err: any) {
-            setSubmitError('Gagal mengakses kamera depan: ' + (err?.message || 'Izin ditolak'));
+            const detail = err?.message || 'Izin ditolak';
+            setSubmitError(
+                /not found|Requested device|Could not start video source|NotReadableError/i.test(detail)
+                    ? 'Kamera sedang digunakan aplikasi lain atau masih terkunci oleh sistem. Tutup aplikasi kamera lain / tab lain yang memakai kamera, lalu klik "Muat Ulang Kamera Depan".'
+                    : `Gagal mengakses kamera depan: ${detail}`
+            );
         }
     };
 
     // Attach stream when faceVideoRef becomes available (step transition or retake)
     useEffect(() => {
         if (step === 2 && faceVideoRef.current && faceStreamRef.current && !faceSnapshot) {
-            faceVideoRef.current.srcObject = faceStreamRef.current;
-            if (faceVideoRef.current.readyState >= 1) {
-                faceVideoRef.current.play().catch(() => {});
-                setFaceReady(true);
-            } else {
-                faceVideoRef.current.onloadedmetadata = () => {
-                    faceVideoRef.current?.play().catch(() => {});
-                    setFaceReady(true);
-                };
-            }
+            attachFaceStream(faceStreamRef.current);
         }
-    }, [step, faceSnapshot]);
+    }, [step, faceSnapshot, attachFaceStream]);
 
     const captureCurrentFrame = (): string | null => {
         const video = faceVideoRef.current;
@@ -380,7 +476,7 @@ export const StudentAttendanceScanView: React.FC<StudentAttendanceScanViewProps>
                 jp: scannedSession.jp !== undefined && scannedSession.jp !== null ? String(scannedSession.jp) : undefined,
                 time_range: scannedSession.time_range,
                 teacher_name: scannedSession.teacher_name,
-                barcode_value: user?.identifier || user?.email || '',
+                barcode_value: user?.identifier || user?.username || '',
                 session_token: scannedSession.session_token,
                 face_image_base64: faceSnapshot,
                 latitude: gpsCoords?.latitude,
@@ -431,14 +527,14 @@ export const StudentAttendanceScanView: React.FC<StudentAttendanceScanViewProps>
 
     // ─── Render ──────────────────────────────────────────────────────────────
     return (
-        <Box sx={{ maxWidth: 720, mx: 'auto', p: { xs: 2, sm: 3 } }}>
+        <Box sx={{ maxWidth: 720, mx: 'auto', p: { xs: 0, sm: 2 } }}>
             {/* Header Informasi */}
             <Card
                 variant="outlined"
                 sx={{
-                    p: { xs: 2.5, sm: 3 },
-                    mb: 3,
-                    borderRadius: 3,
+                    p: { xs: 1.5, sm: 2.5 },
+                    mb: { xs: 1.5, sm: 2.5 },
+                    borderRadius: { xs: 2, sm: 3 },
                     bgcolor: isDark ? '#18181b' : '#ffffff',
                     borderColor: isDark ? '#27272a' : '#e2e8f0',
                 }}
@@ -545,7 +641,7 @@ export const StudentAttendanceScanView: React.FC<StudentAttendanceScanViewProps>
                         sx={{
                             position: 'relative',
                             width: '100%',
-                            aspectRatio: '16/9',
+                            aspectRatio: { xs: '3/4', sm: '16/9' },
                             mb: 2,
                             borderRadius: 2.5,
                             overflow: 'hidden',
@@ -683,8 +779,8 @@ export const StudentAttendanceScanView: React.FC<StudentAttendanceScanViewProps>
                 <Card
                     variant="outlined"
                     sx={{
-                        p: { xs: 2.5, sm: 3.5 },
-                        borderRadius: 3,
+                        p: { xs: 1.5, sm: 3 },
+                        borderRadius: { xs: 2, sm: 3 },
                         bgcolor: isDark ? '#18181b' : '#ffffff',
                         borderColor: isDark ? '#27272a' : '#e2e8f0',
                     }}
@@ -749,8 +845,8 @@ export const StudentAttendanceScanView: React.FC<StudentAttendanceScanViewProps>
                         sx={{
                             position: 'relative',
                             width: '100%',
-                            maxWidth: 480,
-                            aspectRatio: '4 / 3',
+                            maxWidth: { xs: '100%', sm: 480 },
+                            aspectRatio: { xs: '3 / 4', sm: '4 / 3' },
                             mx: 'auto',
                             mb: 2.5,
                             borderRadius: 3,
@@ -766,7 +862,7 @@ export const StudentAttendanceScanView: React.FC<StudentAttendanceScanViewProps>
                             <img
                                 src={faceSnapshot}
                                 alt="Selfie Wajah Siswa"
-                                style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                             />
                         ) : (
                             <>
@@ -799,7 +895,7 @@ export const StudentAttendanceScanView: React.FC<StudentAttendanceScanViewProps>
                                     style={{
                                         width: '100%',
                                         height: '100%',
-                                        objectFit: 'contain',
+                                        objectFit: 'cover',
                                         transform: 'scaleX(-1)',
                                     }}
                                 />
@@ -807,8 +903,8 @@ export const StudentAttendanceScanView: React.FC<StudentAttendanceScanViewProps>
                                 <Box
                                     sx={{
                                         position: 'absolute',
-                                        width: 155,
-                                        height: 205,
+                                        width: { xs: 185, sm: 155 },
+                                        height: { xs: 245, sm: 205 },
                                         borderRadius: '50%',
                                         border: '3px dashed #3b82f6',
                                         boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.45)',
@@ -822,23 +918,36 @@ export const StudentAttendanceScanView: React.FC<StudentAttendanceScanViewProps>
                     {/* Action buttons */}
                     <Stack spacing={1.5} sx={{ maxWidth: 380, mx: 'auto' }}>
                         {!faceSnapshot ? (
-                            <Button
-                                variant="contained"
-                                color="primary"
-                                size="large"
-                                startIcon={<CameraAltIcon />}
-                                disabled={!faceReady}
-                                onClick={captureFaceSnapshot}
-                                sx={{
-                                    textTransform: 'none',
-                                    fontWeight: 800,
-                                    borderRadius: 2.5,
-                                    py: 1.25,
-                                    bgcolor: '#2563eb',
-                                }}
-                            >
-                                {faceReady ? 'Ambil Foto Wajah' : 'Menyiapkan Kamera...'}
-                            </Button>
+                            <>
+                                <Button
+                                    variant="contained"
+                                    color="primary"
+                                    size="large"
+                                    startIcon={<CameraAltIcon />}
+                                    disabled={!faceReady}
+                                    onClick={captureFaceSnapshot}
+                                    sx={{
+                                        textTransform: 'none',
+                                        fontWeight: 800,
+                                        borderRadius: 2.5,
+                                        py: 1.25,
+                                        bgcolor: '#2563eb',
+                                    }}
+                                >
+                                    {faceReady ? 'Ambil Foto Wajah' : 'Menyiapkan Kamera...'}
+                                </Button>
+                                {!faceReady && (
+                                    <Button
+                                        variant="outlined"
+                                        size="small"
+                                        startIcon={<ReplayIcon />}
+                                        onClick={() => startFaceCamera()}
+                                        sx={{ textTransform: 'none', fontWeight: 700, borderRadius: 2.5 }}
+                                    >
+                                        Muat Ulang Kamera Depan
+                                    </Button>
+                                )}
+                            </>
                         ) : (
                             <>
                                 <Button
