@@ -26,6 +26,7 @@ import {
 import { useTheme } from '@mui/material/styles';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import { useScheduleStore, sortClassesByGradeAndName } from '../store/useScheduleStore';
+import { useSchedulePermissions } from '../utils/permissions';
 import type {
     ClassColumn,
     DragPayload,
@@ -36,6 +37,7 @@ import type {
 const ScheduleMatrixTable: React.FC = () => {
     const theme = useTheme();
     const isDark = theme.palette.mode === 'dark';
+    const { canEditSchedule } = useSchedulePermissions();
 
     const {
         rows,
@@ -161,6 +163,7 @@ const ScheduleMatrixTable: React.FC = () => {
         className: string,
         cell: ScheduleCell
     ) => {
+        if (!canEditSchedule) return;
         setSelectedCellTarget({
             rowId: row.id,
             day: row.day,
@@ -833,18 +836,18 @@ const ScheduleMatrixTable: React.FC = () => {
                                             return (
                                                 <TableCell
                                                     key={cls.id || cls.name}
-                                                    draggable={Boolean(cell.teacherCode)}
+                                                    draggable={canEditSchedule && Boolean(cell.teacherCode)}
                                                     onDragStart={(e) =>
-                                                        handleCellDragStart(e, row.id, cls.name, cell)
+                                                        canEditSchedule && handleCellDragStart(e, row.id, cls.name, cell)
                                                     }
                                                     onDragOver={handleCellDragOver}
-                                                    onDrop={(e) => handleCellDrop(e, row.id, cls.name)}
+                                                    onDrop={(e) => canEditSchedule && handleCellDrop(e, row.id, cls.name)}
                                                     onClick={() => handleCellClick(row, cls.name, cell)}
                                                     sx={{
                                                         textAlign: 'center',
                                                         borderRight: isDark ? '1px solid #27272a' : '1px solid #e2e8f0',
                                                         p: 0.75,
-                                                        cursor: 'pointer',
+                                                        cursor: canEditSchedule ? 'pointer' : 'default',
                                                         bgcolor: hasConflict
                                                             ? (isDark ? 'rgba(239, 68, 68, 0.25)' : '#fee2e2')
                                                             : isMatchingSearch

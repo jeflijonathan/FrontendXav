@@ -12,9 +12,11 @@ import AutoGenerateScheduleDialog from './components/AutoGenerateScheduleDialog'
 import JpRecommendationModal from './components/JpRecommendationModal';
 import SchedulePrintDialog from './components/SchedulePrintDialog';
 import { useScheduleStore } from './store/useScheduleStore';
+import { useSchedulePermissions } from './utils/permissions';
 
 const DashboardSchedule: React.FC = () => {
     const { viewMode, loadScheduleFromDatabase } = useScheduleStore();
+    const { canEditSchedule } = useSchedulePermissions();
 
     useEffect(() => {
         // Load data from MySQL database on initial mount
@@ -32,8 +34,8 @@ const DashboardSchedule: React.FC = () => {
             {/* Top Filter and Actions Header (Title, Period, Save, Generate, Export) */}
             <ScheduleHeader />
 
-            {/* Panel Request Jadwal Pengajar (Preferensi Waktu Mengajar Guru) */}
-            <TeacherScheduleRequestPanel />
+            {/* Panel Request Jadwal Pengajar (Khusus Kurikulum & Kepala Sekolah) */}
+            {canEditSchedule && <TeacherScheduleRequestPanel />}
 
             {/* Bar Kontrol Sesuai Request User: Ditaruh Sesudah Panel Request */}
             {/* (View Switcher Versi 1 vs Versi 2, KPI Stats, Filter Ruang Kelas, Tombol Pop-up Kelas & Grid Pills) */}

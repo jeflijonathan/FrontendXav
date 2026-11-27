@@ -21,6 +21,7 @@ import DashboardAcademicCalendar from "@pages/dashboardAcademicCalendar";
 import DashboardEffectiveHours from "@pages/dashboardEffectiveHours";
 import DashboardSchedule from "@pages/dashboardSchedule";
 import DashboardAttendance from "@pages/dashboardAttendance";
+import DashboardDailyAttendance from "@pages/dashboardDailyAttendance";
 import DashboardProfile from "@pages/dashboardProfile";
 import { ProtectedRoute } from "./common/components/Auth/ProtectedRoute";
 
@@ -84,7 +85,7 @@ const routes = createBrowserRouter([
       {
         path: "/teaching-staff",
         element: (
-          <ProtectedRoute allowedRoles={["TU", "kurikulum"]}>
+          <ProtectedRoute allowedRoles={["kepala_sekolah", "kurikulum", "admin", "superadmin"]}>
             <DashboardTeaching />
           </ProtectedRoute>
         ),
@@ -103,15 +104,38 @@ const routes = createBrowserRouter([
       },
       {
         path: "/school-informations",
-        element: <DashboardSchoolInformation />,
+        element: (
+          <ProtectedRoute
+            allowedRoles={["kurikulum", "kepala_sekolah", "tu", "admin", "superadmin"]}
+          >
+            <DashboardSchoolInformation />
+          </ProtectedRoute>
+        ),
       },
       {
         path: "/announcements",
-        element: <DashboardAnnouncement />,
+        element: (
+          <ProtectedRoute
+            allowedRoles={[
+              "kurikulum",
+              "kepala_sekolah",
+              "tu",
+              "kesiswaan",
+              "admin",
+              "superadmin",
+            ]}
+          >
+            <DashboardAnnouncement />
+          </ProtectedRoute>
+        ),
       },
       {
         path: "/roster-jam",
-        element: <DashboardRosterJam />,
+        element: (
+          <ProtectedRoute allowedRoles={["kepala_sekolah", "kurikulum", "admin", "superadmin"]}>
+            <DashboardRosterJam />
+          </ProtectedRoute>
+        ),
       },
       {
         path: "/kalender-akademik",
@@ -119,7 +143,11 @@ const routes = createBrowserRouter([
       },
       {
         path: "/alokasi-jp",
-        element: <DashboardEffectiveHours />,
+        element: (
+          <ProtectedRoute allowedRoles={["kepala_sekolah", "kurikulum", "admin", "superadmin"]}>
+            <DashboardEffectiveHours />
+          </ProtectedRoute>
+        ),
       },
       {
         path: "/jadwal-pelajaran",
@@ -128,6 +156,28 @@ const routes = createBrowserRouter([
       {
         path: "/presensi-siswa",
         element: <DashboardAttendance />,
+      },
+      {
+        path: "/buku-induk-kehadiran",
+        element: (
+          <ProtectedRoute
+            allowedRoles={[
+              "pengurus_kelas",
+              "guru_piket",
+              "wali_kelas",
+              "walikelas",
+              "kurikulum",
+              "kesiswaan",
+              "kepala_sekolah",
+              "admin",
+              "superadmin",
+              "TU",
+              "tu",
+            ]}
+          >
+            <DashboardDailyAttendance />
+          </ProtectedRoute>
+        ),
       },
       {
         path: "/dashboard-profile",

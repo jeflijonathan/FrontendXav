@@ -37,6 +37,7 @@ import LightbulbOutlinedIcon from '@mui/icons-material/LightbulbOutlined';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 import { useScheduleStore } from '../store/useScheduleStore';
+import { useSchedulePermissions } from '../utils/permissions';
 import type { DayName, ScheduleCell, ScheduleRow } from '../types';
 
 const DAYS: DayName[] = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
@@ -44,6 +45,7 @@ const DAYS: DayName[] = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
 const PerClassScheduleView: React.FC = () => {
     const theme = useTheme();
     const isDark = theme.palette.mode === 'dark';
+    const { canEditSchedule } = useSchedulePermissions();
 
     const {
         rows,
@@ -207,6 +209,7 @@ const PerClassScheduleView: React.FC = () => {
 
     // Open slot editor
     const handleOpenSlotEditor = (row: ScheduleRow) => {
+        if (!canEditSchedule) return;
         if (row.specialActivity) return; // Special activity (Upacara/Senam/Istirahat) cannot be overridden per class
 
         const cell = row.classCells[selectedClassForInput] || { teacherCode: null };
@@ -593,9 +596,11 @@ const PerClassScheduleView: React.FC = () => {
                                 <TableCell sx={{ color: '#ffffff', fontWeight: 800, width: 110, textAlign: 'center' }}>
                                     STATUS
                                 </TableCell>
-                                <TableCell sx={{ color: '#ffffff', fontWeight: 800, width: 120, textAlign: 'center' }}>
-                                    AKSI
-                                </TableCell>
+                                {canEditSchedule && (
+                                    <TableCell sx={{ color: '#ffffff', fontWeight: 800, width: 120, textAlign: 'center' }}>
+                                        AKSI
+                                    </TableCell>
+                                )}
                             </TableRow>
                         </TableHead>
                         <TableBody>
@@ -619,7 +624,7 @@ const PerClassScheduleView: React.FC = () => {
                                     <TableRow
                                         key={row.id}
                                         onDragOver={handleDragOver}
-                                        onDrop={(e) => handleDrop(e, row)}
+                                        onDrop={(e) => canEditSchedule && handleDrop(e, row)}
                                         sx={{
                                             bgcolor: isSpecial
                                                 ? (isDark ? 'rgba(234, 179, 8, 0.15)' : row.specialActivity?.colorScheme.bg)
@@ -679,8 +684,8 @@ const PerClassScheduleView: React.FC = () => {
                                                         row.specialActivity.title.toUpperCase().includes('EKSTRA')
                                                     )
                                                 );
-                                                const classExtraVal = isEkstraAct && selectedClassName
-                                                    ? (row.classExtraActivities?.[selectedClassName] ?? (selectedClass?.id ? row.classExtraActivities?.[selectedClass.id] : undefined))
+                                                const classExtraVal = isEkstraAct && selectedClassForInput
+                                                    ? (row.classExtraActivities?.[selectedClassForInput] ?? (currentClassObj?.id ? row.classExtraActivities?.[currentClassObj.id] : undefined))
                                                     : undefined;
                                                 const displaySubtitle = classExtraVal !== undefined
                                                     ? (classExtraVal === '' ? '- Kosong -' : classExtraVal)
@@ -866,33 +871,35 @@ const PerClassScheduleView: React.FC = () => {
                                         </TableCell>
 
                                         {/* Actions */}
-                                        <TableCell sx={{ textAlign: 'center' }}>
-                                            {!isSpecial && (
-                                                <Stack direction="row" spacing={0.5} sx={{ justifyContent: 'center' }}>
-                                                    <Tooltip title="Pilih / Ubah Guru & Mapel">
-                                                        <IconButton
-                                                            size="small"
-                                                            onClick={() => handleOpenSlotEditor(row)}
-                                                            sx={{ color: '#2563eb', '&:hover': { bgcolor: '#eff6ff' } }}
-                                                        >
-                                                            <EditIcon fontSize="small" />
-                                                        </IconButton>
-                                                    </Tooltip>
-
-                                                    {cell.teacherCode && (
-                                                        <Tooltip title="Kosongkan Slot">
+                                        {canEditSchedule && (
+                                            <TableCell sx={{ textAlign: 'center' }}>
+                                                {!isSpecial && (
+                                                    <Stack direction="row" spacing={0.5} sx={{ justifyContent: 'center' }}>
+                                                        <Tooltip title="Pilih / Ubah Guru & Mapel">
                                                             <IconButton
                                                                 size="small"
-                                                                onClick={() => handleClearSlot(row.id)}
-                                                                sx={{ color: '#ef4444', '&:hover': { bgcolor: '#fef2f2' } }}
+                                                                onClick={() => handleOpenSlotEditor(row)}
+                                                                sx={{ color: '#2563eb', '&:hover': { bgcolor: '#eff6ff' } }}
                                                             >
-                                                                <DeleteOutlineIcon fontSize="small" />
+                                                                <EditIcon fontSize="small" />
                                                             </IconButton>
                                                         </Tooltip>
-                                                    )}
-                                                </Stack>
-                                            )}
-                                        </TableCell>
+
+                                                        {cell.teacherCode && (
+                                                            <Tooltip title="Kosongkan Slot">
+                                                                <IconButton
+                                                                    size="small"
+                                                                    onClick={() => handleClearSlot(row.id)}
+                                                                    sx={{ color: '#ef4444', '&:hover': { bgcolor: '#fef2f2' } }}
+                                                                >
+                                                                    <DeleteOutlineIcon fontSize="small" />
+                                                                </IconButton>
+                                                            </Tooltip>
+                                                        )}
+                                                    </Stack>
+                                                )}
+                                            </TableCell>
+                                        )}
                                     </TableRow>
                                 );
                             })}

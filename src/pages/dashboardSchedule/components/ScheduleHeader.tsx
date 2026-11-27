@@ -26,7 +26,12 @@ import SaveIcon from '@mui/icons-material/Save';
 import TableChartIcon from '@mui/icons-material/TableChart';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import DeleteSweepOutlinedIcon from '@mui/icons-material/DeleteSweepOutlined';
+import DownloadIcon from '@mui/icons-material/Download';
+import LockIcon from '@mui/icons-material/Lock';
+import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 import { useScheduleStore } from '../store/useScheduleStore';
+import { useSchedulePermissions } from '../utils/permissions';
+import { parseGoogleDriveUrl } from '@utils/googleDrive';
 
 const ScheduleHeader: React.FC = () => {
     const theme = useTheme();
@@ -46,7 +51,28 @@ const ScheduleHeader: React.FC = () => {
         classes,
         selectedClassFilter,
         rows,
+        approvalData,
     } = useScheduleStore();
+    const { canEditSchedule } = useSchedulePermissions();
+
+    const isScheduleApproved = Boolean(approvalData?.isApproved);
+    const parsedDrive = useMemo(
+        () => parseGoogleDriveUrl(approvalData?.googleDriveUrl),
+        [approvalData?.googleDriveUrl]
+    );
+
+    const handleDownloadApprovedSchedule = () => {
+        if (!isScheduleApproved) return;
+        if (parsedDrive.isValid && parsedDrive.id && parsedDrive.type === 'file') {
+            window.open(`https://drive.google.com/uc?export=download&id=${parsedDrive.id}`, '_blank');
+            return;
+        }
+        if (parsedDrive.isValid && parsedDrive.originalUrl) {
+            window.open(parsedDrive.originalUrl, '_blank');
+            return;
+        }
+        setPrintDialogOpen(true);
+    };
 
     const [isClearDialogOpen, setIsClearDialogOpen] = useState(false);
     const [selectedScope, setSelectedScope] = useState<string>('ALL');
@@ -168,129 +194,181 @@ const ScheduleHeader: React.FC = () => {
                         </FormControl>
                     )}
 
-                    <Tooltip title="Petunjuk & rekomendasi penempatan JP terbaik (Kejuruan di JP 6-8 vs Teori di JP 1-3)">
+                    {!canEditSchedule && (
+                        <Chip
+                            icon={<VisibilityOutlinedIcon sx={{ fontSize: '15px !important' }} />}
+                            label="Mode Lihat (Read-Only)"
+                            size="small"
+                            color="info"
+                            variant="outlined"
+                            sx={{ fontWeight: 700 }}
+                        />
+                    )}
+
+                    {canEditSchedule && (
+                        <>
+                            <Tooltip title="Petunjuk & rekomendasi penempatan JP terbaik (Kejuruan di JP 6-8 vs Teori di JP 1-3)">
+                                <Button
+                                    variant="outlined"
+                                    size="small"
+                                    startIcon={<LightbulbOutlinedIcon />}
+                                    onClick={() => setRecommendationModalOpen(true)}
+                                    sx={{
+                                        borderColor: isDark ? '#3f3f46' : '#e2e8f0',
+                                        color: isDark ? '#cbd5e1' : '#475569',
+                                        textTransform: 'none',
+                                        fontWeight: 600,
+                                        borderRadius: 2,
+                                        '&:hover': { bgcolor: isDark ? '#27272a' : '#f8fafc', borderColor: isDark ? '#52525b' : '#cbd5e1' },
+                                    }}
+                                >
+                                    Rekomendasi JP
+                                </Button>
+                            </Tooltip>
+
+                            <Tooltip title="Sinkronkan struktur tabel dari settingan Roster Jam Belajar">
+                                <Button
+                                    variant="outlined"
+                                    size="small"
+                                    startIcon={<TableChartIcon />}
+                                    onClick={generateTableFromRosterJam}
+                                    sx={{
+                                        borderColor: isDark ? '#3f3f46' : '#e2e8f0',
+                                        color: isDark ? '#e4e4e7' : '#334155',
+                                        textTransform: 'none',
+                                        fontWeight: 600,
+                                        borderRadius: 2,
+                                        '&:hover': { bgcolor: isDark ? '#27272a' : '#f1f5f9' },
+                                    }}
+                                >
+                                    Generate Tabel
+                                </Button>
+                            </Tooltip>
+
+                            <Tooltip title="Isi jadwal otomatis tanpa bentrok dengan preferensi guru & ragam macam ekstra">
+                                <Button
+                                    variant="contained"
+                                    size="small"
+                                    startIcon={<AutoAwesomeIcon />}
+                                    onClick={() => setIsGenerateScheduleDialogOpen(true)}
+                                    sx={{
+                                        bgcolor: '#0284c7',
+                                        color: '#ffffff',
+                                        textTransform: 'none',
+                                        fontWeight: 700,
+                                        borderRadius: 2,
+                                        boxShadow: '0 4px 12px rgba(2, 132, 199, 0.25)',
+                                        '&:hover': { bgcolor: '#0369a1' },
+                                    }}
+                                >
+                                    Generate Jadwal Acak
+                                </Button>
+                            </Tooltip>
+
+                            <Tooltip title={filledSlotsCount > 0 ? "Kosongkan seluruh atau sebagian slot jadwal KBM" : "Belum ada slot KBM yang terisi"}>
+                                <span>
+                                    <Button
+                                        variant="outlined"
+                                        size="small"
+                                        color="error"
+                                        disabled={filledSlotsCount === 0}
+                                        startIcon={<DeleteSweepOutlinedIcon />}
+                                        onClick={handleOpenClearDialog}
+                                        sx={{
+                                            borderColor: isDark ? 'rgba(239, 68, 68, 0.4)' : '#fca5a5',
+                                            color: isDark ? '#f87171' : '#dc2626',
+                                            textTransform: 'none',
+                                            fontWeight: 600,
+                                            borderRadius: 2,
+                                            '&:hover': {
+                                                bgcolor: isDark ? 'rgba(239, 68, 68, 0.15)' : '#fef2f2',
+                                                borderColor: '#ef4444',
+                                            },
+                                            '&.Mui-disabled': {
+                                                borderColor: isDark ? '#27272a' : '#e2e8f0',
+                                                color: isDark ? '#52525b' : '#94a3b8',
+                                            },
+                                        }}
+                                    >
+                                        Kosongkan Slot
+                                    </Button>
+                                </span>
+                            </Tooltip>
+                        </>
+                    )}
+
+                    {canEditSchedule ? (
                         <Button
                             variant="outlined"
                             size="small"
-                            startIcon={<LightbulbOutlinedIcon />}
-                            onClick={() => setRecommendationModalOpen(true)}
+                            startIcon={<PrintOutlinedIcon />}
+                            onClick={() => setPrintDialogOpen(true)}
                             sx={{
                                 borderColor: isDark ? '#3f3f46' : '#e2e8f0',
-                                color: isDark ? '#cbd5e1' : '#475569',
+                                color: isDark ? '#f4f4f5' : '#0f172a',
                                 textTransform: 'none',
                                 fontWeight: 600,
                                 borderRadius: 2,
-                                '&:hover': { bgcolor: isDark ? '#27272a' : '#f8fafc', borderColor: isDark ? '#52525b' : '#cbd5e1' },
+                                '&:hover': { bgcolor: isDark ? '#27272a' : '#f8fafc' },
                             }}
                         >
-                            Rekomendasi JP
+                            Cetak / Ekspor
                         </Button>
-                    </Tooltip>
-
-                    <Tooltip title="Sinkronkan struktur tabel dari settingan Roster Jam Belajar">
-                        <Button
-                            variant="outlined"
-                            size="small"
-                            startIcon={<TableChartIcon />}
-                            onClick={generateTableFromRosterJam}
-                            sx={{
-                                borderColor: isDark ? '#3f3f46' : '#e2e8f0',
-                                color: isDark ? '#e4e4e7' : '#334155',
-                                textTransform: 'none',
-                                fontWeight: 600,
-                                borderRadius: 2,
-                                '&:hover': { bgcolor: isDark ? '#27272a' : '#f1f5f9' },
-                            }}
-                        >
-                            Generate Tabel
-                        </Button>
-                    </Tooltip>
-
-                    <Tooltip title="Isi jadwal otomatis tanpa bentrok dengan preferensi guru & ragam macam ekstra">
+                    ) : isScheduleApproved ? (
                         <Button
                             variant="contained"
                             size="small"
-                            startIcon={<AutoAwesomeIcon />}
-                            onClick={() => setIsGenerateScheduleDialogOpen(true)}
+                            color="success"
+                            startIcon={<DownloadIcon />}
+                            onClick={handleDownloadApprovedSchedule}
                             sx={{
-                                bgcolor: '#0284c7',
-                                color: '#ffffff',
                                 textTransform: 'none',
                                 fontWeight: 700,
                                 borderRadius: 2,
-                                boxShadow: '0 4px 12px rgba(2, 132, 199, 0.25)',
-                                '&:hover': { bgcolor: '#0369a1' },
                             }}
                         >
-                            Generate Jadwal Acak
+                            Download Jadwal Sah
                         </Button>
-                    </Tooltip>
+                    ) : (
+                        <Tooltip title="Jadwal baru dapat didownload setelah dicetak, ditandatangani, dan disahkan oleh Kepala Sekolah">
+                            <span>
+                                <Button
+                                    variant="outlined"
+                                    size="small"
+                                    disabled
+                                    startIcon={<LockIcon />}
+                                    sx={{
+                                        textTransform: 'none',
+                                        fontWeight: 600,
+                                        borderRadius: 2,
+                                    }}
+                                >
+                                    Download Jadwal (Belum Disahkan)
+                                </Button>
+                            </span>
+                        </Tooltip>
+                    )}
 
-                    <Tooltip title={filledSlotsCount > 0 ? "Kosongkan seluruh atau sebagian slot jadwal KBM" : "Belum ada slot KBM yang terisi"}>
-                        <span>
-                            <Button
-                                variant="outlined"
-                                size="small"
-                                color="error"
-                                disabled={filledSlotsCount === 0}
-                                startIcon={<DeleteSweepOutlinedIcon />}
-                                onClick={handleOpenClearDialog}
-                                sx={{
-                                    borderColor: isDark ? 'rgba(239, 68, 68, 0.4)' : '#fca5a5',
-                                    color: isDark ? '#f87171' : '#dc2626',
-                                    textTransform: 'none',
-                                    fontWeight: 600,
-                                    borderRadius: 2,
-                                    '&:hover': {
-                                        bgcolor: isDark ? 'rgba(239, 68, 68, 0.15)' : '#fef2f2',
-                                        borderColor: '#ef4444',
-                                    },
-                                    '&.Mui-disabled': {
-                                        borderColor: isDark ? '#27272a' : '#e2e8f0',
-                                        color: isDark ? '#52525b' : '#94a3b8',
-                                    },
-                                }}
-                            >
-                                Kosongkan Slot
-                            </Button>
-                        </span>
-                    </Tooltip>
-
-                    <Button
-                        variant="outlined"
-                        size="small"
-                        startIcon={<PrintOutlinedIcon />}
-                        onClick={() => setPrintDialogOpen(true)}
-                        sx={{
-                            borderColor: isDark ? '#3f3f46' : '#e2e8f0',
-                            color: isDark ? '#f4f4f5' : '#0f172a',
-                            textTransform: 'none',
-                            fontWeight: 600,
-                            borderRadius: 2,
-                            '&:hover': { bgcolor: isDark ? '#27272a' : '#f8fafc' },
-                        }}
-                    >
-                        Cetak / Ekspor
-                    </Button>
-
-                    <Button
-                        variant="contained"
-                        size="small"
-                        startIcon={isSaving ? <CircularProgress size={16} color="inherit" /> : <SaveIcon />}
-                        onClick={saveSchedule}
-                        disabled={isSaving}
-                        sx={{
-                            bgcolor: '#4f46e5',
-                            color: '#ffffff',
-                            textTransform: 'none',
-                            fontWeight: 600,
-                            borderRadius: 2,
-                            boxShadow: 'none',
-                            '&:hover': { bgcolor: '#4338ca' },
-                        }}
-                    >
-                        {isSaving ? 'Menyimpan...' : 'Simpan Jadwal'}
-                    </Button>
+                    {canEditSchedule && (
+                        <Button
+                            variant="contained"
+                            size="small"
+                            startIcon={isSaving ? <CircularProgress size={16} color="inherit" /> : <SaveIcon />}
+                            onClick={saveSchedule}
+                            disabled={isSaving}
+                            sx={{
+                                bgcolor: '#4f46e5',
+                                color: '#ffffff',
+                                textTransform: 'none',
+                                fontWeight: 600,
+                                borderRadius: 2,
+                                boxShadow: 'none',
+                                '&:hover': { bgcolor: '#4338ca' },
+                            }}
+                        >
+                            {isSaving ? 'Menyimpan...' : 'Simpan Jadwal'}
+                        </Button>
+                    )}
                 </Stack>
             </Box>
 

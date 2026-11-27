@@ -12,9 +12,21 @@ import { Edit, Visibility } from "@mui/icons-material";
 import listTableAnnouncementMapper, { type AnnouncementTableItem } from "./utils/listTableMapper";
 import DetailAnnouncementCardDialog from "../Detail/DetailAnnouncementCardDialog";
 import UpdateAnnouncementCardDialog from "../Update/UpdateAnnouncementCardDialog";
+import useAuthStore from "@common/store/useAuthStore";
+
+const ANNOUNCEMENT_EDIT_ROLES = ["kurikulum", "kepala_sekolah", "tu", "admin", "superadmin"];
 
 const AnnouncementTable = () => {
     const { state } = useDashboardAnnouncementStore();
+    const { user, activeRole } = useAuthStore();
+    const roleLower = (activeRole || "").toLowerCase().trim();
+    const canEditAnnouncement =
+        ANNOUNCEMENT_EDIT_ROLES.includes(roleLower) ||
+        (!roleLower &&
+            (user?.roles?.some((r) =>
+                ANNOUNCEMENT_EDIT_ROLES.includes((r.name || "").toLowerCase().trim())
+            ) ??
+                false));
     const { fetchAnnouncementList, statusData, sortOptions, tableHeader } = useAnnouncementList();
     const { handleChangePage, handleSearch, handleSort, handleOrder } = useAnnouncementFilter();
 
@@ -48,15 +60,19 @@ const AnnouncementTable = () => {
                     setDialogOpen(prev => ({ ...prev, detail: true }));
                 },
             },
-            {
-                label: "Edit",
-                icon: <Edit fontSize="small" />,
-                color: "primary",
-                onClick: (item) => {
-                    setUpdateId(item.id);
-                    setDialogOpen(prev => ({ ...prev, update: !prev.update }));
-                },
-            },
+            ...(canEditAnnouncement
+                ? [
+                      {
+                          label: "Edit",
+                          icon: <Edit fontSize="small" />,
+                          color: "primary" as const,
+                          onClick: (item: any) => {
+                              setUpdateId(item.id);
+                              setDialogOpen(prev => ({ ...prev, update: !prev.update }));
+                          },
+                      },
+                  ]
+                : []),
         ];
 
     const renderActions = (item: AnnouncementTableItem) => (

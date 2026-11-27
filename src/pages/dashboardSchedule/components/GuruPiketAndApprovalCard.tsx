@@ -32,9 +32,10 @@ import LinkIcon from '@mui/icons-material/Link';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import EventBusyIcon from '@mui/icons-material/EventBusy';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutlined';
+import DownloadIcon from '@mui/icons-material/Download';
 
 import { useScheduleStore } from '../store/useScheduleStore';
-import { useAuthStore } from '@common/store/useAuthStore';
+import { useSchedulePermissions } from '../utils/permissions';
 import { GoogleDrivePreview } from '@components/GoogleDrivePreview/GoogleDrivePreview';
 import { parseGoogleDriveUrl } from '@utils/googleDrive';
 import GuruPiketFormDialog from './GuruPiketFormDialog';
@@ -58,7 +59,7 @@ export const GuruPiketAndApprovalCard: React.FC = () => {
         teachers,
     } = useScheduleStore();
 
-    const { user, activeRole } = useAuthStore();
+    const { canEditSchedule, isKepalaSekolah } = useSchedulePermissions();
 
     // Dialog form guru piket
     const [isPiketDialogOpen, setIsPiketDialogOpen] = useState(false);
@@ -68,13 +69,6 @@ export const GuruPiketAndApprovalCard: React.FC = () => {
     // Form pengesahan kepala sekolah
     const [driveUrlInput, setDriveUrlInput] = useState(approvalData?.googleDriveUrl || '');
     const [isSubmitting, setIsSubmitting] = useState(false);
-
-    // Validasi wewenang Kepala Sekolah (Role Based Access Control)
-    const isKepalaSekolah =
-        activeRole === 'kepala_sekolah' ||
-        user?.roles?.some((r) => r.name === 'kepala_sekolah') ||
-        activeRole === 'admin' ||
-        user?.roles?.some((r) => r.name === 'admin');
 
     // Data kepala sekolah aktif dari schoolInformation
     const activeSchoolInfo = schoolInformations.find(
@@ -214,21 +208,23 @@ export const GuruPiketAndApprovalCard: React.FC = () => {
                                 />
                             )}
 
-                            <Button
-                                variant="contained"
-                                size="small"
-                                startIcon={<AddIcon />}
-                                onClick={() => handleOpenAddPiket()}
-                                sx={{
-                                    bgcolor: '#4f46e5',
-                                    textTransform: 'none',
-                                    fontWeight: 700,
-                                    borderRadius: 2,
-                                    '&:hover': { bgcolor: '#4338ca' },
-                                }}
-                            >
-                                Tambah Guru Piket
-                            </Button>
+                            {canEditSchedule && (
+                                <Button
+                                    variant="contained"
+                                    size="small"
+                                    startIcon={<AddIcon />}
+                                    onClick={() => handleOpenAddPiket()}
+                                    sx={{
+                                        bgcolor: '#4f46e5',
+                                        textTransform: 'none',
+                                        fontWeight: 700,
+                                        borderRadius: 2,
+                                        '&:hover': { bgcolor: '#4338ca' },
+                                    }}
+                                >
+                                    Tambah Guru Piket
+                                </Button>
+                            )}
                         </Stack>
                     </Box>
 
@@ -249,7 +245,9 @@ export const GuruPiketAndApprovalCard: React.FC = () => {
                                     <TableCell sx={{ fontWeight: 800, color: isDark ? '#cbd5e1' : '#334155', minWidth: 220, borderBottom: isDark ? '1px solid #27272a' : undefined }}>JAM PIKET (SLOT JP)</TableCell>
                                     <TableCell sx={{ fontWeight: 800, color: isDark ? '#cbd5e1' : '#334155', width: 140, borderBottom: isDark ? '1px solid #27272a' : undefined }}>PERAN</TableCell>
                                     <TableCell sx={{ fontWeight: 800, color: isDark ? '#cbd5e1' : '#334155', minWidth: 160, borderBottom: isDark ? '1px solid #27272a' : undefined }}>STATUS BENTROK</TableCell>
-                                    <TableCell sx={{ fontWeight: 800, color: isDark ? '#cbd5e1' : '#334155', width: 110, textAlign: 'center', borderBottom: isDark ? '1px solid #27272a' : undefined }}>AKSI</TableCell>
+                                    {canEditSchedule && (
+                                        <TableCell sx={{ fontWeight: 800, color: isDark ? '#cbd5e1' : '#334155', width: 110, textAlign: 'center', borderBottom: isDark ? '1px solid #27272a' : undefined }}>AKSI</TableCell>
+                                    )}
                                 </TableRow>
                             </TableHead>
                             <TableBody>
@@ -474,45 +472,47 @@ export const GuruPiketAndApprovalCard: React.FC = () => {
                                             </TableCell>
 
                                             {/* Aksi */}
-                                            <TableCell sx={{ textAlign: 'center', verticalAlign: 'middle', borderBottom: isDark ? '1px solid #27272a' : undefined }}>
-                                                {piket ? (
-                                                    <Stack direction="row" spacing={0.5} sx={{ justifyContent: 'center' }}>
-                                                        <Tooltip title="Edit Jam & Slot Guru Piket">
-                                                            <IconButton
-                                                                size="small"
-                                                                onClick={() => handleOpenEditPiket(piketIndex)}
-                                                                sx={{ color: '#4f46e5', '&:hover': { bgcolor: '#ede9fe' } }}
-                                                            >
-                                                                <EditIcon fontSize="small" />
-                                                            </IconButton>
-                                                        </Tooltip>
-                                                        <Tooltip title="Hapus Tugas Piket">
-                                                            <IconButton
-                                                                size="small"
-                                                                onClick={() => handleDeletePiket(piketIndex, piket.name)}
-                                                                sx={{ color: '#ef4444', '&:hover': { bgcolor: '#fee2e2' } }}
-                                                            >
-                                                                <DeleteIcon fontSize="small" />
-                                                            </IconButton>
-                                                        </Tooltip>
-                                                    </Stack>
-                                                ) : (
-                                                    <Button
-                                                        size="small"
-                                                        variant="outlined"
-                                                        onClick={() => handleOpenAddPiket(day)}
-                                                        sx={{
-                                                            fontSize: '10px',
-                                                            textTransform: 'none',
-                                                            fontWeight: 700,
-                                                            py: 0.3,
-                                                            borderRadius: 1.5,
-                                                        }}
-                                                    >
-                                                        + Tugaskan
-                                                    </Button>
-                                                )}
-                                            </TableCell>
+                                            {canEditSchedule && (
+                                                <TableCell sx={{ textAlign: 'center', verticalAlign: 'middle', borderBottom: isDark ? '1px solid #27272a' : undefined }}>
+                                                    {piket ? (
+                                                        <Stack direction="row" spacing={0.5} sx={{ justifyContent: 'center' }}>
+                                                            <Tooltip title="Edit Jam & Slot Guru Piket">
+                                                                <IconButton
+                                                                    size="small"
+                                                                    onClick={() => handleOpenEditPiket(piketIndex)}
+                                                                    sx={{ color: '#4f46e5', '&:hover': { bgcolor: '#ede9fe' } }}
+                                                                >
+                                                                    <EditIcon fontSize="small" />
+                                                                </IconButton>
+                                                            </Tooltip>
+                                                            <Tooltip title="Hapus Tugas Piket">
+                                                                <IconButton
+                                                                    size="small"
+                                                                    onClick={() => handleDeletePiket(piketIndex, piket.name)}
+                                                                    sx={{ color: '#ef4444', '&:hover': { bgcolor: '#fee2e2' } }}
+                                                                >
+                                                                    <DeleteIcon fontSize="small" />
+                                                                </IconButton>
+                                                            </Tooltip>
+                                                        </Stack>
+                                                    ) : (
+                                                        <Button
+                                                            size="small"
+                                                            variant="outlined"
+                                                            onClick={() => handleOpenAddPiket(day)}
+                                                            sx={{
+                                                                fontSize: '10px',
+                                                                textTransform: 'none',
+                                                                fontWeight: 700,
+                                                                py: 0.3,
+                                                                borderRadius: 1.5,
+                                                            }}
+                                                        >
+                                                            + Tugaskan
+                                                        </Button>
+                                                    )}
+                                                </TableCell>
+                                            )}
                                         </TableRow>
                                     );
                                 })}
@@ -566,7 +566,7 @@ export const GuruPiketAndApprovalCard: React.FC = () => {
                                         LEMBAR PENGESAHAN DOKUMEN JADWAL
                                     </Typography>
                                     <Typography variant="caption" sx={{ color: isDark ? '#a1a1aa' : '#64748b' }}>
-                                        Berlaku sah untuk kegiatan belajar mengajar semester berjalan
+                                        Dokumen jadwal yang sudah dicetak &amp; ditandatangani resmi oleh Kepala Sekolah
                                     </Typography>
                                 </Box>
                             </Box>
@@ -680,8 +680,27 @@ export const GuruPiketAndApprovalCard: React.FC = () => {
                             </Box>
                         )}
 
-                        {/* Tombol Konfirmasi Pengesahan (Khusus Kepala Sekolah) */}
-                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 1.5 }}>
+                        {/* Tombol Download & Konfirmasi Pengesahan (Khusus Kepala Sekolah) */}
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 1.5, flexWrap: 'wrap' }}>
+                            {approvalData?.isApproved && driveParse.isValid && (
+                                <Button
+                                    variant="contained"
+                                    color="primary"
+                                    size="small"
+                                    startIcon={<DownloadIcon />}
+                                    onClick={() => {
+                                        const dlUrl =
+                                            driveParse.id && driveParse.type === 'file'
+                                                ? `https://drive.google.com/uc?export=download&id=${driveParse.id}`
+                                                : driveParse.originalUrl;
+                                        if (dlUrl) window.open(dlUrl, '_blank');
+                                    }}
+                                    sx={{ textTransform: 'none', fontWeight: 800, borderRadius: 2 }}
+                                >
+                                    Download Dokumen Jadwal Sah (TTD Kepsek)
+                                </Button>
+                            )}
+
                             {isKepalaSekolah ? (
                                 approvalData?.isApproved ? (
                                     <>

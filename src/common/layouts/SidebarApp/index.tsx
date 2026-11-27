@@ -23,6 +23,24 @@ const SidebarApp = () => {
   const { user, activeRole, logout } = useAuthStore();
   const navigate = useNavigate();
 
+  const normalizedRole = (activeRole || "").toLowerCase().trim();
+  const hasSidebarRole = (allowed: string[]) =>
+    allowed.includes(normalizedRole) ||
+    (!normalizedRole &&
+      (user?.roles?.some((r) => allowed.includes((r.name || "").toLowerCase().trim())) ??
+        false));
+
+  const canManageSchedule = hasSidebarRole(["kepala_sekolah", "kurikulum", "admin", "superadmin"]);
+  const canAccessSchoolInfo = hasSidebarRole(["kurikulum", "kepala_sekolah", "tu", "admin", "superadmin"]);
+  const canAccessAnnouncements = hasSidebarRole([
+    "kurikulum",
+    "kepala_sekolah",
+    "tu",
+    "kesiswaan",
+    "admin",
+    "superadmin",
+  ]);
+
   const handleLogout = async () => {
     await logout(navigate);
   };
@@ -49,6 +67,7 @@ const SidebarApp = () => {
       label: "KBM",
       subItems: [
         { label: "Presensi Siswa", href: "/presensi-siswa" },
+        { label: "Buku Induk Kehadiran", href: "/buku-induk-kehadiran" },
       ],
     },
     {
@@ -56,20 +75,32 @@ const SidebarApp = () => {
       label: "Jadwal",
       subItems: [
         { label: "Kalender Akademik", href: "/kalender-akademik" },
-        { label: "Alokasi Jam & JP", href: "/alokasi-jp" },
-        { label: "Pengajar", href: "/teaching-staff" },
-        { label: "Roster Jam Belajar", href: "/roster-jam" },
+        ...(canManageSchedule
+          ? [
+              { label: "Alokasi Jam & JP", href: "/alokasi-jp" },
+              { label: "Pengajar", href: "/teaching-staff" },
+              { label: "Roster Jam Belajar", href: "/roster-jam" },
+            ]
+          : []),
         { label: "Jadwal Pelajaran", href: "/jadwal-pelajaran" },
       ],
     },
-    {
-      icon: <BusinessIcon fontSize="small" />,
-      label: "Sekolah",
-      subItems: [
-        { label: "Pengumuman", href: "/announcements" },
-        { label: "Informasi Sekolah", href: "/school-informations" },
-      ],
-    },
+    ...(canAccessAnnouncements || canAccessSchoolInfo
+      ? [
+          {
+            icon: <BusinessIcon fontSize="small" />,
+            label: "Sekolah",
+            subItems: [
+              ...(canAccessAnnouncements
+                ? [{ label: "Pengumuman", href: "/announcements" }]
+                : []),
+              ...(canAccessSchoolInfo
+                ? [{ label: "Informasi Sekolah", href: "/school-informations" }]
+                : []),
+            ],
+          },
+        ]
+      : []),
     {
       icon: <PeopleIcon fontSize="small" />,
       label: "Pengguna",
